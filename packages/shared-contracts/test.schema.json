@@ -1,0 +1,212 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ddr001/sample",
+  "title": "Sample",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "sample_id",
+    "flow_point_id",
+    "sample_number",
+    "status",
+    "pulse_source",
+    "config",
+    "points",
+    "evidence",
+    "checksum"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ddr001.verification.sample/v2"
+    },
+    "sample_id": {
+      "type": "string"
+    },
+    "flow_point_id": {
+      "type": "string"
+    },
+    "sample_number": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "RUNNING",
+        "INVALID_EVIDENCE",
+        "CLOSED_VALID"
+      ]
+    },
+    "pulse_source": {
+      "type": "string",
+      "enum": [
+        "VISUAL",
+        "MANUAL",
+        "LED",
+        "BLE"
+      ]
+    },
+    "started_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "ended_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "gps": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "lat": {
+          "type": "number"
+        },
+        "lon": {
+          "type": "number"
+        },
+        "accuracy_m": {
+          "type": "number"
+        },
+        "captured_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "config": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "k_l_per_pulse",
+        "capture_step_l",
+        "mpe_pct",
+        "reading_uncertainty_l"
+      ],
+      "properties": {
+        "k_l_per_pulse": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "capture_step_l": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "mpe_pct": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "reading_uncertainty_l": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "start_reading": {
+      "$ref": "#/$defs/reading"
+    },
+    "end_reading": {
+      "$ref": "#/$defs/reading"
+    },
+    "result": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "v_ref_l": {
+          "type": "number"
+        },
+        "v_ind_l": {
+          "type": "number"
+        },
+        "error_pct": {
+          "type": "number"
+        },
+        "uncertainty_pct": {
+          "type": "number"
+        },
+        "mpe_pct": {
+          "type": "number"
+        },
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "APRUEBA",
+            "RECHAZA",
+            "NO_CONCLUYENTE"
+          ]
+        },
+        "duration_s": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      }
+    },
+    "points": {
+      "type": "array",
+      "items": {
+        "$ref": "ddr001/point"
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "ddr001/evidence"
+      }
+    },
+    "checksum": {
+      "type": "string"
+    }
+  },
+  "$defs": {
+    "reading": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "odometer_m3": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "needle_l": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "full_reading_l": {
+          "type": "number"
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "AUTO_CONFIRMED",
+            "MANUAL"
+          ]
+        }
+      },
+      "required": [
+        "full_reading_l",
+        "source"
+      ]
+    }
+  }
+}

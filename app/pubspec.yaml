@@ -1,0 +1,13 @@
+name: ddr001_app
+description: DDR001 pure Dart metrology engine.
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.12.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+

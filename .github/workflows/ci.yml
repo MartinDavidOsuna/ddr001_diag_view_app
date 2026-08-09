@@ -1,0 +1,35 @@
+name: CI
+on: [push, pull_request]
+
+jobs:
+  app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable }
+      - working-directory: app
+        run: |
+          flutter pub get
+          flutter analyze
+          flutter test
+
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - working-directory: backend
+        run: |
+          npm ci || npm i
+          npm run lint --if-present
+          npm test --if-present
+
+  ssot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # TODO: validar que shared-contracts, DATA_MODEL.md y API_CONTRACT.md concuerden,
+      # y que exista entrada en CHANGELOG.md cuando cambie comportamiento.
+      - run: echo "SSOT check placeholder"

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ddr001/meter",
+  "title": "Meter",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meter_id", "external_status"],
+  "properties": {
+    "meter_id": { "type": "string", "minLength": 1 },
+    "external_status": { "type": "string", "enum": ["FOUND_WITH_SURVEY", "FOUND_NO_SURVEY", "NOT_FOUND", "UNKNOWN_OFFLINE"] },
+    "external_snapshot": { "type": ["object", "null"] }
+  }
+}

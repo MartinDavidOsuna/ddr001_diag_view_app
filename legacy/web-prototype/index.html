@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>DDR001 · Verificador de medidores (tablet)</title>
+<style>
+  :root{ --navy:#1f3b5c; --blue:#1f5c99; --green:#1e7e45; --red:#b03a2e; --amber:#c07b1f;
+         --bg:#0f1826; --panel:#17263a; --panel2:#1f3247; --line:#2b425c; --txt:#e8eef5; --mut:#9fb2c8; }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body{ margin:0; font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:#0f1826;
+        color:#e8eef5; font-size:16px; }
+  header{ background:linear-gradient(90deg,#1f3b5c,#274d78); padding:12px 16px; position:sticky; top:0; z-index:10;
+          display:flex; align-items:center; gap:12px; box-shadow:0 2px 8px rgba(0,0,0,.4); }
+  header h1{ font-size:17px; margin:0; font-weight:700; }
+  header .sub{ font-size:11px; color:#bcd0e8; }
+  .wrap{ max-width:820px; margin:0 auto; padding:14px; }
+  .card{ background:#17263a; border:1px solid #2b425c; border-radius:12px;
+         padding:14px; margin-bottom:14px; }
+  .card h2{ font-size:14px; margin:0 0 10px; color:#8fb4dd; text-transform:uppercase; letter-spacing:.04em; }
+  label{ font-size:13px; color:#9fb2c8; display:block; margin:8px 0 4px; }
+  input,select{ width:100%; padding:11px; border-radius:9px; border:1px solid #33506f; background:#0f1c2c;
+                color:#e8eef5; font-size:16px; }
+  .row{ display:flex; gap:10px; flex-wrap:wrap; }
+  .row > div{ flex:1; min-width:120px; }
+  button{ border:0; border-radius:10px; padding:14px 16px; font-size:16px; font-weight:700; color:#fff;
+          background:#1f5c99; width:100%; cursor:pointer; }
+  button:active{ transform:translateY(1px); }
+  button.sec{ background:#2b425c; }
+  button.grn{ background:#1e7e45; } button.red{ background:#b03a2e; } button.amb{ background:#c07b1f; }
+  button:disabled{ opacity:.45; }
+  .btns{ display:flex; gap:10px; flex-wrap:wrap; } .btns > button{ flex:1; min-width:130px; }
+  .seg{ display:flex; gap:6px; background:#0f1c2c; border-radius:10px; padding:5px; }
+  .seg button{ background:transparent; color:#9fb2c8; padding:9px; font-size:14px; }
+  .seg button.on{ background:#1f5c99; color:#fff; }
+  video,canvas{ width:100%; border-radius:10px; background:#000; display:block; }
+  .cam-wrap{ position:relative; }
+  #roi{ position:absolute; border:2px solid #ffd23f; box-shadow:0 0 0 9999px rgba(0,0,0,.15) inset; pointer-events:none; }
+  .big{ font-size:34px; font-weight:800; } .mut{ color:#9fb2c8; } .sm{ font-size:12px; color:#9fb2c8; }
+  .stat{ display:flex; gap:14px; flex-wrap:wrap; align-items:baseline; }
+  .stat > div{ flex:1; min-width:130px; text-align:center; background:#0f1c2c; border-radius:10px; padding:12px; }
+  .verd{ text-align:center; padding:16px; border-radius:12px; font-size:26px; font-weight:800; margin-top:10px; }
+  .v-ok{ background:rgba(30,126,69,.22); color:#54d98c; border:1px solid #1e7e45; }
+  .v-no{ background:rgba(176,58,46,.22); color:#ff7a6b; border:1px solid #b03a2e; }
+  .v-go{ background:rgba(192,123,31,.20); color:#ffbf5e; border:1px solid #c07b1f; }
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  th,td{ padding:7px 6px; border-bottom:1px solid #2b425c; text-align:right; }
+  th:first-child,td:first-child{ text-align:left; }
+  th{ color:#8fb4dd; font-weight:700; }
+  .bar{ height:14px; background:#0f1c2c; border-radius:7px; overflow:hidden; }
+  .bar > i{ display:block; height:100%; background:#ffd23f; width:0%; }
+  .hint{ font-size:12px; color:#9fb2c8; line-height:1.5; }
+  .pill{ display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; background:#2b425c; color:#bcd0e8; }
+  .flash{ animation:fl .25s; } @keyframes fl{ from{ background:#ffd23f22 } to{ background:transparent } }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>DDR001 · Verificador de medidores</h1>
+    <div class="sub">Versión tablet (interina) · volumen adaptativo · MPE ±2%</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- Identificación -->
+  <div class="card">
+    <h2>1 · Identificación</h2>
+    <div class="row">
+      <div><label>ID del medidor</label><input id="mid" placeholder="p.ej. H-016"></div>
+      <div><label>Operador</label><input id="oper" placeholder="nombre"></div>
+    </div>
+    <div class="row">
+      <div><label>Caudal (zona metrológica)</label>
+        <select id="caudal">
+          <option data-mpe="2">Q máximo (Q3) — zona superior ±2%</option>
+          <option data-mpe="2">Q intermedio (Q2–Q3) — zona superior ±2%</option>
+          <option data-mpe="5">Q mínimo (Q1) — zona inferior ±5%</option>
+        </select></div>
+      <div><label>LPS aprox.</label><input id="lps" type="number" value="20"></div>
+    </div>
+    <div class="sm" style="margin-top:6px">MPE por zona según <b>NOM-012-SCFI-1994 / ISO 4064 / OIML R49</b>: superior (Qt≤Q≤Qmáx) <b>±2%</b>, inferior (Qmín≤Q&lt;Qt) <b>±5%</b>. Al elegir el caudal, el MPE se ajusta solo (editable en Ajustes).</div>
+    <button id="geoBtn" class="sec" style="margin-top:10px">📍 Obtener ubicación GPS</button>
+    <div id="geoMsg" class="sm" style="margin-top:6px">Ubicación: — (se toma también al marcar inicio)</div>
+  </div>
+
+  <!-- Fuente de pulso -->
+  <div class="card">
+    <h2>2 · Fuente de pulso</h2>
+    <div class="seg" id="src">
+      <button data-s="sim" class="on">Simulación</button>
+      <button data-s="tap">Manual</button>
+      <button data-s="led">LED (cámara)</button>
+      <button data-s="ble">Bluetooth</button>
+    </div>
+
+    <div id="src-sim" class="srcpanel" style="margin-top:12px">
+      <div class="hint">Simula la recepción de pulsos vía Bluetooth a un intervalo fijo. Apunta la cámara al medidor (o al simulador en la laptop) y la app fotografía la carátula real en cada captura.</div>
+      <label>Cada cuántos segundos se recibe un pulso (1 decimal)</label>
+      <input id="simSec" type="number" step="0.1" min="0.1" value="2.0">
+      <div class="btns" style="margin-top:10px">
+        <button id="simStart" class="grn">▶ Generar pulsos (BLE simulado)</button>
+        <button id="simStop" class="sec">■ Parar pulsos</button>
+      </div>
+      <div class="sm" style="margin-top:6px">Esto solo genera pulsos (el “flujo”). La prueba se inicia/finaliza abajo, en la sección 4.</div>
+      <div id="simFlash" class="sm" style="margin-top:8px">—</div>
+    </div>
+
+    <div id="src-tap" class="srcpanel" style="display:none; margin-top:12px">
+      <div class="hint">Presiona una vez por cada pulso del banco (útil para pruebas o pulsos lentos).</div>
+      <button id="tapBtn" class="amb" style="margin-top:10px; font-size:20px; padding:22px">● PULSO  (+1 L)</button>
+    </div>
+
+    <div id="src-led" class="srcpanel" style="display:none; margin-top:12px">
+      <div class="hint">Coloca el LED del banco dentro del recuadro amarillo. La app cuenta cada destello.</div>
+      <div class="btns" style="margin-top:10px">
+        <button id="camBtn" class="sec">Encender cámara</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div><label>Posición X</label><input id="roiX" type="range" min="0" max="100" value="50"></div>
+        <div><label>Posición Y</label><input id="roiY" type="range" min="0" max="100" value="30"></div>
+        <div><label>Tamaño</label><input id="roiS" type="range" min="4" max="40" value="12"></div>
+      </div>
+      <label>Umbral de brillo <span id="thV" class="pill">40</span></label>
+      <input id="thr" type="range" min="5" max="120" value="40">
+      <label>Brillo en vivo del recuadro</label>
+      <div class="bar"><i id="briBar"></i></div>
+    </div>
+
+    <div id="src-ble" class="srcpanel" style="display:none; margin-top:12px">
+      <div class="hint">Conecta un trigger BLE (p.ej. ESP32 con Nordic UART) que notifique una vez por pulso.</div>
+      <div class="btns" style="margin-top:10px">
+        <button id="bleBtn" class="sec">Conectar Bluetooth</button>
+      </div>
+      <div id="bleStat" class="sm" style="margin-top:8px">Sin conectar.</div>
+    </div>
+  </div>
+
+  <!-- Cámara / carátula -->
+  <div class="card">
+    <h2>3 · Carátula (para leer y evidencia)</h2>
+    <div class="hint">Enciende la cámara para ver y fotografiar la carátula (funciona en CUALQUIER modo). Se toma foto en el inicio, cada 25 L y al cerrar.</div>
+    <button id="camBtn2" class="sec" style="margin-top:10px">📷 Encender / apagar cámara</button>
+    <div class="cam-wrap" style="margin-top:10px; background:#000; border-radius:10px; min-height:240px">
+      <video id="vid" playsinline muted autoplay style="min-height:240px; object-fit:cover"></video>
+      <div id="live" style="display:none; position:absolute; top:8px; left:8px; background:#c81e1e; color:#fff; font-size:12px; font-weight:700; padding:3px 8px; border-radius:6px; z-index:2">● EN VIVO</div>
+      <div id="roi" style="display:none"></div>
+      <div id="droi" style="display:none; position:absolute; border:2px solid #35d07f; border-radius:50%; box-sizing:border-box; pointer-events:none; z-index:2"></div>
+    </div>
+    <canvas id="cv" style="display:none"></canvas>
+    <div class="sm" id="camMsg" style="margin-top:6px">Presiona “Encender cámara” y apunta al medidor (o a la laptop con el simulador).</div>
+    <div style="margin-top:10px; padding:10px; background:#0f1c2c; border-radius:9px">
+      <label style="display:flex; align-items:center; gap:8px; color:#e8eef5; margin:0"><input type="checkbox" id="autoChk" checked style="width:auto"> Lectura AUTOMÁTICA de la aguja (reconoce el avance por visión)</label>
+      <div id="autoCtl">
+        <div class="row" style="margin-top:8px">
+          <div><label>Centro X</label><input id="dX" type="range" min="0" max="100" value="50"></div>
+          <div><label>Centro Y</label><input id="dY" type="range" min="0" max="100" value="55"></div>
+          <div><label>Radio</label><input id="dR" type="range" min="8" max="45" value="22"></div>
+        </div>
+        <div id="autoRead" class="big" style="font-size:20px; margin-top:6px">Aguja: —</div>
+        <div class="sm">Coloca el círculo verde sobre la carátula de la aguja. La app mide su giro y lo compara con los pulsos automáticamente.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Prueba -->
+  <div class="card">
+    <h2>4 · Prueba</h2>
+    <div class="stat">
+      <div><div class="sm">Pulsos</div><div class="big" id="nPul">0</div></div>
+      <div><div class="sm">Volumen patrón</div><div class="big" id="vol">0 L</div></div>
+      <div><div class="sm">Incertidumbre</div><div class="big" id="unc">—</div></div>
+    </div>
+    <div class="hint" style="margin-top:8px">Con el flujo corriendo, presiona <b>INICIAR</b> justo antes de que la aguja complete una vuelta (toma la foto inicial y congela la aguja). Al terminar presiona <b>FINALIZAR</b> (toma la foto final). Después, en la <b>sección 6</b>, tecleas los odómetros de ambas fotos y la app calcula el error.</div>
+    <div class="btns" style="margin-top:10px">
+      <button id="startBtn" class="grn" style="font-size:19px; padding:20px">▶ INICIAR PRUEBA</button>
+      <button id="stopTestBtn" class="red" style="font-size:19px; padding:20px" disabled>■ FINALIZAR PRUEBA</button>
+    </div>
+    <div class="btns" style="margin-top:8px">
+      <button id="readBtn" class="amb" disabled>Capturar un punto ahora</button>
+      <button id="resetBtn" class="sec">Reiniciar</button>
+    </div>
+    <div id="verd" class="verd v-go" style="display:none"></div>
+  </div>
+
+  <!-- Resultados -->
+  <div class="card">
+    <h2>5 · Registro</h2>
+    <table id="tbl"><thead><tr><th>Punto</th><th>Pulsos</th><th>V.patrón (L)</th><th>Lectura med. (L)</th><th>V.mec (L)</th><th>Error % <span class="pill" style="font-size:9px">diag.</span></th></tr></thead><tbody></tbody></table>
+    <div class="sm" style="margin-top:6px; color:#ffbf5e">La columna <b>Error %</b> de los puntos es <b>diagnóstica</b> (ruido alto a volumen bajo). El <b>error del medidor</b> es el resultado de la sección 6 (endpoint sobre el volumen total).</div>
+    <div class="btns" style="margin-top:12px">
+      <button id="csvBtn" class="sec">Exportar CSV</button>
+      <button id="jsonBtn" class="amb">Exportar datos (BD): JSON + fila</button>
+      <button id="evBtn" class="blue">Guardar evidencia (HTML)</button>
+    </div>
+    <div class="sm" style="margin-top:8px">La <b>evidencia HTML</b> = expediente para humanos (fotos + GPS + sello). El <b>JSON/fila CSV</b> = registro para base de datos (sin imágenes, con checksum): un JSON por prueba y una fila para tu tabla maestra.</div>
+  </div>
+
+  <!-- Capturar odómetros y calcular -->
+  <div class="card">
+    <h2>6 · Capturar odómetros y calcular</h2>
+    <div class="hint">Revisa la foto inicial y la final. Teclea el <b>odómetro (parte gruesa) en m³</b> de cada una (toca la foto para ampliarla). La <b>aguja ×0.01 m³</b> viene pre-cargada con lo que <b>leyó la app</b>, pero <b>puedes editarla</b> si no coincide con la foto. Con odómetro (m³) + aguja (L) la app calcula el error.</div>
+    <button id="confBtn" class="sec" style="margin-top:10px">Cargar foto inicial y final</button>
+    <div id="confPair" style="margin-top:12px"></div>
+    <button id="confCalc" class="grn" style="display:none; margin-top:4px">Calcular resultado</button>
+    <div id="confVerd" class="verd v-go" style="display:none; margin-top:10px"></div>
+    <table id="confTbl" style="display:none; margin-top:10px"><thead><tr><th>Concepto</th><th>Valor</th></tr></thead><tbody></tbody></table>
+    <div id="confList" style="margin-top:14px"></div>
+    <div id="afterCalc" class="btns" style="display:none; margin-top:12px">
+      <button id="newSampleBtn" class="grn">➕ Iniciar 2ª muestra (mismo medidor)</button>
+      <button id="finishBtn" class="sec">✔ Terminar / Salir</button>
+    </div>
+  </div>
+
+  <!-- Muestras del medidor -->
+  <div class="card" id="samplesCard" style="display:none">
+    <h2>7 · Muestras del medidor y reporte</h2>
+    <div id="samplesList"></div>
+    <div id="cmpBox" style="display:none; margin-top:10px">
+      <table id="cmpTbl"><thead><tr><th>Muestra</th><th>V.patrón (L)</th><th>Error %</th><th>±U %</th><th>Veredicto</th></tr></thead><tbody></tbody></table>
+      <div id="cmpSummary" class="verd v-go" style="margin-top:10px; font-size:18px"></div>
+    </div>
+    <label style="margin-top:12px">¿Reporte de cuál muestra?</label>
+    <div class="seg" id="repSel">
+      <button data-r="1" class="on">1ª muestra</button>
+      <button data-r="2">2ª muestra</button>
+      <button data-r="all">Ambas</button>
+    </div>
+    <div class="btns" style="margin-top:10px">
+      <button id="repEvBtn" class="blue">Generar evidencia (HTML)</button>
+      <button id="repJsonBtn" class="amb">Exportar datos (BD): JSON + fila</button>
+    </div>
+    <div class="sm" style="margin-top:8px">La evidencia es el expediente humano (fotos + GPS + sello). El JSON/fila es el registro para BD. "Ambas" incluye las dos muestras y su comparación.</div>
+  </div>
+
+  <!-- Config -->
+  <div class="card">
+    <h2>Ajustes (avanzado)</h2>
+    <div class="row">
+      <div><label>K (L/pulso)</label><input id="cK" type="number" value="1"></div>
+      <div><label>Paso captura (L)</label><input id="cPaso" type="number" value="25"></div>
+    </div>
+    <div class="row">
+      <div><label>Vmín (L)</label><input id="cVmin" type="number" value="100"></div>
+      <div><label>Vmáx (L)</label><input id="cVmax" type="number" value="300"></div>
+    </div>
+    <div class="row">
+      <div><label>MPE ±(%)</label><input id="cMpe" type="number" value="2"></div>
+      <div><label>Incert. lectura ±L (por punto)</label><input id="cUL" type="number" value="1"></div>
+    </div>
+    <div class="hint" style="margin-top:8px">La incertidumbre por lectura manual es ~±1 L (marca de 2 L). Con ~±1 L combinado, 200 L → ±0.5% (relación 4:1 vs ±2%).</div>
+  </div>
+
+  <div class="sm" style="text-align:center; padding:8px 0 24px; color:#6f86a0">
+    DDR001 Telemetría · AQUAFIM · herramienta interina de ingeniería · no sustituye la calibración trazable del patrón.
+  </div>
+</div>
+
+<div id="modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:100; align-items:center; justify-content:center; flex-direction:column; padding:16px">
+  <img id="modalImg" style="max-width:100%; max-height:82vh; border-radius:8px">
+  <button id="modalClose" class="sec" style="padding:12px 28px; margin-top:14px">Cerrar</button>
+</div>
+
+<script>
+"use strict";
+// ---------- estado ----------
+var S = { count:0, origin:null, L0:null, testActive:false, rows:[], shots:[], lastCapPulse:-1, src:"sim", geo:null, autoRead:true, confirmed:null, runs:[], muestra:1, currentRun:null };
+var sim = { timer:null };
+var led = { stream:null, raf:null, base:null, armed:true, lastMs:0 };
+var ble = { dev:null, ch:null };
+var mt = { prevAngle:null, accAngle:0, advance:0, anchored:false, fine:null };  // aguja: fine = posición 0-100 L
+
+function cfg(){ return {
+  K:+val("cK")||1, paso:+val("cPaso")||25, Vmin:+val("cVmin")||100, Vmax:+val("cVmax")||300,
+  mpe:+val("cMpe")||2, uL:+val("cUL")||1 }; }
+function val(id){ return document.getElementById(id).value; }
+function el(id){ return document.getElementById(id); }
+function fmt(n,d){ return (Math.round(n*Math.pow(10,d))/Math.pow(10,d)).toFixed(d); }
+
+// ---------- MPE automático por zona de caudal (NOM-012 / ISO 4064) ----------
+el("caudal").onchange=function(){
+  var opt=el("caudal").selectedOptions[0]; if(opt && opt.dataset.mpe) el("cMpe").value=opt.dataset.mpe;
+};
+
+// ---------- fuente de pulso (segmented) ----------
+document.querySelectorAll("#src button").forEach(function(b){
+  b.onclick=function(){
+    document.querySelectorAll("#src button").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on"); S.src=b.dataset.s;
+    document.querySelectorAll(".srcpanel").forEach(p=>p.style.display="none");
+    el("src-"+S.src).style.display="block";
+    el("roi").style.display = (S.src==="led" && led.stream) ? "block" : "none";
+  };
+});
+
+// ---------- pulso central ----------
+function pulse(){
+  S.count++;
+  el("nPul").textContent=S.count;
+  el("nPul").parentElement.classList.remove("flash"); void el("nPul").offsetWidth; el("nPul").parentElement.classList.add("flash");
+  if(S.origin!==null){
+    var c=cfg(); var vol=(S.count-S.origin)*c.K;
+    el("vol").textContent=fmt(vol,0)+" L";
+    el("unc").textContent = vol>0 ? "±"+fmt(c.uL*Math.SQRT2/vol*100,2)+"%" : "—";
+    // durante la prueba: fotos intermedias de evidencia (el error se calcula al FINALIZAR)
+    var since=S.count-S.origin;
+    if(S.testActive){
+      el("verd").textContent="Prueba en curso… "+fmt(vol,0)+" L de patrón (presiona FINALIZAR al terminar)";
+      if(since>0 && since% (c.paso/c.K) < 1e-9 && S.count!==S.lastCapPulse){
+        S.lastCapPulse=S.count; snapshot("intermedia", vol);
+        S.rows.push({pt:"intermedia", pulso:S.count, vol:vol, needle:(S.autoRead?mt.fine:null), lect:null, vmec:null, err:null}); drawTable();
+      }
+    }
+  }
+}
+
+// ---------- simulación ----------
+el("simStart").onclick=function(){ if(sim.timer) return;
+  var sec=Math.max(0.1, parseFloat(val("simSec"))||2);
+  sim.timer=setInterval(function(){
+    pulse();
+    el("simFlash").textContent="⚡ pulso recibido (BLE simulado) · total "+S.count+" · cada "+sec.toFixed(1)+" s";
+  }, sec*1000);
+};
+el("simStop").onclick=function(){ clearInterval(sim.timer); sim.timer=null; el("simFlash").textContent="Detenido."; };
+
+// ---------- manual ----------
+el("tapBtn").onclick=pulse;
+
+// ---------- cámara (LED + carátula, cualquier modo) ----------
+el("camBtn").onclick=startCam;
+el("camBtn2").onclick=function(){ if(led.stream) stopCam(); else startCam(); };
+async function startCam(){
+  if(!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    el("camMsg").innerHTML="<b style='color:#ff7a6b'>Cámara BLOQUEADA por seguridad (estás en http, no https).</b><br>"+
+      "En el Chrome del celular abre <b>chrome://flags/#unsafely-treat-insecure-origin-as-secure</b>, "+
+      "actívalo y agrega <b>"+location.origin+"</b>, luego <b>Relaunch</b>. O abre la app por una URL <b>https</b>.";
+    return;
+  }
+  el("camMsg").textContent="Abriendo cámara…";
+  try{
+    var stream;
+    try{ stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}}, audio:false}); }
+    catch(e1){ stream=await navigator.mediaDevices.getUserMedia({video:true, audio:false}); }
+    led.stream=stream;
+    var v=el("vid"); v.muted=true; v.setAttribute("playsinline",""); v.srcObject=stream;
+    try{ await v.play(); }catch(ep){}
+    el("live").style.display="block";
+    el("camMsg").textContent="Cámara en vivo. Apunta a la carátula; se fotografía sola en cada captura.";
+    if(S.src==="led"){ el("roi").style.display="block"; positionRoi(); }
+    if(S.autoRead){ el("droi").style.display="block"; positionDroi(); }
+    visionLoop();
+    setTimeout(function(){ if(led.stream && !el("vid").videoWidth) el("camMsg").innerHTML="<b style='color:#ffbf5e'>La cámara se conectó pero no llega imagen.</b> Cierra otras apps que usen la cámara y vuelve a intentar."; }, 1500);
+  }catch(e){ el("live").style.display="none";
+    el("camMsg").innerHTML="<b style='color:#ff7a6b'>No se pudo abrir la cámara:</b> "+e.name+" — "+e.message+
+      ".<br>Revisa el permiso de cámara del navegador y que estés en https o con la bandera de Chrome."; }
+}
+function stopCam(){
+  if(led.raf) cancelAnimationFrame(led.raf); led.raf=null;
+  if(led.stream){ led.stream.getTracks().forEach(t=>t.stop()); led.stream=null; }
+  led.base=null; el("live").style.display="none"; el("roi").style.display="none"; el("droi").style.display="none";
+  mt.prevAngle=null; el("camMsg").textContent="Cámara apagada.";
+}
+["roiX","roiY","roiS"].forEach(id=>el(id).oninput=positionRoi);
+el("thr").oninput=function(){ el("thV").textContent=val("thr"); };
+function positionRoi(){
+  var wrap=el("vid").getBoundingClientRect(); var r=el("roi");
+  var s=(+val("roiS")/100)*wrap.width;
+  r.style.width=s+"px"; r.style.height=s+"px";
+  r.style.left=(+val("roiX")/100*wrap.width - s/2)+"px";
+  r.style.top=(+val("roiY")/100*wrap.height - s/2)+"px";
+}
+function visionLoop(){
+  var v=el("vid"); if(!v.videoWidth){ led.raf=requestAnimationFrame(visionLoop); return; }
+  var cv=el("cv"); cv.width=v.videoWidth; cv.height=v.videoHeight;
+  var ctx=cv.getContext("2d"); ctx.drawImage(v,0,0);
+  if(S.src==="led"){                     // detección de destello LED
+    var cx=(+val("roiX")/100)*cv.width, cy=(+val("roiY")/100)*cv.height, s=(+val("roiS")/100)*cv.width;
+    var x0=Math.max(0,cx-s/2)|0, y0=Math.max(0,cy-s/2)|0, w=Math.min(cv.width-x0,s)|0, h=Math.min(cv.height-y0,s)|0;
+    var d=ctx.getImageData(x0,y0,Math.max(1,w),Math.max(1,h)).data, sum=0;
+    for(var i=0;i<d.length;i+=4){ sum+=(d[i]+d[i+1]+d[i+2]); }
+    var bri=sum/(d.length/4)/3;
+    el("briBar").style.width=Math.min(100,bri/255*100)+"%";
+    var th=+val("thr");
+    if(led.base===null) led.base=bri; led.base=led.base*0.98+bri*0.02;
+    var now=performance.now();
+    if(bri>led.base+th && led.armed && now-led.lastMs>60){ led.armed=false; led.lastMs=now; pulse(); }
+    if(bri<led.base+th*0.5){ led.armed=true; }
+  }
+  if(S.autoRead){ trackNeedle(ctx,cv); }   // reconocimiento del giro de la aguja
+  led.raf=requestAnimationFrame(visionLoop);
+}
+function trackNeedle(ctx,cv){
+  var dcx=(+val("dX")/100)*cv.width, dcy=(+val("dY")/100)*cv.height, dr=(+val("dR")/100)*cv.width;
+  var x0=Math.max(0,(dcx-dr))|0, y0=Math.max(0,(dcy-dr))|0;
+  var w=Math.min(cv.width-x0,2*dr)|0, h=Math.min(cv.height-y0,2*dr)|0;
+  if(w<6||h<6) return;
+  var d=ctx.getImageData(x0,y0,w,h).data, sx=0, sy=0, wsum=0, n=0;
+  for(var yy=0;yy<h;yy++)for(var xx=0;xx<w;xx++){ var i=(yy*w+xx)*4, R=d[i],G=d[i+1],B=d[i+2];
+    if(R>110 && R-G>40 && R-B>40){ var px=(x0+xx)-dcx, py=(y0+yy)-dcy, dist2=px*px+py*py;
+      if(dist2<=dr*dr){ var wt=dist2+40; sx+=px*wt; sy+=py*wt; wsum+=wt; n++; } } }
+  if(n<8 || wsum<=0){ el("autoRead").style.color="#ffbf5e";
+    el("autoRead").textContent="Aguja: no detectada — centra el círculo verde sobre la aguja y sube el brillo de la laptop"; return; }
+  el("autoRead").style.color="#e8eef5";
+  var mx=sx/wsum, my=sy/wsum;
+  var ang=Math.atan2(mx,-my)*180/Math.PI; if(ang<0) ang+=360;
+  if(mt.prevAngle!==null){ var dd=ang-mt.prevAngle; if(dd>180)dd-=360; if(dd<-180)dd+=360;
+    if(Math.abs(dd)<70) mt.accAngle+=dd; }   // ignora saltos espurios
+  mt.prevAngle=ang; mt.advance=mt.accAngle/360*100; mt.fine=ang/360*100;
+  el("autoRead").textContent="Aguja: "+mt.fine.toFixed(1)+" L (de 100) · rojo detectado: "+n+" px";
+}
+function positionDroi(){
+  var wrap=el("vid").getBoundingClientRect(), d=el("droi"), dia=(+val("dR")/100)*wrap.width*2;
+  d.style.width=dia+"px"; d.style.height=dia+"px";
+  d.style.left=(+val("dX")/100*wrap.width-dia/2)+"px";
+  d.style.top=(+val("dY")/100*wrap.height-dia/2)+"px";
+}
+["dX","dY","dR"].forEach(function(id){ el(id).oninput=positionDroi; });
+el("autoChk").onclick=function(){ S.autoRead=el("autoChk").checked;
+  el("autoCtl").style.display=S.autoRead?"block":"none";
+  el("droi").style.display=(S.autoRead&&led.stream)?"block":"none"; };
+
+// ---------- Bluetooth (Web BLE, Nordic UART) ----------
+el("bleBtn").onclick=async function(){
+  if(!navigator.bluetooth){ el("bleStat").textContent="Este navegador no soporta Web Bluetooth (usa Chrome por https://)."; return; }
+  try{
+    var NUS="6e400001-b5a3-f393-e0a9-e50e24dcca9e", TX="6e400003-b5a3-f393-e0a9-e50e24dcca9e";
+    ble.dev=await navigator.bluetooth.requestDevice({ filters:[{services:[NUS]}], optionalServices:[NUS] });
+    var srv=await ble.dev.gatt.connect(); var s=await srv.getPrimaryService(NUS);
+    ble.ch=await s.getCharacteristic(TX);
+    await ble.ch.startNotifications();
+    ble.ch.addEventListener("characteristicvaluechanged", function(){ pulse(); });
+    el("bleStat").textContent="Conectado a "+(ble.dev.name||"dispositivo")+" · 1 notificación = 1 pulso.";
+  }catch(e){ el("bleStat").textContent="Error BLE: "+e.message; }
+};
+
+// ---------- snapshots ----------
+function snapshot(tag, vol){
+  var url="", v=el("vid"), cv=el("cv");
+  if(v.videoWidth){ cv.width=v.videoWidth; cv.height=v.videoHeight; cv.getContext("2d").drawImage(v,0,0);
+    url=cv.toDataURL("image/jpeg",0.6); }
+  S.shots.push({tag:tag, vol:vol, pulso:S.count, img:url, t:new Date().toISOString()});
+}
+
+// ---------- GPS ----------
+function getGeo(cb){
+  if(!navigator.geolocation){ el("geoMsg").textContent="Este dispositivo no ofrece GPS."; if(cb)cb(); return; }
+  el("geoMsg").textContent="Obteniendo ubicación…";
+  navigator.geolocation.getCurrentPosition(function(p){
+    S.geo={lat:p.coords.latitude, lon:p.coords.longitude, acc:p.coords.accuracy, t:new Date().toISOString()};
+    el("geoMsg").textContent="Ubicación: "+S.geo.lat.toFixed(6)+", "+S.geo.lon.toFixed(6)+"  (±"+Math.round(S.geo.acc)+" m)";
+    if(cb)cb();
+  }, function(e){ el("geoMsg").textContent="GPS no disponible: "+e.message+"  (requiere https o la bandera de Chrome, y permiso de ubicación)."; if(cb)cb(); },
+  {enableHighAccuracy:true, timeout:10000, maximumAge:60000});
+}
+el("geoBtn").onclick=function(){ getGeo(); };
+
+// ---------- prueba: inicio / lectura ----------
+el("startBtn").onclick=function(){
+  getGeo();
+  var autoOk = S.autoRead && led.stream && mt.fine!=null;   // ¿lectura automática de aguja disponible?
+  S.origin=S.count; S.startNeedle=(autoOk?mt.fine:null); S.lastCapPulse=S.count; S.startTime=Date.now();
+  S.rows=[]; S.shots=[]; S.testActive=true; S.confirmed=null; S.endShot=null;
+  snapshot("inicio",0); S.startShot=S.shots[S.shots.length-1];
+  S.rows.push({pt:"inicio", pulso:S.count, vol:0, needle:S.startNeedle, lect:null, vmec:null, err:null});
+  drawTable(); el("vol").textContent="0 L";
+  el("verd").style.display="block"; el("verd").className="verd v-go";
+  el("verd").textContent = autoOk
+    ? "Prueba en curso… (foto inicial tomada, aguja leída) — corre y presiona FINALIZAR."
+    : "Prueba en curso… (sin lectura automática de aguja; la teclearás/editarás en la sección 6) — corre y presiona FINALIZAR.";
+  el("readBtn").disabled=false; el("stopTestBtn").disabled=false; el("startBtn").disabled=true;
+};
+function finalizeTest(){ S.testActive=false; el("stopTestBtn").disabled=true; el("startBtn").disabled=false; }
+el("stopTestBtn").onclick=function(){
+  if(!S.testActive) return;
+  var c=cfg(), vol=(S.count-S.origin)*c.K;
+  S.endNeedle=(S.autoRead && led.stream && mt.fine!=null ? mt.fine : null); S.endCount=S.count; S.endVol=vol; S.endTime=Date.now();
+  finalizeTest();
+  snapshot("final",vol); S.endShot=S.shots[S.shots.length-1];
+  S.rows.push({pt:"final", pulso:S.count, vol:vol, needle:S.endNeedle, lect:null, vmec:null, err:null}); drawTable();
+  el("verd").style.display="block"; el("verd").className="verd v-go";
+  el("verd").innerHTML="Prueba finalizada ("+fmt(vol,0)+" L de patrón). <b>Abajo, en la sección 6</b>, teclea el odómetro (m³) inicial y final para calcular.";
+  el("confBtn").click();                                   // abre sola la sección 6
+  el("confBtn").scrollIntoView({behavior:"smooth", block:"center"});
+};
+function showVerd(estado,err,u,vol,mpe){
+  var vd=el("verd"); vd.style.display="block"; var txt=fmt(err,2)+"% ±"+fmt(u,2)+"%";
+  if(estado==="SEGUIR"){ vd.className="verd v-go"; vd.textContent="SEGUIR · "+txt+" (banda cruza ±"+mpe+"%) — más volumen"; }
+  else if(estado==="APRUEBA"){ vd.className="verd v-ok"; vd.textContent="✓ APRUEBA · "+txt+" · paro en "+fmt(vol,0)+" L"; }
+  else { vd.className="verd v-no"; vd.textContent="✗ RECHAZA · "+txt+" · paro en "+fmt(vol,0)+" L"; }
+}
+function recordAndEval(vol,L,tag){
+  var c=cfg(); snapshot(tag,vol);
+  if(S.shots.length) S.shots[S.shots.length-1].auto=L;
+  var vmec=L-S.L0, err=(vmec-vol)/vol*100, u=c.uL*Math.SQRT2/vol*100;
+  S.rows.push({pt:tag, pulso:S.count, vol:vol, lect:L, vmec:vmec, err:err}); drawTable();
+  if(vol < c.Vmin){ var vd=el("verd"); vd.style.display="block"; vd.className="verd v-go";
+    vd.textContent="Midiendo… ("+fmt(vol,0)+" L de "+c.Vmin+") · dando tiempo a que se estabilice"; return; }
+  var low=err-u, high=err+u, estado, claro=false;
+  if(high<=c.mpe && low>=-c.mpe){ estado="APRUEBA"; claro=true; }
+  else if(low>c.mpe || high<-c.mpe){ estado="RECHAZA"; claro=true; }
+  else estado="SEGUIR";
+  if(!claro && vol>=c.Vmax){ estado=Math.abs(err)<=c.mpe?"APRUEBA":"RECHAZA"; claro=true; }
+  showVerd(estado,err,u,vol,c.mpe);
+  if(claro) finalizeTest();
+}
+el("readBtn").onclick=function(){
+  if(!S.testActive){ alert("Inicia la prueba primero."); return; }
+  var c=cfg(), vol=(S.count-S.origin)*c.K; snapshot("intermedia", vol);
+  S.rows.push({pt:"intermedia", pulso:S.count, vol:vol, needle:(S.autoRead?mt.fine:null), lect:null, vmec:null, err:null}); drawTable();
+};
+el("resetBtn").onclick=function(){
+  if(S.runs.length && !confirm("Reiniciar borra TODAS las muestras de este medidor. ¿Continuar?")) return;
+  S.runs=[]; S.currentRun=null; S.muestra=1;
+  softResetTest();
+  el("samplesCard").style.display="none"; el("cmpBox").style.display="none"; el("samplesList").innerHTML="";
+};
+
+function drawTable(){
+  var tb=el("tbl").querySelector("tbody"); tb.innerHTML="";
+  S.rows.forEach(function(r){
+    var tr=document.createElement("tr");
+    var lect=(r.lect==null)?"—":fmt(r.lect,0), vmec=(r.vmec==null)?"—":fmt(r.vmec,0), err=(r.err==null)?"—":fmt(r.err,2);
+    tr.innerHTML="<td>"+r.pt+"</td><td>"+r.pulso+"</td><td>"+fmt(r.vol,0)+"</td><td>"+lect+"</td><td>"+vmec+"</td><td>"+err+"</td>";
+    tb.appendChild(tr);
+  });
+}
+
+// ---------- confirmación de lecturas (fin de prueba) ----------
+el("confBtn").onclick=function(){
+  el("confPair").innerHTML=""; el("confList").innerHTML="";
+  if(!S.startShot || !S.endShot){ el("confPair").innerHTML="<div class='sm'>Corre una prueba completa (INICIAR y FINALIZAR) con la cámara encendida.</div>"; el("confCalc").style.display="none"; return; }
+  [["Inicial",S.startShot,"odoStartInp","needleStartInp",S.startNeedle],["Final",S.endShot,"odoEndInp","needleEndInp",S.endNeedle]].forEach(function(r){
+    var wrap=document.createElement("div"); wrap.style.cssText="display:flex; gap:10px; align-items:flex-start; margin-bottom:12px; border-bottom:1px solid #2b425c; padding-bottom:12px";
+    var left=document.createElement("div"); left.style.width="150px";
+    if(r[1] && r[1].img){ var im=document.createElement("img"); im.src=r[1].img; im.style.cssText="width:150px; border-radius:8px; border:1px solid #33506f; cursor:pointer";
+      (function(src){ im.onclick=function(){ showBigSrc(src); }; })(r[1].img); left.appendChild(im);
+      var t=document.createElement("div"); t.className="sm"; t.style.color="#8fb4dd"; t.textContent="👁 toca para ampliar"; left.appendChild(t);
+    } else { left.innerHTML="<div class='sm'>(sin foto)</div>"; }
+    var right=document.createElement("div"); right.style.flex="1";
+    var auto=(r[4]!=null);
+    right.innerHTML="<div class='sm' style='font-size:14px; color:#e8eef5'><b>Lectura "+r[0].toUpperCase()+"</b></div>"+
+      "<label style='color:#8fb4dd; font-weight:700'>Odómetro — parte gruesa, en <u>m³</u></label>";
+    var inp=document.createElement("input"); inp.type="number"; inp.step="0.001"; inp.id=r[2];
+    inp.placeholder="ej. 47.000  (m³)"; inp.style.cssText="width:100%";
+    var lblN=document.createElement("label"); lblN.style.cssText="color:#8fb4dd; font-weight:700; margin-top:8px";
+    lblN.innerHTML="Aguja ×0.01 m³ (0–100 L) — "+(auto?"<span style='color:#54d98c'>leída por la app, editable</span>":"<span style='color:#ffbf5e'>sin lectura auto, tecléala</span>");
+    var inpN=document.createElement("input"); inpN.type="number"; inpN.step="0.1"; inpN.id=r[3];
+    inpN.value=(auto? r[4].toFixed(1) : ""); inpN.placeholder="0–100 L"; inpN.style.cssText="width:100%";
+    right.appendChild(inp); right.appendChild(lblN); right.appendChild(inpN);
+    wrap.appendChild(left); wrap.appendChild(right); el("confPair").appendChild(wrap);
+  });
+  el("confCalc").style.display="block";
+};
+function showBigSrc(src){ el("modalImg").src=src||""; el("modal").style.display="flex"; }
+el("modalClose").onclick=function(){ el("modal").style.display="none"; };
+el("confCalc").onclick=function(){
+  var os=parseFloat(el("odoStartInp").value), oe=parseFloat(el("odoEndInp").value);
+  if(isNaN(os)||isNaN(oe)){ alert("Teclea el odómetro (m³) de la foto inicial y la final."); return; }
+  var c=cfg();
+  // aguja editable (si el operador corrige lo que leyó la app)
+  var ns=parseFloat(el("needleStartInp").value); if(isNaN(ns)) ns=0;
+  var ne=parseFloat(el("needleEndInp").value);   if(isNaN(ne)) ne=0;
+  S.startNeedle=ns; S.endNeedle=ne;               // se usan también al reconstruir los intermedios
+  var startL=os*1000 + ns, endL=oe*1000 + ne;
+  var vol=(S.endCount-S.origin)*c.K, advance=endL-startL, err= vol>0 ? (advance-vol)/vol*100 : 0, u=c.uL*Math.SQRT2/Math.max(vol,1)*100;
+  var rate = vol>0 ? advance/vol : 1;
+  var durS = (S.startTime&&S.endTime)? Math.round((S.endTime-S.startTime)/1000) : null;
+  // completa la tabla de registro (reconstruye intermedios con la aguja + la tasa real del medidor)
+  S.rows.forEach(function(r){
+    if(r.pt==="inicio"){ r.lect=startL; r.vmec=0; r.err=null; return; }
+    if(r.pt==="final"){ r.lect=endL; r.vmec=advance; r.err= r.vol>0?(advance-r.vol)/r.vol*100:null; return; }
+    if(r.needle!=null && S.startNeedle!=null && r.vol>0){
+      var fineAdv=r.needle-S.startNeedle, exp=rate*r.vol, adv=fineAdv+100*Math.round((exp-fineAdv)/100);
+      r.lect=startL+adv; r.vmec=adv; r.err=(adv-r.vol)/r.vol*100;
+    } else { r.lect=null; r.vmec=null; r.err=null; }
+  });
+  drawTable();
+  var estado=Math.abs(err)<=c.mpe?"APRUEBA":"RECHAZA", vd=el("confVerd");
+  vd.style.display="block"; vd.className="verd "+(estado==="APRUEBA"?"v-ok":"v-no");
+  vd.innerHTML=(estado==="APRUEBA"?"✓ APRUEBA":"✗ RECHAZA")+" · "+fmt(err,2)+"% ±"+fmt(u,2)+"%"+
+    "<div class='sm' style='margin-top:6px; color:#cfe0f0'>avance "+fmt(advance,0)+" L · patrón "+fmt(vol,0)+" L"+
+    (durS!=null?" · duración "+durS+" s":"")+" · tabla de registro completa arriba (sección 5)</div>";
+  var tb=el("confTbl").querySelector("tbody"); tb.innerHTML="";
+  [["Inicial",fmt(startL,0)+" L"],["Final",fmt(endL,0)+" L"],["Avance",fmt(advance,0)+" L"],["Patrón",fmt(vol,0)+" L"],["Error",fmt(err,2)+" %"],["Duración",(durS!=null?durS+" s":"—")]].forEach(function(x){ var tr=document.createElement("tr"); tr.innerHTML="<td>"+x[0]+"</td><td>"+x[1]+"</td>"; tb.appendChild(tr); });
+  el("confTbl").style.display="table";
+  S.confirmed={startL:startL, endL:endL, advance:advance, vol:vol, err:err, u:u, verdict:estado, durS:durS, rate:rate};
+  S.currentRun=liveRun();               // esta muestra queda lista (aún no se guarda hasta elegir 2ª/terminar)
+  el("afterCalc").style.display="flex"; // ofrece: iniciar 2ª muestra o terminar
+  renderSamples();
+};
+
+// ---------- export ----------
+function meta(){ return { id:el("mid").value||"s/ID", oper:el("oper").value||"", caudal:el("caudal").value,
+  lps:el("lps").value, fecha:new Date().toLocaleString(), geo:S.geo }; }
+function download(name, blob){
+  var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),3000);
+}
+// sello de fecha para nombres de archivo: 2026-08-08_1432
+function stamp(){
+  var d=new Date(), p=function(n){ return (""+n).padStart(2,"0"); };
+  return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())+"_"+p(d.getHours())+p(d.getMinutes());
+}
+function safeId(s){ return (s||"s_ID").replace(/[^A-Za-z0-9._-]+/g,"_"); }
+function r0(n){ return n==null?null:Math.round(n); }
+function r1(n){ return n==null?null:Math.round(n*10)/10; }
+function r2(n){ return n==null?null:Math.round(n*100)/100; }
+function fnv1a(str){ var h=0x811c9dc5>>>0; for(var i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=(h+((h<<1)+(h<<4)+(h<<7)+(h<<8)+(h<<24)))>>>0; } return ("0000000"+h.toString(16)).slice(-8); }
+function csvCell(v){ if(v==null) return ""; v=""+v; return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }
+// ---- muestras: una "run" es una foto del estado (meta, config, puntos, imágenes, resultado) ----
+function liveRun(){ return { n:S.muestra, meta:meta(), config:cfg(),
+  rows:JSON.parse(JSON.stringify(S.rows)), shots:S.shots.slice(),
+  confirmed:S.confirmed?Object.assign({},S.confirmed):null }; }
+function allRuns(){ return S.runs.concat(S.currentRun?[S.currentRun]:[]); }
+function cmpStats(runs){
+  var done=runs.filter(function(r){return r.confirmed;}), errs=done.map(function(r){return r.confirmed.err;});
+  var n=errs.length, mean=n?errs.reduce(function(a,b){return a+b;},0)/n:0;
+  var spread=n?Math.max.apply(null,errs)-Math.min.apply(null,errs):0;
+  var sd=n>1?Math.sqrt(errs.reduce(function(a,b){return a+(b-mean)*(b-mean);},0)/(n-1)):null;
+  var allPass=done.length>0 && done.every(function(r){return Math.abs(r.confirmed.err)<=(r.config?r.config.mpe:2);});
+  return {n:n, mean:mean, spread:spread, sd:sd, mpe:(runs[0]&&runs[0].config?runs[0].config.mpe:2), allPass:allPass};
+}
+function cmpJson(runs){ var s=cmpStats(runs);
+  return { n_muestras:s.n, error_medio_pct:r2(s.mean), dispersion_pp:r2(s.spread), repetibilidad_s_pp:(s.sd!=null?r2(s.sd):null), cumple:s.allPass }; }
+// ---- registro estructurado para base de datos (sin imágenes), por muestra ----
+function dbRecordFrom(run){
+  var m=run.meta, c=run.config, r=run.confirmed, tid=safeId(m.id)+"_m"+run.n+"_"+stamp();
+  var rec={
+    schema:"ddr001.verificacion/v1", test_id:tid, muestra:run.n,
+    medidor_id:m.id||null, operador:m.oper||null, caudal:m.caudal, lps:(+m.lps||null),
+    norma:"NOM-012-SCFI-1994 / ISO 4064 / OIML R49",
+    fecha_iso:new Date().toISOString(), fecha_local:m.fecha,
+    gps: m.geo ? {lat:m.geo.lat, lon:m.geo.lon, precision_m:Math.round(m.geo.acc), hora:m.geo.t} : null,
+    config:{K:c.K, paso_L:c.paso, Vmin_L:c.Vmin, Vmax_L:c.Vmax, MPE_pct:c.mpe, incert_L:c.uL},
+    resultado: r ? { volumen_patron_L:r0(r.vol), lectura_inicial_L:r0(r.startL), lectura_final_L:r0(r.endL),
+      avance_L:r0(r.advance), error_pct:r2(r.err), incertidumbre_pct:r2(r.u), veredicto:r.verdict, duracion_s:r.durS } : null,
+    puntos: run.rows.map(function(x){ return { punto:x.pt, pulsos:x.pulso, v_patron_L:r0(x.vol),
+      lectura_L:r0(x.lect), v_mec_L:r0(x.vmec), error_pct_diagnostico:r2(x.err), aguja_L:r1(x.needle) }; }),
+    evidencia_archivo:"DDR001_evidencia_"+safeId(m.id)+"_m"+run.n+"_"+stamp()+".html", n_fotos:run.shots.length
+  };
+  rec.checksum="fnv1a_"+fnv1a(JSON.stringify(rec));
+  return rec;
+}
+function flatCsv(recs){
+  var head=["test_id","muestra","medidor_id","operador","caudal","lps","fecha_iso","gps_lat","gps_lon","gps_precision_m",
+    "volumen_patron_L","lectura_inicial_L","lectura_final_L","avance_L","error_pct","incertidumbre_pct",
+    "veredicto","duracion_s","MPE_pct","norma","evidencia_archivo","checksum"];
+  var lines=[head.join(",")];
+  recs.forEach(function(rec){ var r=rec.resultado||{}, g=rec.gps||{};
+    lines.push([rec.test_id,rec.muestra,rec.medidor_id,rec.operador,rec.caudal,rec.lps,rec.fecha_iso,g.lat,g.lon,g.precision_m,
+      r.volumen_patron_L,r.lectura_inicial_L,r.lectura_final_L,r.avance_L,r.error_pct,r.incertidumbre_pct,
+      r.veredicto,r.duracion_s,rec.config.MPE_pct,rec.norma,rec.evidencia_archivo,rec.checksum].map(csvCell).join(",")); });
+  return lines.join("\n")+"\n";
+}
+// ---- evidencia HTML para una o varias muestras (con comparación) ----
+function evidenceFor(runs){
+  var m0=runs[0].meta;
+  var h="<!DOCTYPE html><html lang=es><meta charset=utf-8><title>Evidencia "+m0.id+"</title>"+
+    "<body style='font-family:Arial;max-width:760px;margin:auto;padding:16px;color:#222'>"+
+    "<h2>DDR001 · Evidencia de verificación de medidor</h2>"+
+    "<p><b>Medidor:</b> "+m0.id+" &nbsp; <b>Operador:</b> "+m0.oper+
+    "<br><b>Criterio:</b> NOM-012-SCFI-1994 / ISO 4064 / OIML R49 — MPE zona superior (Qt≤Q≤Qmáx) ±2%, zona inferior (Qmín≤Q&lt;Qt) ±5%."+
+    "<br><b>Método:</b> medidor patrón (electromagnético del banco); error relativo sobre el volumen total colectado (endpoint).</p>";
+  if(runs.filter(function(r){return r.confirmed;}).length>1){
+    var done=runs.filter(function(r){return r.confirmed;}), s=cmpStats(done);
+    h+="<h3>Comparación de muestras</h3><table border=1 cellspacing=0 cellpadding=6 style='border-collapse:collapse;width:100%'>"+
+      "<tr><th>Muestra</th><th>Caudal</th><th>Patrón L</th><th>Error %</th><th>±U %</th><th>Veredicto</th></tr>";
+    done.forEach(function(run){ var r=run.confirmed; h+="<tr><td align=center>"+run.n+"</td><td>"+run.meta.caudal+"</td><td align=right>"+fmt(r.vol,0)+"</td><td align=right>"+fmt(r.err,2)+"</td><td align=right>"+fmt(r.u,2)+"</td><td>"+r.verdict+"</td></tr>"; });
+    h+="</table><p><b>Error medio:</b> "+fmt(s.mean,2)+"% · <b>Dispersión:</b> "+fmt(s.spread,2)+" pp"+(s.sd!=null?" · <b>Repetibilidad (s):</b> "+fmt(s.sd,2)+" pp":"")+" · <b>"+(s.allPass?"CUMPLE":"NO CUMPLE")+"</b> (cada muestra vs su MPE)</p>";
+  }
+  runs.forEach(function(run){
+    var m=run.meta, r=run.confirmed;
+    h+="<hr><h3>Muestra "+run.n+" — "+m.caudal+"</h3>";
+    h+="<p><b>Fecha:</b> "+m.fecha+" &nbsp; <b>LPS~</b> "+m.lps+
+       "<br><b>GPS:</b> "+(m.geo?(m.geo.lat.toFixed(6)+", "+m.geo.lon.toFixed(6)+" (±"+Math.round(m.geo.acc)+" m) — <a href='https://maps.google.com/?q="+m.geo.lat+","+m.geo.lon+"'>mapa</a>"):"no disponible")+"</p>";
+    if(r){ h+="<p><b>Veredicto:</b> "+r.verdict+" · <b>Error: "+fmt(r.err,2)+"%</b> ±"+fmt(r.u,2)+"%<br>Lect. inicial "+fmt(r.startL,0)+" L · final "+fmt(r.endL,0)+" L · avance "+fmt(r.advance,0)+" L · patrón "+fmt(r.vol,0)+" L · duración "+(r.durS!=null?r.durS+" s":"—")+"</p>"; }
+    h+="<table border=1 cellspacing=0 cellpadding=6 style='border-collapse:collapse;width:100%'><tr><th>Punto</th><th>Pulsos</th><th>V.patrón L</th><th>Lectura L</th><th>V.mec L</th><th>Error % (diag.)</th></tr>";
+    run.rows.forEach(function(x){ h+="<tr><td>"+x.pt+"</td><td align=right>"+x.pulso+"</td><td align=right>"+fmt(x.vol,0)+"</td><td align=right>"+(x.lect==null?"-":fmt(x.lect,0))+"</td><td align=right>"+(x.vmec==null?"-":fmt(x.vmec,0))+"</td><td align=right>"+(x.err==null?"-":fmt(x.err,2))+"</td></tr>"; });
+    h+="</table><p style='font-size:11px;color:#666'>La columna Error % de los puntos es diagnóstica; el error del medidor es el resultado (endpoint) de arriba.</p>";
+    h+="<h4>Imágenes</h4>";
+    run.shots.forEach(function(sh){ h+="<div style='margin:8px 0'><small>"+sh.tag+" · "+fmt(sh.vol,0)+" L · pulso "+sh.pulso+" · "+sh.t+"</small><br>"+(sh.img?"<img src='"+sh.img+"' style='max-width:100%;border:1px solid #ccc'>":"(sin imagen)")+"</div>"; });
+  });
+  h+="<p><small>Sello: "+new Date().toISOString()+" · herramienta interina de ingeniería · no sustituye la calibración trazable del patrón.</small></p></body></html>";
+  return h;
+}
+el("csvBtn").onclick=function(){
+  var m=meta(), lines=[];
+  lines.push("DDR001 Verificador - "+m.fecha);
+  lines.push("Medidor,"+m.id+",Operador,"+m.oper+",Caudal,"+m.caudal+",LPS,"+m.lps);
+  lines.push("GPS_lat,"+(m.geo?m.geo.lat:"")+",GPS_lon,"+(m.geo?m.geo.lon:"")+",precision_m,"+(m.geo?Math.round(m.geo.acc):"")+",hora_gps,"+(m.geo?m.geo.t:""));
+  lines.push("punto,pulsos,volumen_patron_L,lectura_L,volumen_mecanico_L,error_pct");
+  S.rows.forEach(r=>lines.push([r.pt,r.pulso,fmt(r.vol,0),fmt(r.lect,0),fmt(r.vmec,0),r.err===null?"":fmt(r.err,3)].join(",")));
+  if(S.confirmed){
+    lines.push(""); lines.push("RESULTADO,veredicto,"+S.confirmed.verdict+",error_pct,"+fmt(S.confirmed.err,3)+",duracion_s,"+(S.confirmed.durS!=null?S.confirmed.durS:"")+",volumen_prueba_L,"+fmt(S.confirmed.vol,0));
+    lines.push("lectura_inicial_L,"+fmt(S.confirmed.startL,0)+",lectura_final_L,"+fmt(S.confirmed.endL,0)+",avance_L,"+fmt(S.confirmed.advance,0));
+  }
+  download("DDR001_"+safeId(m.id)+"_"+stamp()+".csv", new Blob([lines.join("\n")],{type:"text/csv"}));
+};
+// ---- sección 5: exportes de la prueba en curso ----
+el("jsonBtn").onclick=function(){
+  if(!S.confirmed){ if(!confirm("Aún no has calculado el resultado (sección 6). ¿Exportar de todos modos, sin veredicto?")) return; }
+  var rec=dbRecordFrom(liveRun());
+  download(rec.test_id+".json", new Blob([JSON.stringify(rec,null,2)],{type:"application/json"}));
+  download(rec.test_id+"_fila.csv", new Blob([flatCsv([rec])],{type:"text/csv"}));
+};
+el("evBtn").onclick=function(){
+  if(!S.rows.length){ alert("Corre una prueba primero (sección 4)."); return; }
+  var run=liveRun();
+  download("DDR001_evidencia_"+safeId(run.meta.id)+"_m"+run.n+"_"+stamp()+".html", new Blob([evidenceFor([run])],{type:"text/html"}));
+};
+
+// ---- gestión de muestras (2ª muestra / terminar) + reporte selectivo ----
+function softResetTest(){
+  S.count=0; S.origin=null; S.rows=[]; S.shots=[]; S.lastCapPulse=-1; S.testActive=false; S.confirmed=null;
+  S.startShot=null; S.endShot=null; S.startNeedle=null; S.endNeedle=null; S.endCount=null;
+  mt.anchored=false; mt.accAngle=0; mt.advance=0; mt.prevAngle=null;
+  el("nPul").textContent="0"; el("vol").textContent="0 L"; el("unc").textContent="—";
+  el("verd").style.display="none"; el("readBtn").disabled=true; el("stopTestBtn").disabled=true; el("startBtn").disabled=false; drawTable();
+  el("confPair").innerHTML=""; el("confList").innerHTML=""; el("confCalc").style.display="none";
+  el("confVerd").style.display="none"; el("confTbl").style.display="none"; el("afterCalc").style.display="none";
+}
+function renderSamples(){
+  var all=allRuns();
+  el("samplesCard").style.display = all.length ? "block" : "none";
+  var list=el("samplesList"); list.innerHTML="";
+  all.forEach(function(run){
+    var r=run.confirmed||{}, col=(r.verdict==="APRUEBA")?"#54d98c":(r.verdict==="RECHAZA"?"#ff7a6b":"#ffbf5e");
+    var d=document.createElement("div"); d.style.cssText="padding:8px 10px; background:#0f1c2c; border-radius:8px; margin-bottom:6px; font-size:13px";
+    d.innerHTML="<b>Muestra "+run.n+"</b> · "+run.meta.caudal+" · patrón "+fmt(r.vol||0,0)+" L · error <b style='color:"+col+"'>"+(r.err!=null?fmt(r.err,2)+"%":"—")+"</b> ±"+(r.u!=null?fmt(r.u,2):"—")+"% · <b style='color:"+col+"'>"+(r.verdict||"—")+"</b>";
+    list.appendChild(d);
+  });
+  var done=all.filter(function(r){return r.confirmed;});
+  if(done.length>=2){
+    el("cmpBox").style.display="block";
+    var tb=el("cmpTbl").querySelector("tbody"); tb.innerHTML="";
+    done.forEach(function(run){ var r=run.confirmed; var tr=document.createElement("tr");
+      tr.innerHTML="<td>"+run.n+"</td><td>"+fmt(r.vol,0)+"</td><td>"+fmt(r.err,2)+"</td><td>"+fmt(r.u,2)+"</td><td>"+r.verdict+"</td>"; tb.appendChild(tr); });
+    var s=cmpStats(done), sm=el("cmpSummary");
+    sm.className="verd "+(s.allPass?"v-ok":"v-no");
+    sm.innerHTML=(s.allPass?"✓ CUMPLE — todas las muestras dentro de su MPE":"✗ NO CUMPLE — alguna muestra fuera de su MPE")+
+      "<div class='sm' style='margin-top:6px; color:#cfe0f0'>error medio "+fmt(s.mean,2)+"% · dispersión "+fmt(s.spread,2)+" pp"+(s.sd!=null?" · repetibilidad s="+fmt(s.sd,2)+" pp":"")+"</div>";
+  } else el("cmpBox").style.display="none";
+}
+el("newSampleBtn").onclick=function(){
+  if(S.currentRun){ S.runs.push(S.currentRun); S.currentRun=null; }
+  S.muestra=S.runs.length+1;
+  softResetTest();
+  renderSamples();
+  el("startBtn").scrollIntoView({behavior:"smooth", block:"center"});
+};
+el("finishBtn").onclick=function(){
+  if(S.currentRun){ S.runs.push(S.currentRun); S.currentRun=null; }
+  el("afterCalc").style.display="none";
+  renderSamples();
+  el("samplesCard").scrollIntoView({behavior:"smooth", block:"start"});
+};
+document.querySelectorAll("#repSel button").forEach(function(b){ b.onclick=function(){
+  document.querySelectorAll("#repSel button").forEach(function(x){x.classList.remove("on");}); b.classList.add("on"); }; });
+function selectedRuns(){
+  var all=allRuns(), sel=el("repSel").querySelector("button.on").dataset.r;
+  if(sel==="all") return all;
+  var i=(sel==="1")?0:1; return all[i]?[all[i]]:[];
+}
+el("repEvBtn").onclick=function(){
+  var runs=selectedRuns(); if(!runs.length){ alert("No existe esa muestra todavía."); return; }
+  var m0=runs[0].meta, tag=(runs.length>1?"m1-"+runs[runs.length-1].n:"m"+runs[0].n);
+  download("DDR001_evidencia_"+safeId(m0.id)+"_"+tag+"_"+stamp()+".html", new Blob([evidenceFor(runs)],{type:"text/html"}));
+};
+el("repJsonBtn").onclick=function(){
+  var runs=selectedRuns(); if(!runs.length){ alert("No existe esa muestra todavía."); return; }
+  var m0=runs[0].meta, base="DDR001_"+safeId(m0.id);
+  if(runs.length===1){
+    var rec=dbRecordFrom(runs[0]);
+    download(rec.test_id+".json", new Blob([JSON.stringify(rec,null,2)],{type:"application/json"}));
+    download(rec.test_id+"_fila.csv", new Blob([flatCsv([rec])],{type:"text/csv"}));
+  } else {
+    var recs=runs.map(dbRecordFrom);
+    var lote={ schema:"ddr001.verificacion.lote/v1", medidor_id:m0.id||null, operador:m0.oper||null,
+      norma:"NOM-012-SCFI-1994 / ISO 4064 / OIML R49", fecha_iso:new Date().toISOString(),
+      comparacion:cmpJson(runs), muestras:recs };
+    lote.checksum="fnv1a_"+fnv1a(JSON.stringify(lote));
+    download(base+"_lote_"+stamp()+".json", new Blob([JSON.stringify(lote,null,2)],{type:"application/json"}));
+    download(base+"_filas_"+stamp()+".csv", new Blob([flatCsv(recs)],{type:"text/csv"}));
+  }
+};
+
+window.addEventListener("resize", function(){ if(led.stream){ if(S.src==="led") positionRoi(); if(S.autoRead) positionDroi(); } });
+if(!window.isSecureContext){ el("camMsg").innerHTML="⚠ <b>Conexión no segura (http)</b>. La cámara y el GPS necesitan https o la bandera de Chrome — al presionar “Encender cámara” te digo el paso exacto."; }
+</script>
+</body>
+</html>

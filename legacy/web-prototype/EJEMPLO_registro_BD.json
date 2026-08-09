@@ -1,0 +1,129 @@
+{
+  "schema": "ddr001.verificacion/v1",
+  "test_id": "30000_2026-08-08_1430",
+  "medidor_id": "30000",
+  "operador": "Mike",
+  "caudal": "Q máximo",
+  "lps": 20,
+  "fecha_iso": "2026-08-08T14:30:00.000Z",
+  "fecha_local": "08/08/2026 14:30:00",
+  "gps": {
+    "lat": 22.1553,
+    "lon": -102.2867,
+    "precision_m": 8,
+    "hora": "2026-08-08T14:29:40.000Z"
+  },
+  "config": {
+    "K": 1,
+    "paso_L": 25,
+    "Vmin_L": 100,
+    "Vmax_L": 300,
+    "MPE_pct": 2,
+    "incert_L": 1
+  },
+  "resultado": {
+    "volumen_patron_L": 212,
+    "lectura_inicial_L": 48255,
+    "lectura_final_L": 48461,
+    "avance_L": 206,
+    "error_pct": -2.83,
+    "incertidumbre_pct": 0.67,
+    "veredicto": "RECHAZA",
+    "duracion_s": 212
+  },
+  "puntos": [
+    {
+      "punto": "inicio",
+      "pulsos": 130,
+      "v_patron_L": 0,
+      "lectura_L": 48255,
+      "v_mec_L": 0,
+      "error_pct_diagnostico": null,
+      "aguja_L": null
+    },
+    {
+      "punto": "intermedia",
+      "pulsos": 155,
+      "v_patron_L": 25,
+      "lectura_L": 48276,
+      "v_mec_L": 21,
+      "error_pct_diagnostico": -15.55,
+      "aguja_L": null
+    },
+    {
+      "punto": "intermedia",
+      "pulsos": 180,
+      "v_patron_L": 50,
+      "lectura_L": 48303,
+      "v_mec_L": 48,
+      "error_pct_diagnostico": -3.39,
+      "aguja_L": null
+    },
+    {
+      "punto": "intermedia",
+      "pulsos": 205,
+      "v_patron_L": 75,
+      "lectura_L": 48331,
+      "v_mec_L": 76,
+      "error_pct_diagnostico": 1.65,
+      "aguja_L": null
+    },
+    {
+      "punto": "intermedia",
+      "pulsos": 230,
+      "v_patron_L": 100,
+      "lectura_L": 48353,
+      "v_mec_L": 98,
+      "error_pct_diagnostico": -2.24,
+      "aguja_L": null
+    },
+    {
+      "punto": "intermedia",
+      "pulsos": 255,
+      "v_patron_L": 125,
+      "lectura_L": 48373,
+      "v_mec_L": 118,
+      "error_pct_diagnostico": -5.33,
+      "aguja_L": null
+    },
+    {
+      "punto": "intermedia",
+      "pulsos": 280,
+      "v_patron_L": 150,
+      "lectura_L": 48402,
+      "v_mec_L": 147,
+      "error_pct_diagnostico": -1.85,
+      "aguja_L": null
+    },
+    {
+      "punto": "intermedia",
+      "pulsos": 305,
+      "v_patron_L": 175,
+      "lectura_L": 48432,
+      "v_mec_L": 177,
+      "error_pct_diagnostico": 1.17,
+      "aguja_L": null
+    },
+    {
+      "punto": "intermedia",
+      "pulsos": 330,
+      "v_patron_L": 200,
+      "lectura_L": 48451,
+      "v_mec_L": 196,
+      "error_pct_diagnostico": -1.76,
+      "aguja_L": null
+    },
+    {
+      "punto": "final",
+      "pulsos": 342,
+      "v_patron_L": 212,
+      "lectura_L": 48461,
+      "v_mec_L": 206,
+      "error_pct_diagnostico": -3.07,
+      "aguja_L": null
+    }
+  ],
+  "evidencia_archivo": "DDR001_evidencia_30000_2026-08-08_1430.html",
+  "n_fotos": 10,
+  "checksum": "fnv1a_a426b12f"
+}

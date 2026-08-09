@@ -1,0 +1,16 @@
+# Flutter
+app/.dart_tool/
+app/.flutter-plugins*
+app/build/
+app/.idea/
+*.iml
+*.apk
+# Node
+backend/node_modules/
+backend/dist/
+backend/.env
+# Prisma
+backend/prisma/*.db
+# Misc
+.DS_Store
+*.log

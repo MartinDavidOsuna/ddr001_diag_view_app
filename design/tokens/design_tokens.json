@@ -1,0 +1,26 @@
+{
+  "$comment": "Design tokens del prototipo DDR001 v7 — usar en el theme de Flutter",
+  "color": {
+    "navy": "#1F3B5C",
+    "blue": "#1F5C99",
+    "green": "#1E7E45",
+    "red": "#B03A2E",
+    "amber": "#C07B1F",
+    "bg": "#0F1826",
+    "panel": "#17263A",
+    "panel2": "#1F3247",
+    "line": "#2B425C",
+    "text": "#E8EEF5",
+    "muted": "#9FB2C8",
+    "field": "#0F1C2C",
+    "verdict": {
+      "ok": "#54D98C",
+      "no": "#FF7A6B",
+      "go": "#FFBF5E"
+    }
+  },
+  "radius": { "sm": 8, "md": 10, "lg": 12, "xl": 14 },
+  "font": { "family": "Roboto", "base": 16, "small": 12, "h1": 24, "big": 34 },
+  "button": { "padHoriz": 16, "padVert": 14, "minTouch": 48 },
+  "notes": "Tema oscuro. Botones grandes táctiles. Verde=iniciar/positivo, rojo=finalizar/rechaza, ámbar=acción/diagnóstico, azul=evidencia."
+}

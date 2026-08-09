@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador de medidor — DDR001 (para filmar con el celular)</title>
+<style>
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:#e9ecef; color:#222;
+        display:flex; flex-direction:column; align-items:center; padding:16px; }
+  h1{ font-size:18px; margin:4px 0 2px; color:#1f3b5c; }
+  .sub{ font-size:13px; color:#555; margin-bottom:12px; text-align:center; }
+  .panel{ background:#fff; border:1px solid #cdd6e0; border-radius:12px; padding:14px; margin-bottom:14px;
+          display:flex; gap:14px; flex-wrap:wrap; align-items:end; justify-content:center; max-width:760px; }
+  .fld{ display:flex; flex-direction:column; }
+  label{ font-size:12px; color:#555; margin-bottom:4px; }
+  input{ padding:9px; border:1px solid #b9c4d0; border-radius:8px; font-size:16px; width:120px; }
+  button{ border:0; border-radius:9px; padding:12px 20px; font-size:16px; font-weight:700; color:#fff; cursor:pointer; }
+  .go{ background:#1e7e45; } .stop{ background:#b03a2e; } .rst{ background:#5a6b7d; }
+  canvas{ background:#f4f2e7; border-radius:14px; box-shadow:0 4px 16px rgba(0,0,0,.18); max-width:96vw; height:auto; }
+  .read{ font-size:26px; font-weight:800; color:#1f3b5c; margin:12px 0 4px; }
+  .flow{ font-size:17px; font-weight:700; color:#1e7e45; background:#e8f5ec; border:1px solid #bfe3cb;
+         border-radius:9px; padding:9px 14px; margin-bottom:12px; text-align:center; max-width:96vw; }
+  .note{ font-size:12px; color:#666; max-width:720px; text-align:center; margin-top:8px; line-height:1.5; }
+</style>
+</head>
+<body>
+  <h1>Simulador de medidor · DDR001</h1>
+  <div class="sub">Apunta la cámara del celular a esta pantalla como si fuera el medidor real.</div>
+
+  <div class="panel">
+    <div class="fld"><label>Segundos por litro (1 decimal)</label><input id="sec" type="number" step="0.1" min="0.1" value="1.0"></div>
+    <div class="fld"><label>Error del medidor (%)</label><input id="err" type="number" step="0.1" value="-1.2"></div>
+    <div class="fld"><label>Lectura inicial (L)</label><input id="off" type="number" step="1" value="47050"></div>
+    <button id="go" class="go">▶ Iniciar</button>
+    <button id="stop" class="stop">■ Detener</button>
+    <button id="rst" class="rst">↺ Reiniciar</button>
+  </div>
+
+  <div id="flow" class="flow">Caudal equivalente: —</div>
+
+  <canvas id="c" width="820" height="640"></canvas>
+  <div class="read" id="read">Lectura: — L</div>
+  <div class="note">
+    Cada “litro” avanza según los segundos que pongas. El medidor avanza con el <b>error</b> indicado
+    (registra de menos si es negativo). En la app del celular pon los <b>mismos “segundos entre pulsos”</b>
+    para que el patrón y este medidor vayan a la par y el error calculado coincida.
+  </div>
+
+<script>
+"use strict";
+var reading=47050, timer=null;
+function el(id){ return document.getElementById(id); }
+function fmt(n){ return Math.round(n).toLocaleString("es-MX"); }
+
+// Caudal equivalente a los "segundos por litro" (K = 1 pulso/L → 1 L por cada 'sec' segundos)
+function flow(){
+  var sec=Math.max(0.1, parseFloat(el("sec").value)||1);
+  var ls=1/sec, lmin=60/sec, lh=3600/sec, m3h=3.6/sec;
+  el("flow").innerHTML="Caudal equivalente: <b>"+ls.toFixed(2)+" L/s</b>"+
+    "  ·  "+lmin.toFixed(1)+" L/min  ·  "+lh.toLocaleString("es-MX",{maximumFractionDigits:0})+" L/h  ·  "+m3h.toFixed(2)+" m³/h"+
+    "  <span style='color:#5a6b7d;font-weight:600'>(K = 1 pulso/L)</span>";
+}
+
+function draw(L){
+  var cv=el("c"), x=cv.getContext("2d"), W=cv.width, H=cv.height;
+  x.fillStyle="#ffffff"; x.fillRect(0,0,W,H);
+  x.fillStyle="#111"; x.font="bold 24px Arial"; x.textAlign="left";
+  x.fillText("Medidor mecánico   m³", 40, 48);
+  x.fillStyle="#666"; x.font="18px Arial"; x.fillText("DN 100", W-130, 48);
+  // odómetro (grande, alto contraste)
+  var odo=Math.floor(L/100), s=(""+odo).padStart(5,"0");
+  var dw=84, dh=112, gap=8, dx=(W-(5*dw+4*gap+34))/2, dy=74;
+  x.textAlign="center"; x.textBaseline="alphabetic";
+  for(var i=0;i<5;i++){
+    x.fillStyle=(i>=4)?"#8a1414":"#111"; x.fillRect(dx,dy,dw,dh);
+    x.fillStyle="#fff"; x.font="bold 88px monospace"; x.fillText(s[i], dx+dw/2, dy+dh-24);
+    dx+=dw+gap; if(i===3){ x.fillStyle="#111"; x.beginPath(); x.arc(dx+3,dy+dh-10,7,0,7); x.fill(); dx+=34; }
+  }
+  // carátula de aguja x0.01 m3 (grande)
+  var cx=W/2, cy=410, r=185;
+  x.fillStyle="#ffffff"; x.strokeStyle="#111"; x.lineWidth=5;
+  x.beginPath(); x.arc(cx,cy,r,0,7); x.fill(); x.stroke();
+  x.textBaseline="middle";
+  for(var m=0;m<50;m++){ var lit=m*2, a=lit/100*2*Math.PI, num=(lit%10===0), r1=r-(num?30:15);
+    x.strokeStyle="#111"; x.lineWidth=num?5:2;
+    x.beginPath(); x.moveTo(cx+r1*Math.sin(a),cy-r1*Math.cos(a)); x.lineTo(cx+(r-4)*Math.sin(a),cy-(r-4)*Math.cos(a)); x.stroke();
+    if(num){ x.fillStyle="#111"; x.font="bold 32px Arial"; var rn=r-60; x.fillText(""+(lit/10), cx+rn*Math.sin(a), cy-rn*Math.cos(a)); }
+  }
+  // AGUJA gruesa, ROJO PURO, con punta gruesa (fácil de detectar por la cámara)
+  var nl=L-odo*100, na=nl/100*2*Math.PI;
+  var tx=cx+(r-36)*Math.sin(na), ty=cy-(r-36)*Math.cos(na);
+  x.strokeStyle="rgb(230,0,0)"; x.lineWidth=20; x.lineCap="round";
+  x.beginPath(); x.moveTo(cx,cy); x.lineTo(tx,ty); x.stroke();
+  x.fillStyle="rgb(230,0,0)"; x.beginPath(); x.arc(tx,ty,18,0,7); x.fill();
+  x.fillStyle="#9c0000"; x.beginPath(); x.arc(cx,cy,14,0,7); x.fill();
+  x.fillStyle="#666"; x.font="18px Arial"; x.textAlign="center"; x.fillText("x0.01 m³", cx, cy+r-34);
+}
+
+function tick(){
+  var err=parseFloat(el("err").value)||0;
+  reading += (1 + err/100);
+  draw(reading);
+  el("read").textContent = "Lectura: "+fmt(reading)+" L   ( "+(reading/1000).toFixed(3)+" m³ )";
+}
+el("go").onclick=function(){ if(timer) return;
+  var sec=Math.max(0.1, parseFloat(el("sec").value)||1);
+  timer=setInterval(tick, sec*1000);
+};
+el("stop").onclick=function(){ clearInterval(timer); timer=null; };
+el("rst").onclick=function(){ clearInterval(timer); timer=null; reading=parseFloat(el("off").value)||47050; draw(reading);
+  el("read").textContent="Lectura: "+fmt(reading)+" L"; };
+
+el("sec").oninput=flow;
+reading=parseFloat(el("off").value)||47050; draw(reading);
+el("read").textContent="Lectura: "+fmt(reading)+" L";
+flow();
+</script>
+</body>
+</html>

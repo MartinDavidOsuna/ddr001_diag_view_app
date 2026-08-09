@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ddr001/verification-case",
+  "title": "VerificationCase",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "case_id", "meter_id", "user_id", "status", "flow_points", "checksum"],
+  "properties": {
+    "schema": { "const": "ddr001.verification.case/v2" },
+    "case_id": { "type": "string" },
+    "meter_id": { "type": "string" },
+    "user_id": { "type": "string" },
+    "status": { "type": "string", "enum": ["OPEN", "CLOSED"] },
+    "overall_verdict": { "type": ["string", "null"], "enum": ["APROBADO", "RECHAZADO", "NO_CONCLUYENTE", null] },
+    "created_at": { "type": "string", "format": "date-time" },
+    "closed_at": { "type": ["string", "null"], "format": "date-time" },
+    "flow_points": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["flow_point_id", "code", "mpe_pct", "status", "samples"],
+        "properties": {
+          "flow_point_id": { "type": "string" },
+          "code": { "type": "string", "enum": ["Q1", "Q2", "Q3", "Q4"] },
+          "lps_approx": { "type": ["number", "null"] },
+          "mpe_pct": { "type": "number" },
+          "status": { "type": "string", "enum": ["OPEN", "PASS", "FAIL", "INCONCLUSIVE"] },
+          "samples": { "type": "array", "items": { "$ref": "ddr001/sample" } }
+        }
+      }
+    },
+    "checksum": { "type": "string" }
+  }
+}
