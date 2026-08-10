@@ -1,0 +1,8 @@
+# ADR-009 — Persistencia offline, integridad e inmutabilidad local
+
+- **Estado:** aceptada
+- **Fecha:** 2026-08-09
+- **Contexto:** Etapa 2 requiere que expedientes y corridas sobrevivan cierres de proceso, que una muestra válida cerrada no pueda alterarse ni siquiera mediante acceso SQL accidental, y que el cierre deje una versión trazable para sincronización posterior.
+- **Decisión:** usar Drift sobre SQLite con `schemaVersion = 1`, entidades de dominio separadas de filas Drift y repositorios como frontera. Los cierres de muestra/expediente son transacciones que persisten resultado, checksum SHA-256 y cola sync. La inmutabilidad se defiende en repositorios y triggers SQLite. Las evidencias se almacenan como archivos bajo IDs opacos; SQLite guarda ruta, hash y metadata. La canonicalización usa campos explícitos, orden estable y valores con longitud prefijada; no depende del orden de JSON/Map. El cierre deriva las evidencias obligatorias desde el origen relativo 0 L, el paso congelado y el volumen final: START en 0, múltiplos del paso estrictamente anteriores al final y una sola FINAL en el volumen final.
+- **Alternativas consideradas:** solo validación en UI (descartada: no protege persistencia); solo repositorios (insuficiente ante SQL accidental); binarios en SQLite/Base64 (descartado por SSOT y costo); recrear DB en migraciones (descartado por pérdida de historial).
+- **Consecuencias:** futuros cambios de schema requieren migraciones aditivas explícitas; corregir una muestra cerrada implica crear otra muestra; la cola local es idempotente por `entity_type + entity_id + checksum`; no se eliminan evidencias cerradas.

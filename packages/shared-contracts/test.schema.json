@@ -10,7 +10,7 @@
     "flow_point_id",
     "sample_number",
     "status",
-    "pulse_source",
+    "measurement_source",
     "config",
     "points",
     "evidence",
@@ -18,7 +18,7 @@
   ],
   "properties": {
     "schema": {
-      "const": "ddr001.verification.sample/v2"
+      "const": "ddr001.verification.sample/v3"
     },
     "sample_id": {
       "type": "string"
@@ -39,7 +39,7 @@
         "CLOSED_VALID"
       ]
     },
-    "pulse_source": {
+    "measurement_source": {
       "type": "string",
       "enum": [
         "VISUAL",
@@ -95,7 +95,10 @@
       ],
       "properties": {
         "k_l_per_pulse": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "exclusiveMinimum": 0
         },
         "capture_step_l": {
@@ -140,6 +143,12 @@
         "mpe_pct": {
           "type": "number"
         },
+        "acceptance_metric_pct": {
+          "type": "number"
+        },
+        "rejection_metric_pct": {
+          "type": "number"
+        },
         "verdict": {
           "type": "string",
           "enum": [
@@ -169,7 +178,10 @@
       }
     },
     "checksum": {
-      "type": "string"
+      "type": [
+        "string",
+        "null"
+      ]
     }
   },
   "$defs": {

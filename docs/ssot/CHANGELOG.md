@@ -1,5 +1,23 @@
 # CHANGELOG funcional
 
+## Correctivo Etapa 2 — 2026-08-10 — Plan obligatorio de evidencias
+- El cierre ya no confía en Points INTERMEDIATE existentes: deriva START, múltiplos del paso estrictamente anteriores al Vref final y una única FINAL.
+- La ausencia de evidencia se detecta aunque nunca se haya creado el Point correspondiente; existencia física y SHA-256 siguen siendo obligatorios.
+- FINAL sustituye a INTERMEDIATE cuando coincide exactamente con un múltiplo, evitando dos fotografías en el mismo instante.
+- VISUAL usa el mismo plan con su Vref explícito, sin pulsos ficticios.
+- Se alinean los JSON Schema compartidos con `measurement_source`, campos nullable/no aplicables y estados previos al cierre; Sample avanza a `ddr001.verification.sample/v3`.
+- Se conserva temporalmente `com.example.ddr001_app`; el applicationId definitivo queda pendiente antes de Etapa 3.
+
+## Etapa 2 — 2026-08-09 — Dominio y persistencia offline
+- Se agrega dominio inmutable separado de Drift para usuario, medidor, expediente, caudal, muestra, punto, evidencia y cola sync.
+- Se crea SQLite/Drift `schemaVersion = 1` con foreign keys, índices, constraints, migración explícita y triggers de inmutabilidad.
+- Se implementan repositorios locales, recuperación de OPEN/DRAFT/RUNNING/INVALID_EVIDENCE y persistencia de progreso para reanudación tras reinicio.
+- Se implementa cierre transaccional de muestra con validación física/hash de evidencias, motor metrológico de Etapa 1, resultado/checksum congelado y enqueue idempotente.
+- Se implementa cierre transaccional de expediente con caudales requeridos explícitos, estadísticas/veredicto del motor y enqueue local.
+- Se agrega filesystem de evidencia por IDs opacos, SHA-256 y prohibición de eliminar evidencia cerrada; no se guardan binarios en SQLite.
+- LECTURA VISUAL persiste Vref explícito y no genera pulsos ficticios; MANUAL/LED/BLE conservan `N × K`.
+- Se agrega ADR-009 y `docs/migration/STAGE_2_OFFLINE_DOMAIN_NOTES.md`.
+
 ## Etapa 1 — 2026-08-09 — Motor metrológico Dart
 - Se crea un paquete Flutter mínimo en `app/` para alojar el motor Dart puro, sin UI ni infraestructura de etapas posteriores.
 - Se implementan Q1–Q4, política MPE Clase 2 sustituible, fuentes productivas `VISUAL | MANUAL | LED | BLE` sin pulsos ficticios para LECTURA VISUAL, volumen patrón, reconstrucción de vueltas, volumen indicado y error endpoint.

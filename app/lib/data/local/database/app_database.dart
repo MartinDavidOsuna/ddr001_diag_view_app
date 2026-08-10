@@ -1,0 +1,362 @@
+import 'package:drift/drift.dart';
+import 'package:drift_flutter/drift_flutter.dart';
+
+part 'app_database.g.dart';
+
+class Users extends Table {
+  TextColumn get id => text()();
+  TextColumn get email => text().unique()();
+  TextColumn get phone => text()();
+  TextColumn get displayName => text().nullable()();
+  IntColumn get createdAtMs => integer()();
+  IntColumn get lastLoginAtMs => integer().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+class Meters extends Table {
+  TextColumn get id => text()();
+  TextColumn get externalStatus => text()();
+  TextColumn get externalSnapshotJson => text().nullable()();
+  IntColumn get externalCheckedAtMs => integer().nullable()();
+  IntColumn get createdAtMs => integer()();
+  IntColumn get updatedAtMs => integer()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+
+  @override
+  List<String> get customConstraints => [
+    "CHECK (external_status IN ('foundWithSurvey','foundNoSurvey','notFound','unknownOffline'))",
+  ];
+}
+
+@DataClassName('VerificationCaseRow')
+class VerificationCases extends Table {
+  TextColumn get id => text()();
+  TextColumn get meterId => text().references(Meters, #id)();
+  TextColumn get userId => text().references(Users, #id)();
+  TextColumn get status => text()();
+  TextColumn get overallVerdict => text().nullable()();
+  IntColumn get createdAtMs => integer()();
+  IntColumn get closedAtMs => integer().nullable()();
+  IntColumn get reportVersion => integer().withDefault(const Constant(1))();
+  TextColumn get checksum => text().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+
+  @override
+  List<String> get customConstraints => [
+    "CHECK (status IN ('open','closed'))",
+    "CHECK (overall_verdict IS NULL OR overall_verdict IN ('approved','rejected','inconclusive'))",
+  ];
+}
+
+@DataClassName('FlowPointRow')
+class FlowPoints extends Table {
+  TextColumn get id => text()();
+  TextColumn get caseId => text().references(VerificationCases, #id)();
+  TextColumn get code => text()();
+  RealColumn get lpsApprox => real().nullable()();
+  RealColumn get mpePct => real()();
+  TextColumn get status => text().withDefault(const Constant('open'))();
+  IntColumn get statisticsN => integer().nullable()();
+  RealColumn get meanErrorPct => real().nullable()();
+  RealColumn get minimumErrorPct => real().nullable()();
+  RealColumn get maximumErrorPct => real().nullable()();
+  RealColumn get dispersionPct => real().nullable()();
+  RealColumn get sampleStdDevPct => real().nullable()();
+  TextColumn get repeatabilityStatus => text().nullable()();
+  IntColumn get createdAtMs => integer()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+
+  @override
+  List<Set<Column<Object>>> get uniqueKeys => [
+    {caseId, code},
+  ];
+
+  @override
+  List<String> get customConstraints => [
+    "CHECK (code IN ('q1','q2','q3','q4'))",
+    "CHECK (mpe_pct > 0)",
+    "CHECK (status IN ('open','pass','fail','inconclusive'))",
+  ];
+}
+
+@DataClassName('SampleRow')
+class Samples extends Table {
+  TextColumn get id => text()();
+  TextColumn get flowPointId => text().references(FlowPoints, #id)();
+  IntColumn get sampleNumber => integer()();
+  TextColumn get status => text()();
+  TextColumn get measurementMethod => text()();
+  RealColumn get litersPerPulse => real()();
+  RealColumn get evidenceStepLiters => real()();
+  RealColumn get readingUncertaintyLiters => real()();
+  TextColumn get flowPointCode => text()();
+  RealColumn get mpePct => real()();
+  RealColumn get lpsApprox => real().nullable()();
+  RealColumn get litersPerOdometerUnit => real()();
+  RealColumn get needleLitersPerRevolution => real()();
+  IntColumn get createdAtMs => integer()();
+  IntColumn get updatedAtMs => integer()();
+  IntColumn get startedAtMs => integer().nullable()();
+  IntColumn get endedAtMs => integer().nullable()();
+  RealColumn get gpsLatitude => real().nullable()();
+  RealColumn get gpsLongitude => real().nullable()();
+  RealColumn get gpsAccuracyMeters => real().nullable()();
+  IntColumn get gpsCapturedAtMs => integer().nullable()();
+  IntColumn get pulseCount => integer().withDefault(const Constant(0))();
+  RealColumn get progressReferenceLiters => real().nullable()();
+  RealColumn get initialOdometerUnits => real().nullable()();
+  RealColumn get initialNeedleLiters => real().nullable()();
+  TextColumn get initialReadingSource => text().nullable()();
+  RealColumn get finalOdometerUnits => real().nullable()();
+  RealColumn get finalNeedleLiters => real().nullable()();
+  TextColumn get finalReadingSource => text().nullable()();
+  RealColumn get referenceLiters => real().nullable()();
+  RealColumn get indicatedLiters => real().nullable()();
+  RealColumn get errorPct => real().nullable()();
+  RealColumn get uncertaintyPct => real().nullable()();
+  RealColumn get resultMpePct => real().nullable()();
+  RealColumn get acceptanceMetricPct => real().nullable()();
+  RealColumn get rejectionMetricPct => real().nullable()();
+  TextColumn get verdict => text().nullable()();
+  TextColumn get checksum => text().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+
+  @override
+  List<Set<Column<Object>>> get uniqueKeys => [
+    {flowPointId, sampleNumber},
+  ];
+
+  @override
+  List<String> get customConstraints => [
+    "CHECK (sample_number >= 1)",
+    "CHECK (status IN ('draft','running','invalidEvidence','closedValid'))",
+    "CHECK (measurement_method IN ('visual','manual','led','ble'))",
+    'CHECK (liters_per_pulse > 0)',
+    'CHECK (evidence_step_liters > 0)',
+    'CHECK (reading_uncertainty_liters >= 0)',
+    "CHECK (flow_point_code IN ('q1','q2','q3','q4'))",
+    'CHECK (mpe_pct > 0)',
+    'CHECK (liters_per_odometer_unit > 0)',
+    'CHECK (needle_liters_per_revolution > 0)',
+    'CHECK (pulse_count >= 0)',
+  ];
+}
+
+@DataClassName('PointRow')
+class TestPoints extends Table {
+  TextColumn get id => text()();
+  TextColumn get sampleId => text().references(Samples, #id)();
+  TextColumn get type => text()();
+  IntColumn get pulseCount => integer().nullable()();
+  RealColumn get referenceLiters => real().nullable()();
+  RealColumn get readingLiters => real().nullable()();
+  RealColumn get indicatedLiters => real().nullable()();
+  RealColumn get diagnosticErrorPct => real().nullable()();
+  RealColumn get needleLiters => real().nullable()();
+  IntColumn get capturedAtMs => integer()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+
+  @override
+  List<String> get customConstraints => [
+    "CHECK (type IN ('start','intermediate','finalPoint','manualDiagnostic'))",
+    'CHECK (pulse_count IS NULL OR pulse_count >= 0)',
+  ];
+}
+
+@DataClassName('EvidenceRow')
+class EvidenceItems extends Table {
+  TextColumn get id => text()();
+  TextColumn get sampleId => text().references(Samples, #id)();
+  TextColumn get pointId => text().nullable().references(TestPoints, #id)();
+  TextColumn get type => text()();
+  BoolColumn get required => boolean()();
+  RealColumn get volumeRefLiters => real().nullable()();
+  IntColumn get pulseCount => integer().nullable()();
+  IntColumn get capturedAtMs => integer()();
+  TextColumn get sha256 => text().nullable()();
+  TextColumn get localPath => text()();
+  TextColumn get serverStorageKey => text().nullable()();
+  TextColumn get syncStatus => text()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+
+  @override
+  List<String> get customConstraints => [
+    "CHECK (type IN ('start','intermediate','finalEvidence','extra'))",
+    'CHECK (pulse_count IS NULL OR pulse_count >= 0)',
+    "CHECK (sync_status IN ('local','pending','syncing','synced','conflict','error'))",
+  ];
+}
+
+@DataClassName('SyncItemRow')
+class SyncItems extends Table {
+  TextColumn get id => text()();
+  TextColumn get entityType => text()();
+  TextColumn get entityId => text()();
+  TextColumn get checksum => text()();
+  TextColumn get state => text()();
+  IntColumn get attempts => integer().withDefault(const Constant(0))();
+  TextColumn get lastError => text().nullable()();
+  IntColumn get createdAtMs => integer()();
+  IntColumn get updatedAtMs => integer()();
+  IntColumn get nextRetryAtMs => integer().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+
+  @override
+  List<Set<Column<Object>>> get uniqueKeys => [
+    {entityType, entityId, checksum},
+  ];
+
+  @override
+  List<String> get customConstraints => [
+    "CHECK (state IN ('pending','inProgress','failed','synced'))",
+    'CHECK (attempts >= 0)',
+  ];
+}
+
+@DriftDatabase(
+  tables: [
+    Users,
+    Meters,
+    VerificationCases,
+    FlowPoints,
+    Samples,
+    TestPoints,
+    EvidenceItems,
+    SyncItems,
+  ],
+)
+final class AppDatabase extends _$AppDatabase {
+  AppDatabase(super.executor);
+
+  AppDatabase.defaults()
+    : super(driftDatabase(name: 'ddr001', native: const DriftNativeOptions()));
+
+  @override
+  int get schemaVersion => 1;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (migrator) async {
+      await migrator.createAll();
+      await _createProtectionTriggers();
+      await _createIndexes();
+    },
+    onUpgrade: (migrator, from, to) async {
+      // Future versions must add explicit, non-destructive steps here.
+      if (from < 1) {
+        await migrator.createAll();
+        await _createProtectionTriggers();
+        await _createIndexes();
+      }
+    },
+    beforeOpen: (details) async {
+      await customStatement('PRAGMA foreign_keys = ON');
+    },
+  );
+
+  Future<void> _createIndexes() async {
+    await customStatement(
+      'CREATE INDEX idx_cases_meter_status ON verification_cases(meter_id, status)',
+    );
+    await customStatement(
+      'CREATE INDEX idx_samples_flow_status ON samples(flow_point_id, status)',
+    );
+    await customStatement(
+      'CREATE INDEX idx_evidence_sample ON evidence_items(sample_id)',
+    );
+    await customStatement(
+      'CREATE INDEX idx_sync_state_created ON sync_items(state, created_at_ms)',
+    );
+  }
+
+  Future<void> _createProtectionTriggers() async {
+    await customStatement('''
+      CREATE TRIGGER protect_closed_sample_update
+      BEFORE UPDATE ON samples
+      WHEN OLD.status = 'closedValid'
+      BEGIN SELECT RAISE(ABORT, 'closed sample is immutable'); END
+    ''');
+    await customStatement('''
+      CREATE TRIGGER protect_closed_sample_delete
+      BEFORE DELETE ON samples
+      WHEN OLD.status = 'closedValid'
+      BEGIN SELECT RAISE(ABORT, 'closed sample cannot be deleted'); END
+    ''');
+    await customStatement('''
+      CREATE TRIGGER protect_closed_sample_evidence_insert
+      BEFORE INSERT ON evidence_items
+      WHEN (SELECT status FROM samples WHERE id = NEW.sample_id) = 'closedValid'
+      BEGIN SELECT RAISE(ABORT, 'closed sample evidence is immutable'); END
+    ''');
+    await customStatement('''
+      CREATE TRIGGER protect_closed_sample_evidence_update
+      BEFORE UPDATE ON evidence_items
+      WHEN (SELECT status FROM samples WHERE id = OLD.sample_id) = 'closedValid'
+      BEGIN SELECT RAISE(ABORT, 'closed sample evidence is immutable'); END
+    ''');
+    await customStatement('''
+      CREATE TRIGGER protect_closed_sample_evidence_delete
+      BEFORE DELETE ON evidence_items
+      WHEN (SELECT status FROM samples WHERE id = OLD.sample_id) = 'closedValid'
+      BEGIN SELECT RAISE(ABORT, 'closed sample evidence is immutable'); END
+    ''');
+    await customStatement('''
+      CREATE TRIGGER protect_closed_sample_point_insert
+      BEFORE INSERT ON test_points
+      WHEN (SELECT status FROM samples WHERE id = NEW.sample_id) = 'closedValid'
+      BEGIN SELECT RAISE(ABORT, 'closed sample points are immutable'); END
+    ''');
+    await customStatement('''
+      CREATE TRIGGER protect_closed_sample_point_update
+      BEFORE UPDATE ON test_points
+      WHEN (SELECT status FROM samples WHERE id = OLD.sample_id) = 'closedValid'
+      BEGIN SELECT RAISE(ABORT, 'closed sample points are immutable'); END
+    ''');
+    await customStatement('''
+      CREATE TRIGGER protect_closed_sample_point_delete
+      BEFORE DELETE ON test_points
+      WHEN (SELECT status FROM samples WHERE id = OLD.sample_id) = 'closedValid'
+      BEGIN SELECT RAISE(ABORT, 'closed sample points are immutable'); END
+    ''');
+    await customStatement('''
+      CREATE TRIGGER protect_closed_case_update
+      BEFORE UPDATE ON verification_cases
+      WHEN OLD.status = 'closed'
+      BEGIN SELECT RAISE(ABORT, 'closed case is immutable'); END
+    ''');
+    await customStatement('''
+      CREATE TRIGGER protect_closed_case_delete
+      BEFORE DELETE ON verification_cases
+      WHEN OLD.status = 'closed'
+      BEGIN SELECT RAISE(ABORT, 'closed case cannot be deleted'); END
+    ''');
+    await customStatement('''
+      CREATE TRIGGER reject_flow_for_closed_case
+      BEFORE INSERT ON flow_points
+      WHEN (SELECT status FROM verification_cases WHERE id = NEW.case_id) = 'closed'
+      BEGIN SELECT RAISE(ABORT, 'closed case cannot accept flow points'); END
+    ''');
+    await customStatement('''
+      CREATE TRIGGER reject_sample_for_closed_case
+      BEFORE INSERT ON samples
+      WHEN (SELECT c.status FROM verification_cases c JOIN flow_points f ON f.case_id = c.id WHERE f.id = NEW.flow_point_id) = 'closed'
+      BEGIN SELECT RAISE(ABORT, 'closed case cannot accept samples'); END
+    ''');
+  }
+}

@@ -21,10 +21,12 @@ Cada etapa requiere tests verdes, SSOT/CHANGELOG actualizado y CI limpio.
 Notas y diferencias del legado: `STAGE_1_METROLOGY_NOTES.md`.
 
 ## Etapa 2 — Dominio + persistencia local
-- [ ] Flutter create/configuración definitiva Android.
-- [ ] Drift/SQLite y filesystem.
-- [ ] Entidades User/Meter/Case/FlowPoint/Sample/Point/Evidence/SyncItem.
-- [ ] Máquina de estados e inmutabilidad.
+- [x] Flutter create/configuración mínima Android, sin UI.
+- [x] Drift/SQLite y filesystem.
+- [x] Entidades User/Meter/Case/FlowPoint/Sample/Point/Evidence/SyncItem.
+- [x] Máquina de estados, recuperación, cola sync local e inmutabilidad persistida.
+
+Notas: `STAGE_2_OFFLINE_DOMAIN_NOTES.md`.
 
 ## Etapa 3 — UI Flutter
 - [ ] Replicar capturas de `design/screenshots/`.

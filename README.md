@@ -5,12 +5,19 @@ Migración del verificador de medidores a **Flutter Android** con backend **Node
 ## Estado
 - **Etapa 0 SSOT: cerrada** (v9, 2026-08-08).
 - **Etapa 1 motor metrológico Dart: cerrada** (2026-08-09).
-- El paquete Flutter mínimo vive en `app/`; contiene solo el motor Dart puro y sus pruebas, sin UI ni componentes de etapas posteriores.
+- **Etapa 2 dominio y persistencia offline: cerrada** (2026-08-09).
+- `app/` contiene motor Dart, dominio, Drift/SQLite, filesystem local y cola sync; no contiene UI ni integraciones remotas.
 
 ## Motor metrológico
 - API pública: `app/lib/core/metrology/metrology.dart`.
 - Pruebas: `app/test/core/metrology/`.
 - Validación desde `app/`: `dart format .`, `flutter analyze` y `flutter test`.
+
+## Persistencia offline
+- Schema Drift v1: `app/lib/data/local/database/app_database.dart`.
+- Dominio: `app/lib/domain/`.
+- Repositorios y cierres transaccionales: `app/lib/data/local/repositories/`.
+- Notas: `docs/migration/STAGE_2_OFFLINE_DOMAIN_NOTES.md`.
 
 ## Principios
 - Offline-first.

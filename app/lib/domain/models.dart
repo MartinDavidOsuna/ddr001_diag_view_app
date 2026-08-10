@@ -1,0 +1,350 @@
+import '../core/metrology/metrology.dart';
+
+String normalizeEmail(String value) {
+  final normalized = value.trim().toLowerCase();
+  if (normalized.isEmpty || !normalized.contains('@')) {
+    throw ArgumentError.value(value, 'email');
+  }
+  return normalized;
+}
+
+String normalizePhone(String value) {
+  final trimmed = value.trim();
+  final hasLeadingPlus = trimmed.startsWith('+');
+  final digits = trimmed.replaceAll(RegExp(r'\D'), '');
+  if (digits.length < 7) throw ArgumentError.value(value, 'phone');
+  return '${hasLeadingPlus ? '+' : ''}$digits';
+}
+
+enum ExternalMeterStatus {
+  foundWithSurvey,
+  foundNoSurvey,
+  notFound,
+  unknownOffline,
+}
+
+enum VerificationCaseStatus { open, closed }
+
+enum OverallVerdict { approved, rejected, inconclusive }
+
+enum FlowRecordStatus { open, pass, fail, inconclusive }
+
+enum SampleStatus { draft, running, invalidEvidence, closedValid }
+
+enum ReadingSource { autoConfirmed, manual }
+
+enum PointType { start, intermediate, finalPoint, manualDiagnostic }
+
+enum EvidenceType { start, intermediate, finalEvidence, extra }
+
+enum EvidenceSyncStatus { local, pending, syncing, synced, conflict, error }
+
+enum SyncState { pending, inProgress, failed, synced }
+
+final class User {
+  User({
+    required this.id,
+    required String email,
+    required String phone,
+    required this.createdAt,
+    this.displayName,
+    this.lastLoginAt,
+  }) : email = normalizeEmail(email),
+       phone = normalizePhone(phone);
+
+  final String id;
+  final String email;
+  final String phone;
+  final String? displayName;
+  final DateTime createdAt;
+  final DateTime? lastLoginAt;
+}
+
+final class Meter {
+  Meter({
+    required this.id,
+    required this.externalStatus,
+    required this.createdAt,
+    this.externalSnapshotJson,
+    this.externalCheckedAt,
+    DateTime? updatedAt,
+  }) : updatedAt = updatedAt ?? createdAt {
+    if (id.trim().isEmpty) throw ArgumentError.value(id, 'id');
+  }
+
+  final String id;
+  final ExternalMeterStatus externalStatus;
+  final String? externalSnapshotJson;
+  final DateTime? externalCheckedAt;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+}
+
+final class VerificationCase {
+  const VerificationCase({
+    required this.id,
+    required this.meterId,
+    required this.userId,
+    required this.status,
+    required this.createdAt,
+    required this.reportVersion,
+    this.overallVerdict,
+    this.closedAt,
+    this.checksum,
+  });
+
+  final String id;
+  final String meterId;
+  final String userId;
+  final VerificationCaseStatus status;
+  final OverallVerdict? overallVerdict;
+  final DateTime createdAt;
+  final DateTime? closedAt;
+  final int reportVersion;
+  final String? checksum;
+}
+
+final class PersistedFlowStatistics {
+  const PersistedFlowStatistics({
+    required this.n,
+    required this.meanErrorPct,
+    required this.minimumErrorPct,
+    required this.maximumErrorPct,
+    required this.dispersionPct,
+    this.sampleStandardDeviationPct,
+    required this.repeatabilityStatus,
+  });
+
+  final int n;
+  final double meanErrorPct;
+  final double minimumErrorPct;
+  final double maximumErrorPct;
+  final double dispersionPct;
+  final double? sampleStandardDeviationPct;
+  final RepeatabilityStatus repeatabilityStatus;
+}
+
+final class FlowPointRecord {
+  const FlowPointRecord({
+    required this.id,
+    required this.caseId,
+    required this.code,
+    required this.mpePct,
+    required this.status,
+    required this.createdAt,
+    this.lpsApprox,
+    this.statistics,
+  });
+
+  final String id;
+  final String caseId;
+  final FlowPoint code;
+  final double? lpsApprox;
+  final double mpePct;
+  final FlowRecordStatus status;
+  final PersistedFlowStatistics? statistics;
+  final DateTime createdAt;
+}
+
+final class GpsSnapshot {
+  const GpsSnapshot({
+    required this.latitude,
+    required this.longitude,
+    required this.accuracyMeters,
+    required this.capturedAt,
+  });
+
+  final double latitude;
+  final double longitude;
+  final double accuracyMeters;
+  final DateTime capturedAt;
+}
+
+final class SampleConfiguration {
+  const SampleConfiguration({
+    required this.measurementMethod,
+    required this.litersPerPulse,
+    required this.evidenceStepLiters,
+    required this.readingUncertaintyLiters,
+    required this.flowPoint,
+    required this.mpePct,
+    required this.litersPerOdometerUnit,
+    required this.needleLitersPerRevolution,
+    this.lpsApprox,
+  });
+
+  final MeasurementMethod measurementMethod;
+  final double litersPerPulse;
+  final double evidenceStepLiters;
+  final double readingUncertaintyLiters;
+  final FlowPoint flowPoint;
+  final double mpePct;
+  final double? lpsApprox;
+  final double litersPerOdometerUnit;
+  final double needleLitersPerRevolution;
+}
+
+final class ConfirmedReading {
+  const ConfirmedReading({required this.reading, required this.source});
+
+  final MeterReading reading;
+  final ReadingSource source;
+}
+
+final class Sample {
+  const Sample({
+    required this.id,
+    required this.flowPointId,
+    required this.sampleNumber,
+    required this.status,
+    required this.configuration,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.pulseCount,
+    this.referenceLitersProgress,
+    this.startedAt,
+    this.endedAt,
+    this.gps,
+    this.initialReading,
+    this.finalReading,
+    this.result,
+    this.checksum,
+  });
+
+  final String id;
+  final String flowPointId;
+  final int sampleNumber;
+  final SampleStatus status;
+  final SampleConfiguration configuration;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? startedAt;
+  final DateTime? endedAt;
+  final GpsSnapshot? gps;
+  final int pulseCount;
+  final double? referenceLitersProgress;
+  final ConfirmedReading? initialReading;
+  final ConfirmedReading? finalReading;
+  final SampleResult? result;
+  final String? checksum;
+
+  Sample start({required DateTime at, GpsSnapshot? gps}) {
+    if (status != SampleStatus.draft) {
+      throw StateError('Only a DRAFT sample can start.');
+    }
+    return _copy(status: SampleStatus.running, startedAt: at, gps: gps);
+  }
+
+  Sample markInvalidEvidence({required DateTime at}) {
+    if (status != SampleStatus.running) {
+      throw StateError('Only a RUNNING sample can become invalid.');
+    }
+    return _copy(status: SampleStatus.invalidEvidence, endedAt: at);
+  }
+
+  Sample _copy({
+    required SampleStatus status,
+    DateTime? startedAt,
+    DateTime? endedAt,
+    GpsSnapshot? gps,
+  }) => Sample(
+    id: id,
+    flowPointId: flowPointId,
+    sampleNumber: sampleNumber,
+    status: status,
+    configuration: configuration,
+    createdAt: createdAt,
+    updatedAt: endedAt ?? startedAt ?? updatedAt,
+    startedAt: startedAt ?? this.startedAt,
+    endedAt: endedAt ?? this.endedAt,
+    gps: gps ?? this.gps,
+    pulseCount: pulseCount,
+    referenceLitersProgress: referenceLitersProgress,
+    initialReading: initialReading,
+    finalReading: finalReading,
+    result: result,
+    checksum: checksum,
+  );
+}
+
+final class TestPoint {
+  const TestPoint({
+    required this.id,
+    required this.sampleId,
+    required this.type,
+    required this.capturedAt,
+    this.pulseCount,
+    this.referenceLiters,
+    this.readingLiters,
+    this.indicatedLiters,
+    this.diagnosticErrorPct,
+    this.needleLiters,
+  });
+
+  final String id;
+  final String sampleId;
+  final PointType type;
+  final int? pulseCount;
+  final double? referenceLiters;
+  final double? readingLiters;
+  final double? indicatedLiters;
+  final double? diagnosticErrorPct;
+  final double? needleLiters;
+  final DateTime capturedAt;
+}
+
+final class Evidence {
+  const Evidence({
+    required this.id,
+    required this.sampleId,
+    required this.type,
+    required this.required,
+    required this.capturedAt,
+    required this.localPath,
+    required this.syncStatus,
+    this.pointId,
+    this.volumeRefLiters,
+    this.pulseCount,
+    this.sha256,
+    this.serverStorageKey,
+  });
+
+  final String id;
+  final String sampleId;
+  final String? pointId;
+  final EvidenceType type;
+  final bool required;
+  final double? volumeRefLiters;
+  final int? pulseCount;
+  final DateTime capturedAt;
+  final String? sha256;
+  final String localPath;
+  final String? serverStorageKey;
+  final EvidenceSyncStatus syncStatus;
+}
+
+final class SyncItem {
+  const SyncItem({
+    required this.id,
+    required this.entityType,
+    required this.entityId,
+    required this.checksum,
+    required this.state,
+    required this.attempts,
+    required this.createdAt,
+    required this.updatedAt,
+    this.lastError,
+    this.nextRetryAt,
+  });
+
+  final String id;
+  final String entityType;
+  final String entityId;
+  final String checksum;
+  final SyncState state;
+  final int attempts;
+  final String? lastError;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? nextRetryAt;
+}

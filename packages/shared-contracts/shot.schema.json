@@ -4,7 +4,7 @@
   "title": "Evidence",
   "type": "object",
   "additionalProperties": false,
-  "required": ["evidence_id", "sample_id", "type", "required", "sha256", "captured_at"],
+  "required": ["evidence_id", "sample_id", "type", "required", "captured_at"],
   "properties": {
     "evidence_id": { "type": "string" },
     "sample_id": { "type": "string" },
@@ -13,7 +13,7 @@
     "required": { "type": "boolean" },
     "volume_ref_l": { "type": ["number", "null"] },
     "pulse_count": { "type": ["integer", "null"] },
-    "sha256": { "type": "string", "minLength": 32 },
+    "sha256": { "type": ["string", "null"], "minLength": 64, "maxLength": 64 },
     "local_path": { "type": ["string", "null"] },
     "server_storage_key": { "type": ["string", "null"] },
     "captured_at": { "type": "string", "format": "date-time" }

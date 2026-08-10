@@ -30,6 +30,6 @@
         }
       }
     },
-    "checksum": { "type": "string" }
+    "checksum": { "type": ["string", "null"] }
   }
 }
