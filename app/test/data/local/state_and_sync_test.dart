@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import 'package:ddr001_app/core/metrology/metrology.dart';
-import 'package:ddr001_app/data/local/database/app_database.dart';
-import 'package:ddr001_app/domain/models.dart';
+import 'package:ddr001_diag_view_app/core/metrology/metrology.dart';
+import 'package:ddr001_diag_view_app/data/local/database/app_database.dart';
+import 'package:ddr001_diag_view_app/domain/models.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/offline_fixture.dart';

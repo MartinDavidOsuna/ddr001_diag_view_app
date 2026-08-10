@@ -1,5 +1,16 @@
 # CHANGELOG funcional
 
+## Etapa 3 — 2026-08-10 — Flutter UI offline
+- Correctivo final de identidad: Login solicita Nombre/Correo/Teléfono, persiste `displayName` únicamente en User, conserva nombres existentes y completa en sitio usuarios legados sin nombre; Home y Ajustes muestran la identidad sin duplicarla en SharedPreferences.
+- Validación final en Pixel 7 Pro / Android 17: se corrigen carga de Material Icons, contraste del texto en botones primarios y contexto de medidor visible durante una Sample RUNNING; se agrega regresión de presentación.
+- Se agrega aplicación Android portrait visible con Riverpod, navegación por flujo y tokens visuales derivados de las capturas.
+- Se implementan login passwordless local, sesión persistente, logout no destructivo y recuperación prioritaria de Sample RUNNING.
+- Identificación acepta cualquier cuenta offline y presenta Q1/Q2/Q3/Q4 con MPE obtenido de la política metrológica.
+- Se implementan LECTURA VISUAL, MANUAL, LED y BLUETOOTH en presentación; MANUAL persiste cada pulso y VISUAL mantiene Vref explícito sin pulsos ficticios.
+- Inicio/cierre de muestra, evidencias, resultado, múltiples muestras, estadísticas, cierre de expediente e historial usan repositorios/servicios reales de Etapa 2 y motor Stage 1.
+- Se agrega `EvidenceCapturePort` con adaptador Development que crea archivos locales hasheados sin omitir las validaciones reales; cámara/OCR/BLE real siguen fuera de alcance.
+- Android adopta `com.aquafim.ddr001diagview`, nombre visible `DDR001 VERIFICADOR VISUAL` y orientación portrait; el paquete Dart pasa a `ddr001_diag_view_app`.
+
 ## Correctivo Etapa 2 — 2026-08-10 — Plan obligatorio de evidencias
 - El cierre ya no confía en Points INTERMEDIATE existentes: deriva START, múltiplos del paso estrictamente anteriores al Vref final y una única FINAL.
 - La ausencia de evidencia se detecta aunque nunca se haya creado el Point correspondiente; existencia física y SHA-256 siguen siendo obligatorios.

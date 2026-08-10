@@ -8,9 +8,10 @@
 - El simulador web legado es únicamente una herramienta externa de validación y no se integra. La **funcionalidad de lectura visual** que representa sí es productiva y se utilizará con medidores reales en campo.
 
 ## 1. Login persistente (`features/auth`)
-- Campos: correo y teléfono.
+- Campos, en orden: nombre, correo y teléfono. El nombre es obligatorio en la UI, admite Unicode y se persiste sin espacios exteriores.
 - No hay contraseña ni pantalla de registro.
-- Primer login online: backend busca `email + phone`; si no existe, crea usuario automáticamente.
+- La llave de identificación/autenticación sigue siendo `email + phone`; el nombre es únicamente perfil/identidad y no una tercera credencial.
+- Primer login online: backend busca `email + phone`; si no existe, crea usuario automáticamente con `display_name`. Si un usuario local legado coincide y no tiene nombre, se completa sobre el mismo `user_id`; un nombre existente no se sobrescribe durante login.
 - Guarda sesión y perfil local.
 - Aperturas posteriores reutilizan sesión sin pedir login.
 - Si está offline y existe sesión local válida, entra a la app normalmente.

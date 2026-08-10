@@ -16,6 +16,18 @@ String normalizePhone(String value) {
   return '${hasLeadingPlus ? '+' : ''}$digits';
 }
 
+String normalizeDisplayName(String value) {
+  final normalized = value.trim();
+  if (normalized.isEmpty) throw ArgumentError.value(value, 'displayName');
+  return normalized;
+}
+
+String? normalizeOptionalDisplayName(String? value) {
+  if (value == null) return null;
+  final normalized = value.trim();
+  return normalized.isEmpty ? null : normalized;
+}
+
 enum ExternalMeterStatus {
   foundWithSurvey,
   foundNoSurvey,
@@ -47,10 +59,11 @@ final class User {
     required String email,
     required String phone,
     required this.createdAt,
-    this.displayName,
+    String? displayName,
     this.lastLoginAt,
   }) : email = normalizeEmail(email),
-       phone = normalizePhone(phone);
+       phone = normalizePhone(phone),
+       displayName = normalizeOptionalDisplayName(displayName);
 
   final String id;
   final String email;

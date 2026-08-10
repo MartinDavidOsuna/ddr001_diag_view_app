@@ -1,5 +1,5 @@
-import 'package:ddr001_app/domain/expected_evidence_plan.dart';
-import 'package:ddr001_app/domain/models.dart';
+import 'package:ddr001_diag_view_app/domain/expected_evidence_plan.dart';
+import 'package:ddr001_diag_view_app/domain/models.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

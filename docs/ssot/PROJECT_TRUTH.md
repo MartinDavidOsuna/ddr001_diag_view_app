@@ -32,9 +32,9 @@ Migrar el verificador web legado a una aplicación **Flutter nativa para Android
 8. Cualquier cambio funcional requiere SSOT + CHANGELOG en el mismo PR.
 
 ## 5. Autenticación y sesión
-- Login **passwordless** con `email + teléfono`.
-- El teléfono funciona como llave junto al correo; no existe password ni pantalla de alta.
-- Primer login: si el usuario no existe en DDR001 Verificador, se da de alta automáticamente y se cargan sus datos.
+- Login **passwordless** con `nombre + email + teléfono` en el primer acceso.
+- `email + teléfono` son la llave de identificación/autenticación. El nombre es un atributo de identidad/perfil, no una tercera credencial ni un secreto; no existe password ni pantalla de alta.
+- Primer login: si el usuario no existe en DDR001 Verificador, se da de alta automáticamente con el nombre capturado y se cargan sus datos. Un usuario local legado sin nombre conserva su mismo ID y recibe el nombre capturado al volver a acceder.
 - Sesión persistente: no caduca para el usuario durante la operación normal. Solo termina cuando el usuario ejecuta explícitamente **Cerrar sesión**.
 - El backend emite credenciales/token persistentes apropiados para esta política; la app almacena la sesión de forma segura.
 

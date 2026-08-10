@@ -1,14 +1,14 @@
 import 'dart:io';
 
 import 'package:drift/native.dart';
-import 'package:ddr001_app/core/metrology/metrology.dart';
-import 'package:ddr001_app/data/local/database/app_database.dart'
+import 'package:ddr001_diag_view_app/core/metrology/metrology.dart';
+import 'package:ddr001_diag_view_app/data/local/database/app_database.dart'
     hide Meter, User;
-import 'package:ddr001_app/data/local/filesystem/evidence_file_store.dart';
-import 'package:ddr001_app/data/local/repositories/local_closure_services.dart';
-import 'package:ddr001_app/data/local/repositories/local_repositories.dart';
-import 'package:ddr001_app/domain/models.dart';
-import 'package:ddr001_app/domain/expected_evidence_plan.dart';
+import 'package:ddr001_diag_view_app/data/local/filesystem/evidence_file_store.dart';
+import 'package:ddr001_diag_view_app/data/local/repositories/local_closure_services.dart';
+import 'package:ddr001_diag_view_app/data/local/repositories/local_repositories.dart';
+import 'package:ddr001_diag_view_app/domain/models.dart';
+import 'package:ddr001_diag_view_app/domain/expected_evidence_plan.dart';
 
 final fixedTime = DateTime.utc(2026, 8, 9, 12);
 

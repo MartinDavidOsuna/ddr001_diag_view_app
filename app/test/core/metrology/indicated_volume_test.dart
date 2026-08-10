@@ -1,4 +1,4 @@
-import 'package:ddr001_app/core/metrology/metrology.dart';
+import 'package:ddr001_diag_view_app/core/metrology/metrology.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 MeterReading reading(double needle, {double odometer = 47}) =>

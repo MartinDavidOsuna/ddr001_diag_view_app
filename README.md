@@ -1,5 +1,16 @@
 # DDR001 Verificador de Medidores
 
+La Etapa 3 ofrece una aplicación Flutter Android portrait funcional y offline en `app/`: login local persistente, recuperación de pruebas, flujo completo de expediente/muestras y motor metrológico conectado a Drift.
+
+```powershell
+cd app
+flutter pub get
+dart run build_runner build
+flutter run
+```
+
+LECTURA VISUAL utiliza temporalmente entradas y evidencia de desarrollo reemplazables. Cámara/OCR, LED/BLE real, backend, sincronización remota y reportes todavía no están implementados.
+
 Migración del verificador de medidores a **Flutter Android** con backend **Node.js + TypeScript + Express + Prisma + PostgreSQL**.
 
 ## Estado

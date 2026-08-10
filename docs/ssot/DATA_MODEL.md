@@ -9,7 +9,7 @@ Los JSON Schemas de `packages/shared-contracts/` son contratos serializables. Pr
 - `user_id` UUID.
 - `email` único normalizado.
 - `phone` normalizado.
-- `display_name` opcional.
+- `display_name` requerido para nuevos accesos desde Stage 3; permanece nullable en almacenamiento para compatibilidad con usuarios locales legados, que se completan en el siguiente login sin cambiar `user_id`.
 - `created_at`, `last_login_at`.
 - Sin password.
 

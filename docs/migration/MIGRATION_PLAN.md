@@ -29,8 +29,11 @@ Notas y diferencias del legado: `STAGE_1_METROLOGY_NOTES.md`.
 Notas: `STAGE_2_OFFLINE_DOMAIN_NOTES.md`.
 
 ## Etapa 3 — UI Flutter
-- [ ] Replicar capturas de `design/screenshots/`.
-- [ ] Login, identificación, fuentes, cámara, prueba, registro, cálculo, muestras/expediente, ajustes.
+- [x] Replicar identidad y flujo de las capturas sin elementos del navegador ni funciones futuras.
+- [x] Login/sesión local, recuperación, identificación, métodos, prueba, registro, cálculo, muestras/expediente, historial y ajustes mínimos.
+- [x] Integración UI → repositorios Drift → motor; MANUAL funcional y adaptadores de desarrollo reemplazables para lectura/evidencia.
+
+Notas: `STAGE_3_FLUTTER_UI_NOTES.md`.
 
 ## Etapa 4 — Cámara y visión
 - [ ] Lectura aguja.

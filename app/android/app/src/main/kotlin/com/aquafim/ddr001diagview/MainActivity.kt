@@ -1,4 +1,4 @@
-package com.example.ddr001_app
+package com.aquafim.ddr001diagview
 
 import io.flutter.embedding.android.FlutterActivity
 
