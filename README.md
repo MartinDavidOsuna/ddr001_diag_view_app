@@ -1,6 +1,6 @@
 # DDR001 Verificador de Medidores
 
-La Etapa 3 ofrece una aplicación Flutter Android portrait funcional y offline en `app/`: login local persistente, recuperación de pruebas, flujo completo de expediente/muestras y motor metrológico conectado a Drift.
+La Etapa 4 ofrece una aplicación Flutter Android portrait funcional y offline en `app/`: flujo Stage 3 completo más cámara real, evidencia hasheada, OCR on-device, detección de aguja y confirmación humana trazable.
 
 ```powershell
 cd app
@@ -9,7 +9,7 @@ dart run build_runner build
 flutter run
 ```
 
-LECTURA VISUAL utiliza temporalmente entradas y evidencia de desarrollo reemplazables. Cámara/OCR, LED/BLE real, backend, sincronización remota y reportes todavía no están implementados.
+LECTURA VISUAL usa cámara/evidencia productiva. LED/BLE real, backend, sincronización remota y reportes todavía no están implementados.
 
 Migración del verificador de medidores a **Flutter Android** con backend **Node.js + TypeScript + Express + Prisma + PostgreSQL**.
 
@@ -17,7 +17,8 @@ Migración del verificador de medidores a **Flutter Android** con backend **Node
 - **Etapa 0 SSOT: cerrada** (v9, 2026-08-08).
 - **Etapa 1 motor metrológico Dart: cerrada** (2026-08-09).
 - **Etapa 2 dominio y persistencia offline: cerrada** (2026-08-09).
-- `app/` contiene motor Dart, dominio, Drift/SQLite, filesystem local y cola sync; no contiene UI ni integraciones remotas.
+- **Etapa 3 UI Flutter offline: cerrada** (2026-08-10).
+- **Etapa 4 cámara y lectura visual: cerrada** (2026-08-10).
 
 ## Motor metrológico
 - API pública: `app/lib/core/metrology/metrology.dart`.
@@ -25,7 +26,7 @@ Migración del verificador de medidores a **Flutter Android** con backend **Node
 - Validación desde `app/`: `dart format .`, `flutter analyze` y `flutter test`.
 
 ## Persistencia offline
-- Schema Drift v1: `app/lib/data/local/database/app_database.dart`.
+- Schema Drift v2, con migración aditiva desde v1: `app/lib/data/local/database/app_database.dart`.
 - Dominio: `app/lib/domain/`.
 - Repositorios y cierres transaccionales: `app/lib/data/local/repositories/`.
 - Notas: `docs/migration/STAGE_2_OFFLINE_DOMAIN_NOTES.md`.

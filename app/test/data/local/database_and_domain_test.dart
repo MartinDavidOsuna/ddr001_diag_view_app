@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:ddr001_diag_view_app/core/metrology/metrology.dart';
 import 'package:ddr001_diag_view_app/data/local/database/app_database.dart'
     hide Meter, User;
+import 'package:ddr001_diag_view_app/data/local/repositories/local_repositories.dart';
+import 'package:ddr001_diag_view_app/domain/integrity_checksum.dart';
 import 'package:ddr001_diag_view_app/domain/models.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -25,8 +27,8 @@ void main() {
     await directory.delete(recursive: true);
   });
 
-  test('schema version 1 creates all eight domain tables', () async {
-    expect(database.schemaVersion, 1);
+  test('schema version 4 creates all eight domain tables', () async {
+    expect(database.schemaVersion, 4);
     final rows = await database
         .customSelect(
           "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
@@ -43,6 +45,20 @@ void main() {
         'test_points',
         'evidence_items',
         'sync_items',
+      }),
+    );
+    final sampleColumns = await database
+        .customSelect('PRAGMA table_info(samples)')
+        .get();
+    expect(
+      sampleColumns.map((row) => row.read<String>('name')),
+      containsAll({
+        'initial_reading_evidence_id',
+        'final_reading_evidence_id',
+        'totalizer_left',
+        'dial_center_x',
+        'dial_multiplier',
+        'dial_configuration_source',
       }),
     );
   });
@@ -140,6 +156,214 @@ void main() {
     diskDb = AppDatabase(NativeDatabase(File(path)));
     diskFixture = OfflineFixture(diskDb, directory);
     expect((await diskFixture.cases.getById('case-1'))!.meterId, 'meter-1');
+    await diskDb.close();
+    database = memoryDatabase();
+  });
+
+  test(
+    'v1 to v2 migration preserves Stage 3 data and adds traceability',
+    () async {
+      await database.close();
+      final path = '${directory.path}${Platform.pathSeparator}migration.sqlite';
+      var diskDb = AppDatabase(NativeDatabase(File(path)));
+      final diskFixture = OfflineFixture(diskDb, directory);
+      await diskFixture.seed();
+      await diskDb.customStatement(
+        'ALTER TABLE samples DROP COLUMN initial_reading_evidence_id',
+      );
+      await diskDb.customStatement(
+        'ALTER TABLE samples DROP COLUMN final_reading_evidence_id',
+      );
+      await diskDb.customStatement('PRAGMA user_version = 1');
+      await diskDb.close();
+
+      diskDb = AppDatabase(NativeDatabase(File(path)));
+      expect(
+        (await LocalVerificationCaseRepository(
+          diskDb,
+        ).getById('case-1'))?.meterId,
+        'meter-1',
+      );
+      final columns = await diskDb
+          .customSelect('PRAGMA table_info(samples)')
+          .get();
+      expect(
+        columns.map((row) => row.read<String>('name')),
+        containsAll({
+          'initial_reading_evidence_id',
+          'final_reading_evidence_id',
+        }),
+      );
+      await diskDb.close();
+      database = memoryDatabase();
+    },
+  );
+
+  test(
+    'schema 4 persists and recovers frozen meter-face and totalizer format',
+    () async {
+      await fixture.seed();
+      await fixture.running();
+      final configured = await fixture.samples.updateMeterFaceConfiguration(
+        'sample-1',
+        const MeterFaceConfiguration(
+          totalizerLeft: .2,
+          totalizerTop: .1,
+          totalizerWidth: .5,
+          totalizerHeight: .2,
+          dialCenterX: .5,
+          dialCenterY: .65,
+          dialRadius: .2,
+          multiplier: .01,
+          litersPerRevolution: 1,
+          zeroAngleDegrees: -90,
+          clockwise: true,
+          source: DialConfigurationSource.manual,
+          totalizerConfiguration: TotalizerConfiguration(
+            digitCount: 3,
+            decimalPlaces: 1,
+            source: DialConfigurationSource.autoConfirmed,
+          ),
+        ),
+      );
+      expect(configured.meterFaceConfiguration!.multiplier, .01);
+      expect(configured.configuration.needleLitersPerRevolution, 1);
+      expect(
+        configured
+            .meterFaceConfiguration!
+            .totalizerConfiguration!
+            .decimalPlaces,
+        1,
+      );
+      expect(
+        (await fixture.samples.getById(
+          'sample-1',
+        ))!.meterFaceConfiguration!.dialRadius,
+        .2,
+      );
+    },
+  );
+
+  test('sample checksum changes with totalizer format', () async {
+    await fixture.seed();
+    await fixture.running();
+    Future<String> checksum(int decimals) async {
+      final sample = await fixture.samples.updateMeterFaceConfiguration(
+        'sample-1',
+        MeterFaceConfiguration(
+          totalizerLeft: .2,
+          totalizerTop: .1,
+          totalizerWidth: .5,
+          totalizerHeight: .2,
+          dialCenterX: .5,
+          dialCenterY: .65,
+          dialRadius: .2,
+          multiplier: .1,
+          litersPerRevolution: 10,
+          zeroAngleDegrees: -90,
+          clockwise: true,
+          source: DialConfigurationSource.manual,
+          totalizerConfiguration: TotalizerConfiguration(
+            digitCount: 3,
+            decimalPlaces: decimals,
+          ),
+        ),
+      );
+      return calculateSampleChecksum(
+        sample: sample,
+        referenceLiters: 10,
+        indicatedLiters: 10,
+        errorPct: 0,
+        uncertaintyPct: 0,
+        mpePct: 2,
+        acceptanceMetricPct: 0,
+        rejectionMetricPct: 0,
+        verdict: 'pass',
+        endedAt: DateTime.utc(2026, 8, 11),
+        requiredEvidence: const [],
+      );
+    }
+
+    expect(await checksum(1), isNot(await checksum(2)));
+  });
+
+  test('v3 to v4 migration is additive and preserves Stage 4 rows', () async {
+    await database.close();
+    final path =
+        '${directory.path}${Platform.pathSeparator}migration-v4.sqlite';
+    var diskDb = AppDatabase(NativeDatabase(File(path)));
+    final diskFixture = OfflineFixture(diskDb, directory);
+    await diskFixture.seed();
+    await diskFixture.running();
+    for (final column in [
+      'totalizer_digit_count',
+      'totalizer_decimal_places',
+      'totalizer_unit',
+      'totalizer_leading_zeros_allowed',
+      'totalizer_configuration_source',
+    ]) {
+      await diskDb.customStatement('ALTER TABLE samples DROP COLUMN $column');
+    }
+    await diskDb.customStatement('PRAGMA user_version = 3');
+    await diskDb.close();
+    diskDb = AppDatabase(NativeDatabase(File(path)));
+    expect(
+      (await LocalSampleRepository(diskDb).getById('sample-1'))?.id,
+      'sample-1',
+    );
+    final columns = await diskDb
+        .customSelect('PRAGMA table_info(samples)')
+        .get();
+    expect(
+      columns.map((row) => row.read<String>('name')),
+      contains('totalizer_decimal_places'),
+    );
+    await diskDb.close();
+    database = memoryDatabase();
+  });
+
+  test('v2 to v3 migration is additive and preserves Stage 4 rows', () async {
+    await database.close();
+    final path =
+        '${directory.path}${Platform.pathSeparator}migration-v3.sqlite';
+    var diskDb = AppDatabase(NativeDatabase(File(path)));
+    final diskFixture = OfflineFixture(diskDb, directory);
+    await diskFixture.seed();
+    await diskFixture.running();
+    for (final column in [
+      'totalizer_left',
+      'totalizer_top',
+      'totalizer_width',
+      'totalizer_height',
+      'dial_center_x',
+      'dial_center_y',
+      'dial_radius',
+      'dial_multiplier',
+      'dial_liters_per_revolution',
+      'dial_zero_angle_degrees',
+      'dial_clockwise',
+      'dial_configuration_source',
+    ]) {
+      await diskDb.customStatement('ALTER TABLE samples DROP COLUMN $column');
+    }
+    await diskDb.customStatement('PRAGMA user_version = 2');
+    await diskDb.close();
+    diskDb = AppDatabase(NativeDatabase(File(path)));
+    expect(
+      (await LocalSampleRepository(diskDb).getById('sample-1'))?.id,
+      'sample-1',
+    );
+    final columns = await diskDb
+        .customSelect('PRAGMA table_info(samples)')
+        .get();
+    expect(
+      columns.map((row) => row.read<String>('name')),
+      containsAll([
+        'totalizer_left',
+        'dial_center_x',
+        'dial_configuration_source',
+      ]),
+    );
     await diskDb.close();
     database = memoryDatabase();
   });

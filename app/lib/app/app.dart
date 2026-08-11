@@ -6,8 +6,10 @@ import '../presentation/auth/login_screen.dart';
 import '../presentation/home/home_screens.dart';
 import '../presentation/results/result_screens.dart';
 import '../presentation/workflow/readings_screen.dart';
+import '../presentation/workflow/camera_screen.dart';
 import '../presentation/workflow/run_screens.dart';
 import '../presentation/workflow/setup_screens.dart';
+import '../presentation/debug/visual_calibration_screen.dart';
 import 'theme/app_theme.dart';
 
 final class Ddr001App extends ConsumerStatefulWidget {
@@ -54,6 +56,8 @@ final class _Ddr001AppState extends ConsumerState<Ddr001App> {
             AppPage.history => const HistoryScreen(),
             AppPage.settings => const SettingsScreen(),
             AppPage.invalidEvidence => const InvalidEvidenceScreen(),
+            AppPage.camera => const CameraCaptureScreen(),
+            AppPage.debugCalibration => const VisualCalibrationScreen(),
           },
         ),
       ),

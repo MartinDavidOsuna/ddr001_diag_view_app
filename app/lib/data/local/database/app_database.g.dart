@@ -2325,2233 +2325,6 @@ class FlowPointsCompanion extends UpdateCompanion<FlowPointRow> {
   }
 }
 
-class $SamplesTable extends Samples with TableInfo<$SamplesTable, SampleRow> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $SamplesTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<String> id = GeneratedColumn<String>(
-    'id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _flowPointIdMeta = const VerificationMeta(
-    'flowPointId',
-  );
-  @override
-  late final GeneratedColumn<String> flowPointId = GeneratedColumn<String>(
-    'flow_point_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES flow_points (id)',
-    ),
-  );
-  static const VerificationMeta _sampleNumberMeta = const VerificationMeta(
-    'sampleNumber',
-  );
-  @override
-  late final GeneratedColumn<int> sampleNumber = GeneratedColumn<int>(
-    'sample_number',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _statusMeta = const VerificationMeta('status');
-  @override
-  late final GeneratedColumn<String> status = GeneratedColumn<String>(
-    'status',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _measurementMethodMeta = const VerificationMeta(
-    'measurementMethod',
-  );
-  @override
-  late final GeneratedColumn<String> measurementMethod =
-      GeneratedColumn<String>(
-        'measurement_method',
-        aliasedName,
-        false,
-        type: DriftSqlType.string,
-        requiredDuringInsert: true,
-      );
-  static const VerificationMeta _litersPerPulseMeta = const VerificationMeta(
-    'litersPerPulse',
-  );
-  @override
-  late final GeneratedColumn<double> litersPerPulse = GeneratedColumn<double>(
-    'liters_per_pulse',
-    aliasedName,
-    false,
-    type: DriftSqlType.double,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _evidenceStepLitersMeta =
-      const VerificationMeta('evidenceStepLiters');
-  @override
-  late final GeneratedColumn<double> evidenceStepLiters =
-      GeneratedColumn<double>(
-        'evidence_step_liters',
-        aliasedName,
-        false,
-        type: DriftSqlType.double,
-        requiredDuringInsert: true,
-      );
-  static const VerificationMeta _readingUncertaintyLitersMeta =
-      const VerificationMeta('readingUncertaintyLiters');
-  @override
-  late final GeneratedColumn<double> readingUncertaintyLiters =
-      GeneratedColumn<double>(
-        'reading_uncertainty_liters',
-        aliasedName,
-        false,
-        type: DriftSqlType.double,
-        requiredDuringInsert: true,
-      );
-  static const VerificationMeta _flowPointCodeMeta = const VerificationMeta(
-    'flowPointCode',
-  );
-  @override
-  late final GeneratedColumn<String> flowPointCode = GeneratedColumn<String>(
-    'flow_point_code',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _mpePctMeta = const VerificationMeta('mpePct');
-  @override
-  late final GeneratedColumn<double> mpePct = GeneratedColumn<double>(
-    'mpe_pct',
-    aliasedName,
-    false,
-    type: DriftSqlType.double,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _lpsApproxMeta = const VerificationMeta(
-    'lpsApprox',
-  );
-  @override
-  late final GeneratedColumn<double> lpsApprox = GeneratedColumn<double>(
-    'lps_approx',
-    aliasedName,
-    true,
-    type: DriftSqlType.double,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _litersPerOdometerUnitMeta =
-      const VerificationMeta('litersPerOdometerUnit');
-  @override
-  late final GeneratedColumn<double> litersPerOdometerUnit =
-      GeneratedColumn<double>(
-        'liters_per_odometer_unit',
-        aliasedName,
-        false,
-        type: DriftSqlType.double,
-        requiredDuringInsert: true,
-      );
-  static const VerificationMeta _needleLitersPerRevolutionMeta =
-      const VerificationMeta('needleLitersPerRevolution');
-  @override
-  late final GeneratedColumn<double> needleLitersPerRevolution =
-      GeneratedColumn<double>(
-        'needle_liters_per_revolution',
-        aliasedName,
-        false,
-        type: DriftSqlType.double,
-        requiredDuringInsert: true,
-      );
-  static const VerificationMeta _createdAtMsMeta = const VerificationMeta(
-    'createdAtMs',
-  );
-  @override
-  late final GeneratedColumn<int> createdAtMs = GeneratedColumn<int>(
-    'created_at_ms',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _updatedAtMsMeta = const VerificationMeta(
-    'updatedAtMs',
-  );
-  @override
-  late final GeneratedColumn<int> updatedAtMs = GeneratedColumn<int>(
-    'updated_at_ms',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _startedAtMsMeta = const VerificationMeta(
-    'startedAtMs',
-  );
-  @override
-  late final GeneratedColumn<int> startedAtMs = GeneratedColumn<int>(
-    'started_at_ms',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _endedAtMsMeta = const VerificationMeta(
-    'endedAtMs',
-  );
-  @override
-  late final GeneratedColumn<int> endedAtMs = GeneratedColumn<int>(
-    'ended_at_ms',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _gpsLatitudeMeta = const VerificationMeta(
-    'gpsLatitude',
-  );
-  @override
-  late final GeneratedColumn<double> gpsLatitude = GeneratedColumn<double>(
-    'gps_latitude',
-    aliasedName,
-    true,
-    type: DriftSqlType.double,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _gpsLongitudeMeta = const VerificationMeta(
-    'gpsLongitude',
-  );
-  @override
-  late final GeneratedColumn<double> gpsLongitude = GeneratedColumn<double>(
-    'gps_longitude',
-    aliasedName,
-    true,
-    type: DriftSqlType.double,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _gpsAccuracyMetersMeta = const VerificationMeta(
-    'gpsAccuracyMeters',
-  );
-  @override
-  late final GeneratedColumn<double> gpsAccuracyMeters =
-      GeneratedColumn<double>(
-        'gps_accuracy_meters',
-        aliasedName,
-        true,
-        type: DriftSqlType.double,
-        requiredDuringInsert: false,
-      );
-  static const VerificationMeta _gpsCapturedAtMsMeta = const VerificationMeta(
-    'gpsCapturedAtMs',
-  );
-  @override
-  late final GeneratedColumn<int> gpsCapturedAtMs = GeneratedColumn<int>(
-    'gps_captured_at_ms',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _pulseCountMeta = const VerificationMeta(
-    'pulseCount',
-  );
-  @override
-  late final GeneratedColumn<int> pulseCount = GeneratedColumn<int>(
-    'pulse_count',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(0),
-  );
-  static const VerificationMeta _progressReferenceLitersMeta =
-      const VerificationMeta('progressReferenceLiters');
-  @override
-  late final GeneratedColumn<double> progressReferenceLiters =
-      GeneratedColumn<double>(
-        'progress_reference_liters',
-        aliasedName,
-        true,
-        type: DriftSqlType.double,
-        requiredDuringInsert: false,
-      );
-  static const VerificationMeta _initialOdometerUnitsMeta =
-      const VerificationMeta('initialOdometerUnits');
-  @override
-  late final GeneratedColumn<double> initialOdometerUnits =
-      GeneratedColumn<double>(
-        'initial_odometer_units',
-        aliasedName,
-        true,
-        type: DriftSqlType.double,
-        requiredDuringInsert: false,
-      );
-  static const VerificationMeta _initialNeedleLitersMeta =
-      const VerificationMeta('initialNeedleLiters');
-  @override
-  late final GeneratedColumn<double> initialNeedleLiters =
-      GeneratedColumn<double>(
-        'initial_needle_liters',
-        aliasedName,
-        true,
-        type: DriftSqlType.double,
-        requiredDuringInsert: false,
-      );
-  static const VerificationMeta _initialReadingSourceMeta =
-      const VerificationMeta('initialReadingSource');
-  @override
-  late final GeneratedColumn<String> initialReadingSource =
-      GeneratedColumn<String>(
-        'initial_reading_source',
-        aliasedName,
-        true,
-        type: DriftSqlType.string,
-        requiredDuringInsert: false,
-      );
-  static const VerificationMeta _finalOdometerUnitsMeta =
-      const VerificationMeta('finalOdometerUnits');
-  @override
-  late final GeneratedColumn<double> finalOdometerUnits =
-      GeneratedColumn<double>(
-        'final_odometer_units',
-        aliasedName,
-        true,
-        type: DriftSqlType.double,
-        requiredDuringInsert: false,
-      );
-  static const VerificationMeta _finalNeedleLitersMeta = const VerificationMeta(
-    'finalNeedleLiters',
-  );
-  @override
-  late final GeneratedColumn<double> finalNeedleLiters =
-      GeneratedColumn<double>(
-        'final_needle_liters',
-        aliasedName,
-        true,
-        type: DriftSqlType.double,
-        requiredDuringInsert: false,
-      );
-  static const VerificationMeta _finalReadingSourceMeta =
-      const VerificationMeta('finalReadingSource');
-  @override
-  late final GeneratedColumn<String> finalReadingSource =
-      GeneratedColumn<String>(
-        'final_reading_source',
-        aliasedName,
-        true,
-        type: DriftSqlType.string,
-        requiredDuringInsert: false,
-      );
-  static const VerificationMeta _referenceLitersMeta = const VerificationMeta(
-    'referenceLiters',
-  );
-  @override
-  late final GeneratedColumn<double> referenceLiters = GeneratedColumn<double>(
-    'reference_liters',
-    aliasedName,
-    true,
-    type: DriftSqlType.double,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _indicatedLitersMeta = const VerificationMeta(
-    'indicatedLiters',
-  );
-  @override
-  late final GeneratedColumn<double> indicatedLiters = GeneratedColumn<double>(
-    'indicated_liters',
-    aliasedName,
-    true,
-    type: DriftSqlType.double,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _errorPctMeta = const VerificationMeta(
-    'errorPct',
-  );
-  @override
-  late final GeneratedColumn<double> errorPct = GeneratedColumn<double>(
-    'error_pct',
-    aliasedName,
-    true,
-    type: DriftSqlType.double,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _uncertaintyPctMeta = const VerificationMeta(
-    'uncertaintyPct',
-  );
-  @override
-  late final GeneratedColumn<double> uncertaintyPct = GeneratedColumn<double>(
-    'uncertainty_pct',
-    aliasedName,
-    true,
-    type: DriftSqlType.double,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _resultMpePctMeta = const VerificationMeta(
-    'resultMpePct',
-  );
-  @override
-  late final GeneratedColumn<double> resultMpePct = GeneratedColumn<double>(
-    'result_mpe_pct',
-    aliasedName,
-    true,
-    type: DriftSqlType.double,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _acceptanceMetricPctMeta =
-      const VerificationMeta('acceptanceMetricPct');
-  @override
-  late final GeneratedColumn<double> acceptanceMetricPct =
-      GeneratedColumn<double>(
-        'acceptance_metric_pct',
-        aliasedName,
-        true,
-        type: DriftSqlType.double,
-        requiredDuringInsert: false,
-      );
-  static const VerificationMeta _rejectionMetricPctMeta =
-      const VerificationMeta('rejectionMetricPct');
-  @override
-  late final GeneratedColumn<double> rejectionMetricPct =
-      GeneratedColumn<double>(
-        'rejection_metric_pct',
-        aliasedName,
-        true,
-        type: DriftSqlType.double,
-        requiredDuringInsert: false,
-      );
-  static const VerificationMeta _verdictMeta = const VerificationMeta(
-    'verdict',
-  );
-  @override
-  late final GeneratedColumn<String> verdict = GeneratedColumn<String>(
-    'verdict',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _checksumMeta = const VerificationMeta(
-    'checksum',
-  );
-  @override
-  late final GeneratedColumn<String> checksum = GeneratedColumn<String>(
-    'checksum',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  @override
-  List<GeneratedColumn> get $columns => [
-    id,
-    flowPointId,
-    sampleNumber,
-    status,
-    measurementMethod,
-    litersPerPulse,
-    evidenceStepLiters,
-    readingUncertaintyLiters,
-    flowPointCode,
-    mpePct,
-    lpsApprox,
-    litersPerOdometerUnit,
-    needleLitersPerRevolution,
-    createdAtMs,
-    updatedAtMs,
-    startedAtMs,
-    endedAtMs,
-    gpsLatitude,
-    gpsLongitude,
-    gpsAccuracyMeters,
-    gpsCapturedAtMs,
-    pulseCount,
-    progressReferenceLiters,
-    initialOdometerUnits,
-    initialNeedleLiters,
-    initialReadingSource,
-    finalOdometerUnits,
-    finalNeedleLiters,
-    finalReadingSource,
-    referenceLiters,
-    indicatedLiters,
-    errorPct,
-    uncertaintyPct,
-    resultMpePct,
-    acceptanceMetricPct,
-    rejectionMetricPct,
-    verdict,
-    checksum,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'samples';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<SampleRow> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    } else if (isInserting) {
-      context.missing(_idMeta);
-    }
-    if (data.containsKey('flow_point_id')) {
-      context.handle(
-        _flowPointIdMeta,
-        flowPointId.isAcceptableOrUnknown(
-          data['flow_point_id']!,
-          _flowPointIdMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_flowPointIdMeta);
-    }
-    if (data.containsKey('sample_number')) {
-      context.handle(
-        _sampleNumberMeta,
-        sampleNumber.isAcceptableOrUnknown(
-          data['sample_number']!,
-          _sampleNumberMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_sampleNumberMeta);
-    }
-    if (data.containsKey('status')) {
-      context.handle(
-        _statusMeta,
-        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_statusMeta);
-    }
-    if (data.containsKey('measurement_method')) {
-      context.handle(
-        _measurementMethodMeta,
-        measurementMethod.isAcceptableOrUnknown(
-          data['measurement_method']!,
-          _measurementMethodMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_measurementMethodMeta);
-    }
-    if (data.containsKey('liters_per_pulse')) {
-      context.handle(
-        _litersPerPulseMeta,
-        litersPerPulse.isAcceptableOrUnknown(
-          data['liters_per_pulse']!,
-          _litersPerPulseMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_litersPerPulseMeta);
-    }
-    if (data.containsKey('evidence_step_liters')) {
-      context.handle(
-        _evidenceStepLitersMeta,
-        evidenceStepLiters.isAcceptableOrUnknown(
-          data['evidence_step_liters']!,
-          _evidenceStepLitersMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_evidenceStepLitersMeta);
-    }
-    if (data.containsKey('reading_uncertainty_liters')) {
-      context.handle(
-        _readingUncertaintyLitersMeta,
-        readingUncertaintyLiters.isAcceptableOrUnknown(
-          data['reading_uncertainty_liters']!,
-          _readingUncertaintyLitersMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_readingUncertaintyLitersMeta);
-    }
-    if (data.containsKey('flow_point_code')) {
-      context.handle(
-        _flowPointCodeMeta,
-        flowPointCode.isAcceptableOrUnknown(
-          data['flow_point_code']!,
-          _flowPointCodeMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_flowPointCodeMeta);
-    }
-    if (data.containsKey('mpe_pct')) {
-      context.handle(
-        _mpePctMeta,
-        mpePct.isAcceptableOrUnknown(data['mpe_pct']!, _mpePctMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_mpePctMeta);
-    }
-    if (data.containsKey('lps_approx')) {
-      context.handle(
-        _lpsApproxMeta,
-        lpsApprox.isAcceptableOrUnknown(data['lps_approx']!, _lpsApproxMeta),
-      );
-    }
-    if (data.containsKey('liters_per_odometer_unit')) {
-      context.handle(
-        _litersPerOdometerUnitMeta,
-        litersPerOdometerUnit.isAcceptableOrUnknown(
-          data['liters_per_odometer_unit']!,
-          _litersPerOdometerUnitMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_litersPerOdometerUnitMeta);
-    }
-    if (data.containsKey('needle_liters_per_revolution')) {
-      context.handle(
-        _needleLitersPerRevolutionMeta,
-        needleLitersPerRevolution.isAcceptableOrUnknown(
-          data['needle_liters_per_revolution']!,
-          _needleLitersPerRevolutionMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_needleLitersPerRevolutionMeta);
-    }
-    if (data.containsKey('created_at_ms')) {
-      context.handle(
-        _createdAtMsMeta,
-        createdAtMs.isAcceptableOrUnknown(
-          data['created_at_ms']!,
-          _createdAtMsMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_createdAtMsMeta);
-    }
-    if (data.containsKey('updated_at_ms')) {
-      context.handle(
-        _updatedAtMsMeta,
-        updatedAtMs.isAcceptableOrUnknown(
-          data['updated_at_ms']!,
-          _updatedAtMsMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_updatedAtMsMeta);
-    }
-    if (data.containsKey('started_at_ms')) {
-      context.handle(
-        _startedAtMsMeta,
-        startedAtMs.isAcceptableOrUnknown(
-          data['started_at_ms']!,
-          _startedAtMsMeta,
-        ),
-      );
-    }
-    if (data.containsKey('ended_at_ms')) {
-      context.handle(
-        _endedAtMsMeta,
-        endedAtMs.isAcceptableOrUnknown(data['ended_at_ms']!, _endedAtMsMeta),
-      );
-    }
-    if (data.containsKey('gps_latitude')) {
-      context.handle(
-        _gpsLatitudeMeta,
-        gpsLatitude.isAcceptableOrUnknown(
-          data['gps_latitude']!,
-          _gpsLatitudeMeta,
-        ),
-      );
-    }
-    if (data.containsKey('gps_longitude')) {
-      context.handle(
-        _gpsLongitudeMeta,
-        gpsLongitude.isAcceptableOrUnknown(
-          data['gps_longitude']!,
-          _gpsLongitudeMeta,
-        ),
-      );
-    }
-    if (data.containsKey('gps_accuracy_meters')) {
-      context.handle(
-        _gpsAccuracyMetersMeta,
-        gpsAccuracyMeters.isAcceptableOrUnknown(
-          data['gps_accuracy_meters']!,
-          _gpsAccuracyMetersMeta,
-        ),
-      );
-    }
-    if (data.containsKey('gps_captured_at_ms')) {
-      context.handle(
-        _gpsCapturedAtMsMeta,
-        gpsCapturedAtMs.isAcceptableOrUnknown(
-          data['gps_captured_at_ms']!,
-          _gpsCapturedAtMsMeta,
-        ),
-      );
-    }
-    if (data.containsKey('pulse_count')) {
-      context.handle(
-        _pulseCountMeta,
-        pulseCount.isAcceptableOrUnknown(data['pulse_count']!, _pulseCountMeta),
-      );
-    }
-    if (data.containsKey('progress_reference_liters')) {
-      context.handle(
-        _progressReferenceLitersMeta,
-        progressReferenceLiters.isAcceptableOrUnknown(
-          data['progress_reference_liters']!,
-          _progressReferenceLitersMeta,
-        ),
-      );
-    }
-    if (data.containsKey('initial_odometer_units')) {
-      context.handle(
-        _initialOdometerUnitsMeta,
-        initialOdometerUnits.isAcceptableOrUnknown(
-          data['initial_odometer_units']!,
-          _initialOdometerUnitsMeta,
-        ),
-      );
-    }
-    if (data.containsKey('initial_needle_liters')) {
-      context.handle(
-        _initialNeedleLitersMeta,
-        initialNeedleLiters.isAcceptableOrUnknown(
-          data['initial_needle_liters']!,
-          _initialNeedleLitersMeta,
-        ),
-      );
-    }
-    if (data.containsKey('initial_reading_source')) {
-      context.handle(
-        _initialReadingSourceMeta,
-        initialReadingSource.isAcceptableOrUnknown(
-          data['initial_reading_source']!,
-          _initialReadingSourceMeta,
-        ),
-      );
-    }
-    if (data.containsKey('final_odometer_units')) {
-      context.handle(
-        _finalOdometerUnitsMeta,
-        finalOdometerUnits.isAcceptableOrUnknown(
-          data['final_odometer_units']!,
-          _finalOdometerUnitsMeta,
-        ),
-      );
-    }
-    if (data.containsKey('final_needle_liters')) {
-      context.handle(
-        _finalNeedleLitersMeta,
-        finalNeedleLiters.isAcceptableOrUnknown(
-          data['final_needle_liters']!,
-          _finalNeedleLitersMeta,
-        ),
-      );
-    }
-    if (data.containsKey('final_reading_source')) {
-      context.handle(
-        _finalReadingSourceMeta,
-        finalReadingSource.isAcceptableOrUnknown(
-          data['final_reading_source']!,
-          _finalReadingSourceMeta,
-        ),
-      );
-    }
-    if (data.containsKey('reference_liters')) {
-      context.handle(
-        _referenceLitersMeta,
-        referenceLiters.isAcceptableOrUnknown(
-          data['reference_liters']!,
-          _referenceLitersMeta,
-        ),
-      );
-    }
-    if (data.containsKey('indicated_liters')) {
-      context.handle(
-        _indicatedLitersMeta,
-        indicatedLiters.isAcceptableOrUnknown(
-          data['indicated_liters']!,
-          _indicatedLitersMeta,
-        ),
-      );
-    }
-    if (data.containsKey('error_pct')) {
-      context.handle(
-        _errorPctMeta,
-        errorPct.isAcceptableOrUnknown(data['error_pct']!, _errorPctMeta),
-      );
-    }
-    if (data.containsKey('uncertainty_pct')) {
-      context.handle(
-        _uncertaintyPctMeta,
-        uncertaintyPct.isAcceptableOrUnknown(
-          data['uncertainty_pct']!,
-          _uncertaintyPctMeta,
-        ),
-      );
-    }
-    if (data.containsKey('result_mpe_pct')) {
-      context.handle(
-        _resultMpePctMeta,
-        resultMpePct.isAcceptableOrUnknown(
-          data['result_mpe_pct']!,
-          _resultMpePctMeta,
-        ),
-      );
-    }
-    if (data.containsKey('acceptance_metric_pct')) {
-      context.handle(
-        _acceptanceMetricPctMeta,
-        acceptanceMetricPct.isAcceptableOrUnknown(
-          data['acceptance_metric_pct']!,
-          _acceptanceMetricPctMeta,
-        ),
-      );
-    }
-    if (data.containsKey('rejection_metric_pct')) {
-      context.handle(
-        _rejectionMetricPctMeta,
-        rejectionMetricPct.isAcceptableOrUnknown(
-          data['rejection_metric_pct']!,
-          _rejectionMetricPctMeta,
-        ),
-      );
-    }
-    if (data.containsKey('verdict')) {
-      context.handle(
-        _verdictMeta,
-        verdict.isAcceptableOrUnknown(data['verdict']!, _verdictMeta),
-      );
-    }
-    if (data.containsKey('checksum')) {
-      context.handle(
-        _checksumMeta,
-        checksum.isAcceptableOrUnknown(data['checksum']!, _checksumMeta),
-      );
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  List<Set<GeneratedColumn>> get uniqueKeys => [
-    {flowPointId, sampleNumber},
-  ];
-  @override
-  SampleRow map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return SampleRow(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}id'],
-      )!,
-      flowPointId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}flow_point_id'],
-      )!,
-      sampleNumber: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}sample_number'],
-      )!,
-      status: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}status'],
-      )!,
-      measurementMethod: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}measurement_method'],
-      )!,
-      litersPerPulse: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}liters_per_pulse'],
-      )!,
-      evidenceStepLiters: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}evidence_step_liters'],
-      )!,
-      readingUncertaintyLiters: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}reading_uncertainty_liters'],
-      )!,
-      flowPointCode: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}flow_point_code'],
-      )!,
-      mpePct: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}mpe_pct'],
-      )!,
-      lpsApprox: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}lps_approx'],
-      ),
-      litersPerOdometerUnit: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}liters_per_odometer_unit'],
-      )!,
-      needleLitersPerRevolution: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}needle_liters_per_revolution'],
-      )!,
-      createdAtMs: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}created_at_ms'],
-      )!,
-      updatedAtMs: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}updated_at_ms'],
-      )!,
-      startedAtMs: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}started_at_ms'],
-      ),
-      endedAtMs: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}ended_at_ms'],
-      ),
-      gpsLatitude: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}gps_latitude'],
-      ),
-      gpsLongitude: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}gps_longitude'],
-      ),
-      gpsAccuracyMeters: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}gps_accuracy_meters'],
-      ),
-      gpsCapturedAtMs: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}gps_captured_at_ms'],
-      ),
-      pulseCount: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}pulse_count'],
-      )!,
-      progressReferenceLiters: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}progress_reference_liters'],
-      ),
-      initialOdometerUnits: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}initial_odometer_units'],
-      ),
-      initialNeedleLiters: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}initial_needle_liters'],
-      ),
-      initialReadingSource: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}initial_reading_source'],
-      ),
-      finalOdometerUnits: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}final_odometer_units'],
-      ),
-      finalNeedleLiters: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}final_needle_liters'],
-      ),
-      finalReadingSource: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}final_reading_source'],
-      ),
-      referenceLiters: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}reference_liters'],
-      ),
-      indicatedLiters: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}indicated_liters'],
-      ),
-      errorPct: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}error_pct'],
-      ),
-      uncertaintyPct: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}uncertainty_pct'],
-      ),
-      resultMpePct: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}result_mpe_pct'],
-      ),
-      acceptanceMetricPct: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}acceptance_metric_pct'],
-      ),
-      rejectionMetricPct: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}rejection_metric_pct'],
-      ),
-      verdict: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}verdict'],
-      ),
-      checksum: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}checksum'],
-      ),
-    );
-  }
-
-  @override
-  $SamplesTable createAlias(String alias) {
-    return $SamplesTable(attachedDatabase, alias);
-  }
-}
-
-class SampleRow extends DataClass implements Insertable<SampleRow> {
-  final String id;
-  final String flowPointId;
-  final int sampleNumber;
-  final String status;
-  final String measurementMethod;
-  final double litersPerPulse;
-  final double evidenceStepLiters;
-  final double readingUncertaintyLiters;
-  final String flowPointCode;
-  final double mpePct;
-  final double? lpsApprox;
-  final double litersPerOdometerUnit;
-  final double needleLitersPerRevolution;
-  final int createdAtMs;
-  final int updatedAtMs;
-  final int? startedAtMs;
-  final int? endedAtMs;
-  final double? gpsLatitude;
-  final double? gpsLongitude;
-  final double? gpsAccuracyMeters;
-  final int? gpsCapturedAtMs;
-  final int pulseCount;
-  final double? progressReferenceLiters;
-  final double? initialOdometerUnits;
-  final double? initialNeedleLiters;
-  final String? initialReadingSource;
-  final double? finalOdometerUnits;
-  final double? finalNeedleLiters;
-  final String? finalReadingSource;
-  final double? referenceLiters;
-  final double? indicatedLiters;
-  final double? errorPct;
-  final double? uncertaintyPct;
-  final double? resultMpePct;
-  final double? acceptanceMetricPct;
-  final double? rejectionMetricPct;
-  final String? verdict;
-  final String? checksum;
-  const SampleRow({
-    required this.id,
-    required this.flowPointId,
-    required this.sampleNumber,
-    required this.status,
-    required this.measurementMethod,
-    required this.litersPerPulse,
-    required this.evidenceStepLiters,
-    required this.readingUncertaintyLiters,
-    required this.flowPointCode,
-    required this.mpePct,
-    this.lpsApprox,
-    required this.litersPerOdometerUnit,
-    required this.needleLitersPerRevolution,
-    required this.createdAtMs,
-    required this.updatedAtMs,
-    this.startedAtMs,
-    this.endedAtMs,
-    this.gpsLatitude,
-    this.gpsLongitude,
-    this.gpsAccuracyMeters,
-    this.gpsCapturedAtMs,
-    required this.pulseCount,
-    this.progressReferenceLiters,
-    this.initialOdometerUnits,
-    this.initialNeedleLiters,
-    this.initialReadingSource,
-    this.finalOdometerUnits,
-    this.finalNeedleLiters,
-    this.finalReadingSource,
-    this.referenceLiters,
-    this.indicatedLiters,
-    this.errorPct,
-    this.uncertaintyPct,
-    this.resultMpePct,
-    this.acceptanceMetricPct,
-    this.rejectionMetricPct,
-    this.verdict,
-    this.checksum,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<String>(id);
-    map['flow_point_id'] = Variable<String>(flowPointId);
-    map['sample_number'] = Variable<int>(sampleNumber);
-    map['status'] = Variable<String>(status);
-    map['measurement_method'] = Variable<String>(measurementMethod);
-    map['liters_per_pulse'] = Variable<double>(litersPerPulse);
-    map['evidence_step_liters'] = Variable<double>(evidenceStepLiters);
-    map['reading_uncertainty_liters'] = Variable<double>(
-      readingUncertaintyLiters,
-    );
-    map['flow_point_code'] = Variable<String>(flowPointCode);
-    map['mpe_pct'] = Variable<double>(mpePct);
-    if (!nullToAbsent || lpsApprox != null) {
-      map['lps_approx'] = Variable<double>(lpsApprox);
-    }
-    map['liters_per_odometer_unit'] = Variable<double>(litersPerOdometerUnit);
-    map['needle_liters_per_revolution'] = Variable<double>(
-      needleLitersPerRevolution,
-    );
-    map['created_at_ms'] = Variable<int>(createdAtMs);
-    map['updated_at_ms'] = Variable<int>(updatedAtMs);
-    if (!nullToAbsent || startedAtMs != null) {
-      map['started_at_ms'] = Variable<int>(startedAtMs);
-    }
-    if (!nullToAbsent || endedAtMs != null) {
-      map['ended_at_ms'] = Variable<int>(endedAtMs);
-    }
-    if (!nullToAbsent || gpsLatitude != null) {
-      map['gps_latitude'] = Variable<double>(gpsLatitude);
-    }
-    if (!nullToAbsent || gpsLongitude != null) {
-      map['gps_longitude'] = Variable<double>(gpsLongitude);
-    }
-    if (!nullToAbsent || gpsAccuracyMeters != null) {
-      map['gps_accuracy_meters'] = Variable<double>(gpsAccuracyMeters);
-    }
-    if (!nullToAbsent || gpsCapturedAtMs != null) {
-      map['gps_captured_at_ms'] = Variable<int>(gpsCapturedAtMs);
-    }
-    map['pulse_count'] = Variable<int>(pulseCount);
-    if (!nullToAbsent || progressReferenceLiters != null) {
-      map['progress_reference_liters'] = Variable<double>(
-        progressReferenceLiters,
-      );
-    }
-    if (!nullToAbsent || initialOdometerUnits != null) {
-      map['initial_odometer_units'] = Variable<double>(initialOdometerUnits);
-    }
-    if (!nullToAbsent || initialNeedleLiters != null) {
-      map['initial_needle_liters'] = Variable<double>(initialNeedleLiters);
-    }
-    if (!nullToAbsent || initialReadingSource != null) {
-      map['initial_reading_source'] = Variable<String>(initialReadingSource);
-    }
-    if (!nullToAbsent || finalOdometerUnits != null) {
-      map['final_odometer_units'] = Variable<double>(finalOdometerUnits);
-    }
-    if (!nullToAbsent || finalNeedleLiters != null) {
-      map['final_needle_liters'] = Variable<double>(finalNeedleLiters);
-    }
-    if (!nullToAbsent || finalReadingSource != null) {
-      map['final_reading_source'] = Variable<String>(finalReadingSource);
-    }
-    if (!nullToAbsent || referenceLiters != null) {
-      map['reference_liters'] = Variable<double>(referenceLiters);
-    }
-    if (!nullToAbsent || indicatedLiters != null) {
-      map['indicated_liters'] = Variable<double>(indicatedLiters);
-    }
-    if (!nullToAbsent || errorPct != null) {
-      map['error_pct'] = Variable<double>(errorPct);
-    }
-    if (!nullToAbsent || uncertaintyPct != null) {
-      map['uncertainty_pct'] = Variable<double>(uncertaintyPct);
-    }
-    if (!nullToAbsent || resultMpePct != null) {
-      map['result_mpe_pct'] = Variable<double>(resultMpePct);
-    }
-    if (!nullToAbsent || acceptanceMetricPct != null) {
-      map['acceptance_metric_pct'] = Variable<double>(acceptanceMetricPct);
-    }
-    if (!nullToAbsent || rejectionMetricPct != null) {
-      map['rejection_metric_pct'] = Variable<double>(rejectionMetricPct);
-    }
-    if (!nullToAbsent || verdict != null) {
-      map['verdict'] = Variable<String>(verdict);
-    }
-    if (!nullToAbsent || checksum != null) {
-      map['checksum'] = Variable<String>(checksum);
-    }
-    return map;
-  }
-
-  SamplesCompanion toCompanion(bool nullToAbsent) {
-    return SamplesCompanion(
-      id: Value(id),
-      flowPointId: Value(flowPointId),
-      sampleNumber: Value(sampleNumber),
-      status: Value(status),
-      measurementMethod: Value(measurementMethod),
-      litersPerPulse: Value(litersPerPulse),
-      evidenceStepLiters: Value(evidenceStepLiters),
-      readingUncertaintyLiters: Value(readingUncertaintyLiters),
-      flowPointCode: Value(flowPointCode),
-      mpePct: Value(mpePct),
-      lpsApprox: lpsApprox == null && nullToAbsent
-          ? const Value.absent()
-          : Value(lpsApprox),
-      litersPerOdometerUnit: Value(litersPerOdometerUnit),
-      needleLitersPerRevolution: Value(needleLitersPerRevolution),
-      createdAtMs: Value(createdAtMs),
-      updatedAtMs: Value(updatedAtMs),
-      startedAtMs: startedAtMs == null && nullToAbsent
-          ? const Value.absent()
-          : Value(startedAtMs),
-      endedAtMs: endedAtMs == null && nullToAbsent
-          ? const Value.absent()
-          : Value(endedAtMs),
-      gpsLatitude: gpsLatitude == null && nullToAbsent
-          ? const Value.absent()
-          : Value(gpsLatitude),
-      gpsLongitude: gpsLongitude == null && nullToAbsent
-          ? const Value.absent()
-          : Value(gpsLongitude),
-      gpsAccuracyMeters: gpsAccuracyMeters == null && nullToAbsent
-          ? const Value.absent()
-          : Value(gpsAccuracyMeters),
-      gpsCapturedAtMs: gpsCapturedAtMs == null && nullToAbsent
-          ? const Value.absent()
-          : Value(gpsCapturedAtMs),
-      pulseCount: Value(pulseCount),
-      progressReferenceLiters: progressReferenceLiters == null && nullToAbsent
-          ? const Value.absent()
-          : Value(progressReferenceLiters),
-      initialOdometerUnits: initialOdometerUnits == null && nullToAbsent
-          ? const Value.absent()
-          : Value(initialOdometerUnits),
-      initialNeedleLiters: initialNeedleLiters == null && nullToAbsent
-          ? const Value.absent()
-          : Value(initialNeedleLiters),
-      initialReadingSource: initialReadingSource == null && nullToAbsent
-          ? const Value.absent()
-          : Value(initialReadingSource),
-      finalOdometerUnits: finalOdometerUnits == null && nullToAbsent
-          ? const Value.absent()
-          : Value(finalOdometerUnits),
-      finalNeedleLiters: finalNeedleLiters == null && nullToAbsent
-          ? const Value.absent()
-          : Value(finalNeedleLiters),
-      finalReadingSource: finalReadingSource == null && nullToAbsent
-          ? const Value.absent()
-          : Value(finalReadingSource),
-      referenceLiters: referenceLiters == null && nullToAbsent
-          ? const Value.absent()
-          : Value(referenceLiters),
-      indicatedLiters: indicatedLiters == null && nullToAbsent
-          ? const Value.absent()
-          : Value(indicatedLiters),
-      errorPct: errorPct == null && nullToAbsent
-          ? const Value.absent()
-          : Value(errorPct),
-      uncertaintyPct: uncertaintyPct == null && nullToAbsent
-          ? const Value.absent()
-          : Value(uncertaintyPct),
-      resultMpePct: resultMpePct == null && nullToAbsent
-          ? const Value.absent()
-          : Value(resultMpePct),
-      acceptanceMetricPct: acceptanceMetricPct == null && nullToAbsent
-          ? const Value.absent()
-          : Value(acceptanceMetricPct),
-      rejectionMetricPct: rejectionMetricPct == null && nullToAbsent
-          ? const Value.absent()
-          : Value(rejectionMetricPct),
-      verdict: verdict == null && nullToAbsent
-          ? const Value.absent()
-          : Value(verdict),
-      checksum: checksum == null && nullToAbsent
-          ? const Value.absent()
-          : Value(checksum),
-    );
-  }
-
-  factory SampleRow.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return SampleRow(
-      id: serializer.fromJson<String>(json['id']),
-      flowPointId: serializer.fromJson<String>(json['flowPointId']),
-      sampleNumber: serializer.fromJson<int>(json['sampleNumber']),
-      status: serializer.fromJson<String>(json['status']),
-      measurementMethod: serializer.fromJson<String>(json['measurementMethod']),
-      litersPerPulse: serializer.fromJson<double>(json['litersPerPulse']),
-      evidenceStepLiters: serializer.fromJson<double>(
-        json['evidenceStepLiters'],
-      ),
-      readingUncertaintyLiters: serializer.fromJson<double>(
-        json['readingUncertaintyLiters'],
-      ),
-      flowPointCode: serializer.fromJson<String>(json['flowPointCode']),
-      mpePct: serializer.fromJson<double>(json['mpePct']),
-      lpsApprox: serializer.fromJson<double?>(json['lpsApprox']),
-      litersPerOdometerUnit: serializer.fromJson<double>(
-        json['litersPerOdometerUnit'],
-      ),
-      needleLitersPerRevolution: serializer.fromJson<double>(
-        json['needleLitersPerRevolution'],
-      ),
-      createdAtMs: serializer.fromJson<int>(json['createdAtMs']),
-      updatedAtMs: serializer.fromJson<int>(json['updatedAtMs']),
-      startedAtMs: serializer.fromJson<int?>(json['startedAtMs']),
-      endedAtMs: serializer.fromJson<int?>(json['endedAtMs']),
-      gpsLatitude: serializer.fromJson<double?>(json['gpsLatitude']),
-      gpsLongitude: serializer.fromJson<double?>(json['gpsLongitude']),
-      gpsAccuracyMeters: serializer.fromJson<double?>(
-        json['gpsAccuracyMeters'],
-      ),
-      gpsCapturedAtMs: serializer.fromJson<int?>(json['gpsCapturedAtMs']),
-      pulseCount: serializer.fromJson<int>(json['pulseCount']),
-      progressReferenceLiters: serializer.fromJson<double?>(
-        json['progressReferenceLiters'],
-      ),
-      initialOdometerUnits: serializer.fromJson<double?>(
-        json['initialOdometerUnits'],
-      ),
-      initialNeedleLiters: serializer.fromJson<double?>(
-        json['initialNeedleLiters'],
-      ),
-      initialReadingSource: serializer.fromJson<String?>(
-        json['initialReadingSource'],
-      ),
-      finalOdometerUnits: serializer.fromJson<double?>(
-        json['finalOdometerUnits'],
-      ),
-      finalNeedleLiters: serializer.fromJson<double?>(
-        json['finalNeedleLiters'],
-      ),
-      finalReadingSource: serializer.fromJson<String?>(
-        json['finalReadingSource'],
-      ),
-      referenceLiters: serializer.fromJson<double?>(json['referenceLiters']),
-      indicatedLiters: serializer.fromJson<double?>(json['indicatedLiters']),
-      errorPct: serializer.fromJson<double?>(json['errorPct']),
-      uncertaintyPct: serializer.fromJson<double?>(json['uncertaintyPct']),
-      resultMpePct: serializer.fromJson<double?>(json['resultMpePct']),
-      acceptanceMetricPct: serializer.fromJson<double?>(
-        json['acceptanceMetricPct'],
-      ),
-      rejectionMetricPct: serializer.fromJson<double?>(
-        json['rejectionMetricPct'],
-      ),
-      verdict: serializer.fromJson<String?>(json['verdict']),
-      checksum: serializer.fromJson<String?>(json['checksum']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<String>(id),
-      'flowPointId': serializer.toJson<String>(flowPointId),
-      'sampleNumber': serializer.toJson<int>(sampleNumber),
-      'status': serializer.toJson<String>(status),
-      'measurementMethod': serializer.toJson<String>(measurementMethod),
-      'litersPerPulse': serializer.toJson<double>(litersPerPulse),
-      'evidenceStepLiters': serializer.toJson<double>(evidenceStepLiters),
-      'readingUncertaintyLiters': serializer.toJson<double>(
-        readingUncertaintyLiters,
-      ),
-      'flowPointCode': serializer.toJson<String>(flowPointCode),
-      'mpePct': serializer.toJson<double>(mpePct),
-      'lpsApprox': serializer.toJson<double?>(lpsApprox),
-      'litersPerOdometerUnit': serializer.toJson<double>(litersPerOdometerUnit),
-      'needleLitersPerRevolution': serializer.toJson<double>(
-        needleLitersPerRevolution,
-      ),
-      'createdAtMs': serializer.toJson<int>(createdAtMs),
-      'updatedAtMs': serializer.toJson<int>(updatedAtMs),
-      'startedAtMs': serializer.toJson<int?>(startedAtMs),
-      'endedAtMs': serializer.toJson<int?>(endedAtMs),
-      'gpsLatitude': serializer.toJson<double?>(gpsLatitude),
-      'gpsLongitude': serializer.toJson<double?>(gpsLongitude),
-      'gpsAccuracyMeters': serializer.toJson<double?>(gpsAccuracyMeters),
-      'gpsCapturedAtMs': serializer.toJson<int?>(gpsCapturedAtMs),
-      'pulseCount': serializer.toJson<int>(pulseCount),
-      'progressReferenceLiters': serializer.toJson<double?>(
-        progressReferenceLiters,
-      ),
-      'initialOdometerUnits': serializer.toJson<double?>(initialOdometerUnits),
-      'initialNeedleLiters': serializer.toJson<double?>(initialNeedleLiters),
-      'initialReadingSource': serializer.toJson<String?>(initialReadingSource),
-      'finalOdometerUnits': serializer.toJson<double?>(finalOdometerUnits),
-      'finalNeedleLiters': serializer.toJson<double?>(finalNeedleLiters),
-      'finalReadingSource': serializer.toJson<String?>(finalReadingSource),
-      'referenceLiters': serializer.toJson<double?>(referenceLiters),
-      'indicatedLiters': serializer.toJson<double?>(indicatedLiters),
-      'errorPct': serializer.toJson<double?>(errorPct),
-      'uncertaintyPct': serializer.toJson<double?>(uncertaintyPct),
-      'resultMpePct': serializer.toJson<double?>(resultMpePct),
-      'acceptanceMetricPct': serializer.toJson<double?>(acceptanceMetricPct),
-      'rejectionMetricPct': serializer.toJson<double?>(rejectionMetricPct),
-      'verdict': serializer.toJson<String?>(verdict),
-      'checksum': serializer.toJson<String?>(checksum),
-    };
-  }
-
-  SampleRow copyWith({
-    String? id,
-    String? flowPointId,
-    int? sampleNumber,
-    String? status,
-    String? measurementMethod,
-    double? litersPerPulse,
-    double? evidenceStepLiters,
-    double? readingUncertaintyLiters,
-    String? flowPointCode,
-    double? mpePct,
-    Value<double?> lpsApprox = const Value.absent(),
-    double? litersPerOdometerUnit,
-    double? needleLitersPerRevolution,
-    int? createdAtMs,
-    int? updatedAtMs,
-    Value<int?> startedAtMs = const Value.absent(),
-    Value<int?> endedAtMs = const Value.absent(),
-    Value<double?> gpsLatitude = const Value.absent(),
-    Value<double?> gpsLongitude = const Value.absent(),
-    Value<double?> gpsAccuracyMeters = const Value.absent(),
-    Value<int?> gpsCapturedAtMs = const Value.absent(),
-    int? pulseCount,
-    Value<double?> progressReferenceLiters = const Value.absent(),
-    Value<double?> initialOdometerUnits = const Value.absent(),
-    Value<double?> initialNeedleLiters = const Value.absent(),
-    Value<String?> initialReadingSource = const Value.absent(),
-    Value<double?> finalOdometerUnits = const Value.absent(),
-    Value<double?> finalNeedleLiters = const Value.absent(),
-    Value<String?> finalReadingSource = const Value.absent(),
-    Value<double?> referenceLiters = const Value.absent(),
-    Value<double?> indicatedLiters = const Value.absent(),
-    Value<double?> errorPct = const Value.absent(),
-    Value<double?> uncertaintyPct = const Value.absent(),
-    Value<double?> resultMpePct = const Value.absent(),
-    Value<double?> acceptanceMetricPct = const Value.absent(),
-    Value<double?> rejectionMetricPct = const Value.absent(),
-    Value<String?> verdict = const Value.absent(),
-    Value<String?> checksum = const Value.absent(),
-  }) => SampleRow(
-    id: id ?? this.id,
-    flowPointId: flowPointId ?? this.flowPointId,
-    sampleNumber: sampleNumber ?? this.sampleNumber,
-    status: status ?? this.status,
-    measurementMethod: measurementMethod ?? this.measurementMethod,
-    litersPerPulse: litersPerPulse ?? this.litersPerPulse,
-    evidenceStepLiters: evidenceStepLiters ?? this.evidenceStepLiters,
-    readingUncertaintyLiters:
-        readingUncertaintyLiters ?? this.readingUncertaintyLiters,
-    flowPointCode: flowPointCode ?? this.flowPointCode,
-    mpePct: mpePct ?? this.mpePct,
-    lpsApprox: lpsApprox.present ? lpsApprox.value : this.lpsApprox,
-    litersPerOdometerUnit: litersPerOdometerUnit ?? this.litersPerOdometerUnit,
-    needleLitersPerRevolution:
-        needleLitersPerRevolution ?? this.needleLitersPerRevolution,
-    createdAtMs: createdAtMs ?? this.createdAtMs,
-    updatedAtMs: updatedAtMs ?? this.updatedAtMs,
-    startedAtMs: startedAtMs.present ? startedAtMs.value : this.startedAtMs,
-    endedAtMs: endedAtMs.present ? endedAtMs.value : this.endedAtMs,
-    gpsLatitude: gpsLatitude.present ? gpsLatitude.value : this.gpsLatitude,
-    gpsLongitude: gpsLongitude.present ? gpsLongitude.value : this.gpsLongitude,
-    gpsAccuracyMeters: gpsAccuracyMeters.present
-        ? gpsAccuracyMeters.value
-        : this.gpsAccuracyMeters,
-    gpsCapturedAtMs: gpsCapturedAtMs.present
-        ? gpsCapturedAtMs.value
-        : this.gpsCapturedAtMs,
-    pulseCount: pulseCount ?? this.pulseCount,
-    progressReferenceLiters: progressReferenceLiters.present
-        ? progressReferenceLiters.value
-        : this.progressReferenceLiters,
-    initialOdometerUnits: initialOdometerUnits.present
-        ? initialOdometerUnits.value
-        : this.initialOdometerUnits,
-    initialNeedleLiters: initialNeedleLiters.present
-        ? initialNeedleLiters.value
-        : this.initialNeedleLiters,
-    initialReadingSource: initialReadingSource.present
-        ? initialReadingSource.value
-        : this.initialReadingSource,
-    finalOdometerUnits: finalOdometerUnits.present
-        ? finalOdometerUnits.value
-        : this.finalOdometerUnits,
-    finalNeedleLiters: finalNeedleLiters.present
-        ? finalNeedleLiters.value
-        : this.finalNeedleLiters,
-    finalReadingSource: finalReadingSource.present
-        ? finalReadingSource.value
-        : this.finalReadingSource,
-    referenceLiters: referenceLiters.present
-        ? referenceLiters.value
-        : this.referenceLiters,
-    indicatedLiters: indicatedLiters.present
-        ? indicatedLiters.value
-        : this.indicatedLiters,
-    errorPct: errorPct.present ? errorPct.value : this.errorPct,
-    uncertaintyPct: uncertaintyPct.present
-        ? uncertaintyPct.value
-        : this.uncertaintyPct,
-    resultMpePct: resultMpePct.present ? resultMpePct.value : this.resultMpePct,
-    acceptanceMetricPct: acceptanceMetricPct.present
-        ? acceptanceMetricPct.value
-        : this.acceptanceMetricPct,
-    rejectionMetricPct: rejectionMetricPct.present
-        ? rejectionMetricPct.value
-        : this.rejectionMetricPct,
-    verdict: verdict.present ? verdict.value : this.verdict,
-    checksum: checksum.present ? checksum.value : this.checksum,
-  );
-  SampleRow copyWithCompanion(SamplesCompanion data) {
-    return SampleRow(
-      id: data.id.present ? data.id.value : this.id,
-      flowPointId: data.flowPointId.present
-          ? data.flowPointId.value
-          : this.flowPointId,
-      sampleNumber: data.sampleNumber.present
-          ? data.sampleNumber.value
-          : this.sampleNumber,
-      status: data.status.present ? data.status.value : this.status,
-      measurementMethod: data.measurementMethod.present
-          ? data.measurementMethod.value
-          : this.measurementMethod,
-      litersPerPulse: data.litersPerPulse.present
-          ? data.litersPerPulse.value
-          : this.litersPerPulse,
-      evidenceStepLiters: data.evidenceStepLiters.present
-          ? data.evidenceStepLiters.value
-          : this.evidenceStepLiters,
-      readingUncertaintyLiters: data.readingUncertaintyLiters.present
-          ? data.readingUncertaintyLiters.value
-          : this.readingUncertaintyLiters,
-      flowPointCode: data.flowPointCode.present
-          ? data.flowPointCode.value
-          : this.flowPointCode,
-      mpePct: data.mpePct.present ? data.mpePct.value : this.mpePct,
-      lpsApprox: data.lpsApprox.present ? data.lpsApprox.value : this.lpsApprox,
-      litersPerOdometerUnit: data.litersPerOdometerUnit.present
-          ? data.litersPerOdometerUnit.value
-          : this.litersPerOdometerUnit,
-      needleLitersPerRevolution: data.needleLitersPerRevolution.present
-          ? data.needleLitersPerRevolution.value
-          : this.needleLitersPerRevolution,
-      createdAtMs: data.createdAtMs.present
-          ? data.createdAtMs.value
-          : this.createdAtMs,
-      updatedAtMs: data.updatedAtMs.present
-          ? data.updatedAtMs.value
-          : this.updatedAtMs,
-      startedAtMs: data.startedAtMs.present
-          ? data.startedAtMs.value
-          : this.startedAtMs,
-      endedAtMs: data.endedAtMs.present ? data.endedAtMs.value : this.endedAtMs,
-      gpsLatitude: data.gpsLatitude.present
-          ? data.gpsLatitude.value
-          : this.gpsLatitude,
-      gpsLongitude: data.gpsLongitude.present
-          ? data.gpsLongitude.value
-          : this.gpsLongitude,
-      gpsAccuracyMeters: data.gpsAccuracyMeters.present
-          ? data.gpsAccuracyMeters.value
-          : this.gpsAccuracyMeters,
-      gpsCapturedAtMs: data.gpsCapturedAtMs.present
-          ? data.gpsCapturedAtMs.value
-          : this.gpsCapturedAtMs,
-      pulseCount: data.pulseCount.present
-          ? data.pulseCount.value
-          : this.pulseCount,
-      progressReferenceLiters: data.progressReferenceLiters.present
-          ? data.progressReferenceLiters.value
-          : this.progressReferenceLiters,
-      initialOdometerUnits: data.initialOdometerUnits.present
-          ? data.initialOdometerUnits.value
-          : this.initialOdometerUnits,
-      initialNeedleLiters: data.initialNeedleLiters.present
-          ? data.initialNeedleLiters.value
-          : this.initialNeedleLiters,
-      initialReadingSource: data.initialReadingSource.present
-          ? data.initialReadingSource.value
-          : this.initialReadingSource,
-      finalOdometerUnits: data.finalOdometerUnits.present
-          ? data.finalOdometerUnits.value
-          : this.finalOdometerUnits,
-      finalNeedleLiters: data.finalNeedleLiters.present
-          ? data.finalNeedleLiters.value
-          : this.finalNeedleLiters,
-      finalReadingSource: data.finalReadingSource.present
-          ? data.finalReadingSource.value
-          : this.finalReadingSource,
-      referenceLiters: data.referenceLiters.present
-          ? data.referenceLiters.value
-          : this.referenceLiters,
-      indicatedLiters: data.indicatedLiters.present
-          ? data.indicatedLiters.value
-          : this.indicatedLiters,
-      errorPct: data.errorPct.present ? data.errorPct.value : this.errorPct,
-      uncertaintyPct: data.uncertaintyPct.present
-          ? data.uncertaintyPct.value
-          : this.uncertaintyPct,
-      resultMpePct: data.resultMpePct.present
-          ? data.resultMpePct.value
-          : this.resultMpePct,
-      acceptanceMetricPct: data.acceptanceMetricPct.present
-          ? data.acceptanceMetricPct.value
-          : this.acceptanceMetricPct,
-      rejectionMetricPct: data.rejectionMetricPct.present
-          ? data.rejectionMetricPct.value
-          : this.rejectionMetricPct,
-      verdict: data.verdict.present ? data.verdict.value : this.verdict,
-      checksum: data.checksum.present ? data.checksum.value : this.checksum,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('SampleRow(')
-          ..write('id: $id, ')
-          ..write('flowPointId: $flowPointId, ')
-          ..write('sampleNumber: $sampleNumber, ')
-          ..write('status: $status, ')
-          ..write('measurementMethod: $measurementMethod, ')
-          ..write('litersPerPulse: $litersPerPulse, ')
-          ..write('evidenceStepLiters: $evidenceStepLiters, ')
-          ..write('readingUncertaintyLiters: $readingUncertaintyLiters, ')
-          ..write('flowPointCode: $flowPointCode, ')
-          ..write('mpePct: $mpePct, ')
-          ..write('lpsApprox: $lpsApprox, ')
-          ..write('litersPerOdometerUnit: $litersPerOdometerUnit, ')
-          ..write('needleLitersPerRevolution: $needleLitersPerRevolution, ')
-          ..write('createdAtMs: $createdAtMs, ')
-          ..write('updatedAtMs: $updatedAtMs, ')
-          ..write('startedAtMs: $startedAtMs, ')
-          ..write('endedAtMs: $endedAtMs, ')
-          ..write('gpsLatitude: $gpsLatitude, ')
-          ..write('gpsLongitude: $gpsLongitude, ')
-          ..write('gpsAccuracyMeters: $gpsAccuracyMeters, ')
-          ..write('gpsCapturedAtMs: $gpsCapturedAtMs, ')
-          ..write('pulseCount: $pulseCount, ')
-          ..write('progressReferenceLiters: $progressReferenceLiters, ')
-          ..write('initialOdometerUnits: $initialOdometerUnits, ')
-          ..write('initialNeedleLiters: $initialNeedleLiters, ')
-          ..write('initialReadingSource: $initialReadingSource, ')
-          ..write('finalOdometerUnits: $finalOdometerUnits, ')
-          ..write('finalNeedleLiters: $finalNeedleLiters, ')
-          ..write('finalReadingSource: $finalReadingSource, ')
-          ..write('referenceLiters: $referenceLiters, ')
-          ..write('indicatedLiters: $indicatedLiters, ')
-          ..write('errorPct: $errorPct, ')
-          ..write('uncertaintyPct: $uncertaintyPct, ')
-          ..write('resultMpePct: $resultMpePct, ')
-          ..write('acceptanceMetricPct: $acceptanceMetricPct, ')
-          ..write('rejectionMetricPct: $rejectionMetricPct, ')
-          ..write('verdict: $verdict, ')
-          ..write('checksum: $checksum')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hashAll([
-    id,
-    flowPointId,
-    sampleNumber,
-    status,
-    measurementMethod,
-    litersPerPulse,
-    evidenceStepLiters,
-    readingUncertaintyLiters,
-    flowPointCode,
-    mpePct,
-    lpsApprox,
-    litersPerOdometerUnit,
-    needleLitersPerRevolution,
-    createdAtMs,
-    updatedAtMs,
-    startedAtMs,
-    endedAtMs,
-    gpsLatitude,
-    gpsLongitude,
-    gpsAccuracyMeters,
-    gpsCapturedAtMs,
-    pulseCount,
-    progressReferenceLiters,
-    initialOdometerUnits,
-    initialNeedleLiters,
-    initialReadingSource,
-    finalOdometerUnits,
-    finalNeedleLiters,
-    finalReadingSource,
-    referenceLiters,
-    indicatedLiters,
-    errorPct,
-    uncertaintyPct,
-    resultMpePct,
-    acceptanceMetricPct,
-    rejectionMetricPct,
-    verdict,
-    checksum,
-  ]);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is SampleRow &&
-          other.id == this.id &&
-          other.flowPointId == this.flowPointId &&
-          other.sampleNumber == this.sampleNumber &&
-          other.status == this.status &&
-          other.measurementMethod == this.measurementMethod &&
-          other.litersPerPulse == this.litersPerPulse &&
-          other.evidenceStepLiters == this.evidenceStepLiters &&
-          other.readingUncertaintyLiters == this.readingUncertaintyLiters &&
-          other.flowPointCode == this.flowPointCode &&
-          other.mpePct == this.mpePct &&
-          other.lpsApprox == this.lpsApprox &&
-          other.litersPerOdometerUnit == this.litersPerOdometerUnit &&
-          other.needleLitersPerRevolution == this.needleLitersPerRevolution &&
-          other.createdAtMs == this.createdAtMs &&
-          other.updatedAtMs == this.updatedAtMs &&
-          other.startedAtMs == this.startedAtMs &&
-          other.endedAtMs == this.endedAtMs &&
-          other.gpsLatitude == this.gpsLatitude &&
-          other.gpsLongitude == this.gpsLongitude &&
-          other.gpsAccuracyMeters == this.gpsAccuracyMeters &&
-          other.gpsCapturedAtMs == this.gpsCapturedAtMs &&
-          other.pulseCount == this.pulseCount &&
-          other.progressReferenceLiters == this.progressReferenceLiters &&
-          other.initialOdometerUnits == this.initialOdometerUnits &&
-          other.initialNeedleLiters == this.initialNeedleLiters &&
-          other.initialReadingSource == this.initialReadingSource &&
-          other.finalOdometerUnits == this.finalOdometerUnits &&
-          other.finalNeedleLiters == this.finalNeedleLiters &&
-          other.finalReadingSource == this.finalReadingSource &&
-          other.referenceLiters == this.referenceLiters &&
-          other.indicatedLiters == this.indicatedLiters &&
-          other.errorPct == this.errorPct &&
-          other.uncertaintyPct == this.uncertaintyPct &&
-          other.resultMpePct == this.resultMpePct &&
-          other.acceptanceMetricPct == this.acceptanceMetricPct &&
-          other.rejectionMetricPct == this.rejectionMetricPct &&
-          other.verdict == this.verdict &&
-          other.checksum == this.checksum);
-}
-
-class SamplesCompanion extends UpdateCompanion<SampleRow> {
-  final Value<String> id;
-  final Value<String> flowPointId;
-  final Value<int> sampleNumber;
-  final Value<String> status;
-  final Value<String> measurementMethod;
-  final Value<double> litersPerPulse;
-  final Value<double> evidenceStepLiters;
-  final Value<double> readingUncertaintyLiters;
-  final Value<String> flowPointCode;
-  final Value<double> mpePct;
-  final Value<double?> lpsApprox;
-  final Value<double> litersPerOdometerUnit;
-  final Value<double> needleLitersPerRevolution;
-  final Value<int> createdAtMs;
-  final Value<int> updatedAtMs;
-  final Value<int?> startedAtMs;
-  final Value<int?> endedAtMs;
-  final Value<double?> gpsLatitude;
-  final Value<double?> gpsLongitude;
-  final Value<double?> gpsAccuracyMeters;
-  final Value<int?> gpsCapturedAtMs;
-  final Value<int> pulseCount;
-  final Value<double?> progressReferenceLiters;
-  final Value<double?> initialOdometerUnits;
-  final Value<double?> initialNeedleLiters;
-  final Value<String?> initialReadingSource;
-  final Value<double?> finalOdometerUnits;
-  final Value<double?> finalNeedleLiters;
-  final Value<String?> finalReadingSource;
-  final Value<double?> referenceLiters;
-  final Value<double?> indicatedLiters;
-  final Value<double?> errorPct;
-  final Value<double?> uncertaintyPct;
-  final Value<double?> resultMpePct;
-  final Value<double?> acceptanceMetricPct;
-  final Value<double?> rejectionMetricPct;
-  final Value<String?> verdict;
-  final Value<String?> checksum;
-  final Value<int> rowid;
-  const SamplesCompanion({
-    this.id = const Value.absent(),
-    this.flowPointId = const Value.absent(),
-    this.sampleNumber = const Value.absent(),
-    this.status = const Value.absent(),
-    this.measurementMethod = const Value.absent(),
-    this.litersPerPulse = const Value.absent(),
-    this.evidenceStepLiters = const Value.absent(),
-    this.readingUncertaintyLiters = const Value.absent(),
-    this.flowPointCode = const Value.absent(),
-    this.mpePct = const Value.absent(),
-    this.lpsApprox = const Value.absent(),
-    this.litersPerOdometerUnit = const Value.absent(),
-    this.needleLitersPerRevolution = const Value.absent(),
-    this.createdAtMs = const Value.absent(),
-    this.updatedAtMs = const Value.absent(),
-    this.startedAtMs = const Value.absent(),
-    this.endedAtMs = const Value.absent(),
-    this.gpsLatitude = const Value.absent(),
-    this.gpsLongitude = const Value.absent(),
-    this.gpsAccuracyMeters = const Value.absent(),
-    this.gpsCapturedAtMs = const Value.absent(),
-    this.pulseCount = const Value.absent(),
-    this.progressReferenceLiters = const Value.absent(),
-    this.initialOdometerUnits = const Value.absent(),
-    this.initialNeedleLiters = const Value.absent(),
-    this.initialReadingSource = const Value.absent(),
-    this.finalOdometerUnits = const Value.absent(),
-    this.finalNeedleLiters = const Value.absent(),
-    this.finalReadingSource = const Value.absent(),
-    this.referenceLiters = const Value.absent(),
-    this.indicatedLiters = const Value.absent(),
-    this.errorPct = const Value.absent(),
-    this.uncertaintyPct = const Value.absent(),
-    this.resultMpePct = const Value.absent(),
-    this.acceptanceMetricPct = const Value.absent(),
-    this.rejectionMetricPct = const Value.absent(),
-    this.verdict = const Value.absent(),
-    this.checksum = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  SamplesCompanion.insert({
-    required String id,
-    required String flowPointId,
-    required int sampleNumber,
-    required String status,
-    required String measurementMethod,
-    required double litersPerPulse,
-    required double evidenceStepLiters,
-    required double readingUncertaintyLiters,
-    required String flowPointCode,
-    required double mpePct,
-    this.lpsApprox = const Value.absent(),
-    required double litersPerOdometerUnit,
-    required double needleLitersPerRevolution,
-    required int createdAtMs,
-    required int updatedAtMs,
-    this.startedAtMs = const Value.absent(),
-    this.endedAtMs = const Value.absent(),
-    this.gpsLatitude = const Value.absent(),
-    this.gpsLongitude = const Value.absent(),
-    this.gpsAccuracyMeters = const Value.absent(),
-    this.gpsCapturedAtMs = const Value.absent(),
-    this.pulseCount = const Value.absent(),
-    this.progressReferenceLiters = const Value.absent(),
-    this.initialOdometerUnits = const Value.absent(),
-    this.initialNeedleLiters = const Value.absent(),
-    this.initialReadingSource = const Value.absent(),
-    this.finalOdometerUnits = const Value.absent(),
-    this.finalNeedleLiters = const Value.absent(),
-    this.finalReadingSource = const Value.absent(),
-    this.referenceLiters = const Value.absent(),
-    this.indicatedLiters = const Value.absent(),
-    this.errorPct = const Value.absent(),
-    this.uncertaintyPct = const Value.absent(),
-    this.resultMpePct = const Value.absent(),
-    this.acceptanceMetricPct = const Value.absent(),
-    this.rejectionMetricPct = const Value.absent(),
-    this.verdict = const Value.absent(),
-    this.checksum = const Value.absent(),
-    this.rowid = const Value.absent(),
-  }) : id = Value(id),
-       flowPointId = Value(flowPointId),
-       sampleNumber = Value(sampleNumber),
-       status = Value(status),
-       measurementMethod = Value(measurementMethod),
-       litersPerPulse = Value(litersPerPulse),
-       evidenceStepLiters = Value(evidenceStepLiters),
-       readingUncertaintyLiters = Value(readingUncertaintyLiters),
-       flowPointCode = Value(flowPointCode),
-       mpePct = Value(mpePct),
-       litersPerOdometerUnit = Value(litersPerOdometerUnit),
-       needleLitersPerRevolution = Value(needleLitersPerRevolution),
-       createdAtMs = Value(createdAtMs),
-       updatedAtMs = Value(updatedAtMs);
-  static Insertable<SampleRow> custom({
-    Expression<String>? id,
-    Expression<String>? flowPointId,
-    Expression<int>? sampleNumber,
-    Expression<String>? status,
-    Expression<String>? measurementMethod,
-    Expression<double>? litersPerPulse,
-    Expression<double>? evidenceStepLiters,
-    Expression<double>? readingUncertaintyLiters,
-    Expression<String>? flowPointCode,
-    Expression<double>? mpePct,
-    Expression<double>? lpsApprox,
-    Expression<double>? litersPerOdometerUnit,
-    Expression<double>? needleLitersPerRevolution,
-    Expression<int>? createdAtMs,
-    Expression<int>? updatedAtMs,
-    Expression<int>? startedAtMs,
-    Expression<int>? endedAtMs,
-    Expression<double>? gpsLatitude,
-    Expression<double>? gpsLongitude,
-    Expression<double>? gpsAccuracyMeters,
-    Expression<int>? gpsCapturedAtMs,
-    Expression<int>? pulseCount,
-    Expression<double>? progressReferenceLiters,
-    Expression<double>? initialOdometerUnits,
-    Expression<double>? initialNeedleLiters,
-    Expression<String>? initialReadingSource,
-    Expression<double>? finalOdometerUnits,
-    Expression<double>? finalNeedleLiters,
-    Expression<String>? finalReadingSource,
-    Expression<double>? referenceLiters,
-    Expression<double>? indicatedLiters,
-    Expression<double>? errorPct,
-    Expression<double>? uncertaintyPct,
-    Expression<double>? resultMpePct,
-    Expression<double>? acceptanceMetricPct,
-    Expression<double>? rejectionMetricPct,
-    Expression<String>? verdict,
-    Expression<String>? checksum,
-    Expression<int>? rowid,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (flowPointId != null) 'flow_point_id': flowPointId,
-      if (sampleNumber != null) 'sample_number': sampleNumber,
-      if (status != null) 'status': status,
-      if (measurementMethod != null) 'measurement_method': measurementMethod,
-      if (litersPerPulse != null) 'liters_per_pulse': litersPerPulse,
-      if (evidenceStepLiters != null)
-        'evidence_step_liters': evidenceStepLiters,
-      if (readingUncertaintyLiters != null)
-        'reading_uncertainty_liters': readingUncertaintyLiters,
-      if (flowPointCode != null) 'flow_point_code': flowPointCode,
-      if (mpePct != null) 'mpe_pct': mpePct,
-      if (lpsApprox != null) 'lps_approx': lpsApprox,
-      if (litersPerOdometerUnit != null)
-        'liters_per_odometer_unit': litersPerOdometerUnit,
-      if (needleLitersPerRevolution != null)
-        'needle_liters_per_revolution': needleLitersPerRevolution,
-      if (createdAtMs != null) 'created_at_ms': createdAtMs,
-      if (updatedAtMs != null) 'updated_at_ms': updatedAtMs,
-      if (startedAtMs != null) 'started_at_ms': startedAtMs,
-      if (endedAtMs != null) 'ended_at_ms': endedAtMs,
-      if (gpsLatitude != null) 'gps_latitude': gpsLatitude,
-      if (gpsLongitude != null) 'gps_longitude': gpsLongitude,
-      if (gpsAccuracyMeters != null) 'gps_accuracy_meters': gpsAccuracyMeters,
-      if (gpsCapturedAtMs != null) 'gps_captured_at_ms': gpsCapturedAtMs,
-      if (pulseCount != null) 'pulse_count': pulseCount,
-      if (progressReferenceLiters != null)
-        'progress_reference_liters': progressReferenceLiters,
-      if (initialOdometerUnits != null)
-        'initial_odometer_units': initialOdometerUnits,
-      if (initialNeedleLiters != null)
-        'initial_needle_liters': initialNeedleLiters,
-      if (initialReadingSource != null)
-        'initial_reading_source': initialReadingSource,
-      if (finalOdometerUnits != null)
-        'final_odometer_units': finalOdometerUnits,
-      if (finalNeedleLiters != null) 'final_needle_liters': finalNeedleLiters,
-      if (finalReadingSource != null)
-        'final_reading_source': finalReadingSource,
-      if (referenceLiters != null) 'reference_liters': referenceLiters,
-      if (indicatedLiters != null) 'indicated_liters': indicatedLiters,
-      if (errorPct != null) 'error_pct': errorPct,
-      if (uncertaintyPct != null) 'uncertainty_pct': uncertaintyPct,
-      if (resultMpePct != null) 'result_mpe_pct': resultMpePct,
-      if (acceptanceMetricPct != null)
-        'acceptance_metric_pct': acceptanceMetricPct,
-      if (rejectionMetricPct != null)
-        'rejection_metric_pct': rejectionMetricPct,
-      if (verdict != null) 'verdict': verdict,
-      if (checksum != null) 'checksum': checksum,
-      if (rowid != null) 'rowid': rowid,
-    });
-  }
-
-  SamplesCompanion copyWith({
-    Value<String>? id,
-    Value<String>? flowPointId,
-    Value<int>? sampleNumber,
-    Value<String>? status,
-    Value<String>? measurementMethod,
-    Value<double>? litersPerPulse,
-    Value<double>? evidenceStepLiters,
-    Value<double>? readingUncertaintyLiters,
-    Value<String>? flowPointCode,
-    Value<double>? mpePct,
-    Value<double?>? lpsApprox,
-    Value<double>? litersPerOdometerUnit,
-    Value<double>? needleLitersPerRevolution,
-    Value<int>? createdAtMs,
-    Value<int>? updatedAtMs,
-    Value<int?>? startedAtMs,
-    Value<int?>? endedAtMs,
-    Value<double?>? gpsLatitude,
-    Value<double?>? gpsLongitude,
-    Value<double?>? gpsAccuracyMeters,
-    Value<int?>? gpsCapturedAtMs,
-    Value<int>? pulseCount,
-    Value<double?>? progressReferenceLiters,
-    Value<double?>? initialOdometerUnits,
-    Value<double?>? initialNeedleLiters,
-    Value<String?>? initialReadingSource,
-    Value<double?>? finalOdometerUnits,
-    Value<double?>? finalNeedleLiters,
-    Value<String?>? finalReadingSource,
-    Value<double?>? referenceLiters,
-    Value<double?>? indicatedLiters,
-    Value<double?>? errorPct,
-    Value<double?>? uncertaintyPct,
-    Value<double?>? resultMpePct,
-    Value<double?>? acceptanceMetricPct,
-    Value<double?>? rejectionMetricPct,
-    Value<String?>? verdict,
-    Value<String?>? checksum,
-    Value<int>? rowid,
-  }) {
-    return SamplesCompanion(
-      id: id ?? this.id,
-      flowPointId: flowPointId ?? this.flowPointId,
-      sampleNumber: sampleNumber ?? this.sampleNumber,
-      status: status ?? this.status,
-      measurementMethod: measurementMethod ?? this.measurementMethod,
-      litersPerPulse: litersPerPulse ?? this.litersPerPulse,
-      evidenceStepLiters: evidenceStepLiters ?? this.evidenceStepLiters,
-      readingUncertaintyLiters:
-          readingUncertaintyLiters ?? this.readingUncertaintyLiters,
-      flowPointCode: flowPointCode ?? this.flowPointCode,
-      mpePct: mpePct ?? this.mpePct,
-      lpsApprox: lpsApprox ?? this.lpsApprox,
-      litersPerOdometerUnit:
-          litersPerOdometerUnit ?? this.litersPerOdometerUnit,
-      needleLitersPerRevolution:
-          needleLitersPerRevolution ?? this.needleLitersPerRevolution,
-      createdAtMs: createdAtMs ?? this.createdAtMs,
-      updatedAtMs: updatedAtMs ?? this.updatedAtMs,
-      startedAtMs: startedAtMs ?? this.startedAtMs,
-      endedAtMs: endedAtMs ?? this.endedAtMs,
-      gpsLatitude: gpsLatitude ?? this.gpsLatitude,
-      gpsLongitude: gpsLongitude ?? this.gpsLongitude,
-      gpsAccuracyMeters: gpsAccuracyMeters ?? this.gpsAccuracyMeters,
-      gpsCapturedAtMs: gpsCapturedAtMs ?? this.gpsCapturedAtMs,
-      pulseCount: pulseCount ?? this.pulseCount,
-      progressReferenceLiters:
-          progressReferenceLiters ?? this.progressReferenceLiters,
-      initialOdometerUnits: initialOdometerUnits ?? this.initialOdometerUnits,
-      initialNeedleLiters: initialNeedleLiters ?? this.initialNeedleLiters,
-      initialReadingSource: initialReadingSource ?? this.initialReadingSource,
-      finalOdometerUnits: finalOdometerUnits ?? this.finalOdometerUnits,
-      finalNeedleLiters: finalNeedleLiters ?? this.finalNeedleLiters,
-      finalReadingSource: finalReadingSource ?? this.finalReadingSource,
-      referenceLiters: referenceLiters ?? this.referenceLiters,
-      indicatedLiters: indicatedLiters ?? this.indicatedLiters,
-      errorPct: errorPct ?? this.errorPct,
-      uncertaintyPct: uncertaintyPct ?? this.uncertaintyPct,
-      resultMpePct: resultMpePct ?? this.resultMpePct,
-      acceptanceMetricPct: acceptanceMetricPct ?? this.acceptanceMetricPct,
-      rejectionMetricPct: rejectionMetricPct ?? this.rejectionMetricPct,
-      verdict: verdict ?? this.verdict,
-      checksum: checksum ?? this.checksum,
-      rowid: rowid ?? this.rowid,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<String>(id.value);
-    }
-    if (flowPointId.present) {
-      map['flow_point_id'] = Variable<String>(flowPointId.value);
-    }
-    if (sampleNumber.present) {
-      map['sample_number'] = Variable<int>(sampleNumber.value);
-    }
-    if (status.present) {
-      map['status'] = Variable<String>(status.value);
-    }
-    if (measurementMethod.present) {
-      map['measurement_method'] = Variable<String>(measurementMethod.value);
-    }
-    if (litersPerPulse.present) {
-      map['liters_per_pulse'] = Variable<double>(litersPerPulse.value);
-    }
-    if (evidenceStepLiters.present) {
-      map['evidence_step_liters'] = Variable<double>(evidenceStepLiters.value);
-    }
-    if (readingUncertaintyLiters.present) {
-      map['reading_uncertainty_liters'] = Variable<double>(
-        readingUncertaintyLiters.value,
-      );
-    }
-    if (flowPointCode.present) {
-      map['flow_point_code'] = Variable<String>(flowPointCode.value);
-    }
-    if (mpePct.present) {
-      map['mpe_pct'] = Variable<double>(mpePct.value);
-    }
-    if (lpsApprox.present) {
-      map['lps_approx'] = Variable<double>(lpsApprox.value);
-    }
-    if (litersPerOdometerUnit.present) {
-      map['liters_per_odometer_unit'] = Variable<double>(
-        litersPerOdometerUnit.value,
-      );
-    }
-    if (needleLitersPerRevolution.present) {
-      map['needle_liters_per_revolution'] = Variable<double>(
-        needleLitersPerRevolution.value,
-      );
-    }
-    if (createdAtMs.present) {
-      map['created_at_ms'] = Variable<int>(createdAtMs.value);
-    }
-    if (updatedAtMs.present) {
-      map['updated_at_ms'] = Variable<int>(updatedAtMs.value);
-    }
-    if (startedAtMs.present) {
-      map['started_at_ms'] = Variable<int>(startedAtMs.value);
-    }
-    if (endedAtMs.present) {
-      map['ended_at_ms'] = Variable<int>(endedAtMs.value);
-    }
-    if (gpsLatitude.present) {
-      map['gps_latitude'] = Variable<double>(gpsLatitude.value);
-    }
-    if (gpsLongitude.present) {
-      map['gps_longitude'] = Variable<double>(gpsLongitude.value);
-    }
-    if (gpsAccuracyMeters.present) {
-      map['gps_accuracy_meters'] = Variable<double>(gpsAccuracyMeters.value);
-    }
-    if (gpsCapturedAtMs.present) {
-      map['gps_captured_at_ms'] = Variable<int>(gpsCapturedAtMs.value);
-    }
-    if (pulseCount.present) {
-      map['pulse_count'] = Variable<int>(pulseCount.value);
-    }
-    if (progressReferenceLiters.present) {
-      map['progress_reference_liters'] = Variable<double>(
-        progressReferenceLiters.value,
-      );
-    }
-    if (initialOdometerUnits.present) {
-      map['initial_odometer_units'] = Variable<double>(
-        initialOdometerUnits.value,
-      );
-    }
-    if (initialNeedleLiters.present) {
-      map['initial_needle_liters'] = Variable<double>(
-        initialNeedleLiters.value,
-      );
-    }
-    if (initialReadingSource.present) {
-      map['initial_reading_source'] = Variable<String>(
-        initialReadingSource.value,
-      );
-    }
-    if (finalOdometerUnits.present) {
-      map['final_odometer_units'] = Variable<double>(finalOdometerUnits.value);
-    }
-    if (finalNeedleLiters.present) {
-      map['final_needle_liters'] = Variable<double>(finalNeedleLiters.value);
-    }
-    if (finalReadingSource.present) {
-      map['final_reading_source'] = Variable<String>(finalReadingSource.value);
-    }
-    if (referenceLiters.present) {
-      map['reference_liters'] = Variable<double>(referenceLiters.value);
-    }
-    if (indicatedLiters.present) {
-      map['indicated_liters'] = Variable<double>(indicatedLiters.value);
-    }
-    if (errorPct.present) {
-      map['error_pct'] = Variable<double>(errorPct.value);
-    }
-    if (uncertaintyPct.present) {
-      map['uncertainty_pct'] = Variable<double>(uncertaintyPct.value);
-    }
-    if (resultMpePct.present) {
-      map['result_mpe_pct'] = Variable<double>(resultMpePct.value);
-    }
-    if (acceptanceMetricPct.present) {
-      map['acceptance_metric_pct'] = Variable<double>(
-        acceptanceMetricPct.value,
-      );
-    }
-    if (rejectionMetricPct.present) {
-      map['rejection_metric_pct'] = Variable<double>(rejectionMetricPct.value);
-    }
-    if (verdict.present) {
-      map['verdict'] = Variable<String>(verdict.value);
-    }
-    if (checksum.present) {
-      map['checksum'] = Variable<String>(checksum.value);
-    }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('SamplesCompanion(')
-          ..write('id: $id, ')
-          ..write('flowPointId: $flowPointId, ')
-          ..write('sampleNumber: $sampleNumber, ')
-          ..write('status: $status, ')
-          ..write('measurementMethod: $measurementMethod, ')
-          ..write('litersPerPulse: $litersPerPulse, ')
-          ..write('evidenceStepLiters: $evidenceStepLiters, ')
-          ..write('readingUncertaintyLiters: $readingUncertaintyLiters, ')
-          ..write('flowPointCode: $flowPointCode, ')
-          ..write('mpePct: $mpePct, ')
-          ..write('lpsApprox: $lpsApprox, ')
-          ..write('litersPerOdometerUnit: $litersPerOdometerUnit, ')
-          ..write('needleLitersPerRevolution: $needleLitersPerRevolution, ')
-          ..write('createdAtMs: $createdAtMs, ')
-          ..write('updatedAtMs: $updatedAtMs, ')
-          ..write('startedAtMs: $startedAtMs, ')
-          ..write('endedAtMs: $endedAtMs, ')
-          ..write('gpsLatitude: $gpsLatitude, ')
-          ..write('gpsLongitude: $gpsLongitude, ')
-          ..write('gpsAccuracyMeters: $gpsAccuracyMeters, ')
-          ..write('gpsCapturedAtMs: $gpsCapturedAtMs, ')
-          ..write('pulseCount: $pulseCount, ')
-          ..write('progressReferenceLiters: $progressReferenceLiters, ')
-          ..write('initialOdometerUnits: $initialOdometerUnits, ')
-          ..write('initialNeedleLiters: $initialNeedleLiters, ')
-          ..write('initialReadingSource: $initialReadingSource, ')
-          ..write('finalOdometerUnits: $finalOdometerUnits, ')
-          ..write('finalNeedleLiters: $finalNeedleLiters, ')
-          ..write('finalReadingSource: $finalReadingSource, ')
-          ..write('referenceLiters: $referenceLiters, ')
-          ..write('indicatedLiters: $indicatedLiters, ')
-          ..write('errorPct: $errorPct, ')
-          ..write('uncertaintyPct: $uncertaintyPct, ')
-          ..write('resultMpePct: $resultMpePct, ')
-          ..write('acceptanceMetricPct: $acceptanceMetricPct, ')
-          ..write('rejectionMetricPct: $rejectionMetricPct, ')
-          ..write('verdict: $verdict, ')
-          ..write('checksum: $checksum, ')
-          ..write('rowid: $rowid')
-          ..write(')'))
-        .toString();
-  }
-}
-
 class $TestPointsTable extends TestPoints
     with TableInfo<$TestPointsTable, PointRow> {
   @override
@@ -5947,6 +3720,3382 @@ class EvidenceItemsCompanion extends UpdateCompanion<EvidenceRow> {
   }
 }
 
+class $SamplesTable extends Samples with TableInfo<$SamplesTable, SampleRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SamplesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _flowPointIdMeta = const VerificationMeta(
+    'flowPointId',
+  );
+  @override
+  late final GeneratedColumn<String> flowPointId = GeneratedColumn<String>(
+    'flow_point_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES flow_points (id)',
+    ),
+  );
+  static const VerificationMeta _sampleNumberMeta = const VerificationMeta(
+    'sampleNumber',
+  );
+  @override
+  late final GeneratedColumn<int> sampleNumber = GeneratedColumn<int>(
+    'sample_number',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _measurementMethodMeta = const VerificationMeta(
+    'measurementMethod',
+  );
+  @override
+  late final GeneratedColumn<String> measurementMethod =
+      GeneratedColumn<String>(
+        'measurement_method',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _litersPerPulseMeta = const VerificationMeta(
+    'litersPerPulse',
+  );
+  @override
+  late final GeneratedColumn<double> litersPerPulse = GeneratedColumn<double>(
+    'liters_per_pulse',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _evidenceStepLitersMeta =
+      const VerificationMeta('evidenceStepLiters');
+  @override
+  late final GeneratedColumn<double> evidenceStepLiters =
+      GeneratedColumn<double>(
+        'evidence_step_liters',
+        aliasedName,
+        false,
+        type: DriftSqlType.double,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _readingUncertaintyLitersMeta =
+      const VerificationMeta('readingUncertaintyLiters');
+  @override
+  late final GeneratedColumn<double> readingUncertaintyLiters =
+      GeneratedColumn<double>(
+        'reading_uncertainty_liters',
+        aliasedName,
+        false,
+        type: DriftSqlType.double,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _flowPointCodeMeta = const VerificationMeta(
+    'flowPointCode',
+  );
+  @override
+  late final GeneratedColumn<String> flowPointCode = GeneratedColumn<String>(
+    'flow_point_code',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _mpePctMeta = const VerificationMeta('mpePct');
+  @override
+  late final GeneratedColumn<double> mpePct = GeneratedColumn<double>(
+    'mpe_pct',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lpsApproxMeta = const VerificationMeta(
+    'lpsApprox',
+  );
+  @override
+  late final GeneratedColumn<double> lpsApprox = GeneratedColumn<double>(
+    'lps_approx',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _litersPerOdometerUnitMeta =
+      const VerificationMeta('litersPerOdometerUnit');
+  @override
+  late final GeneratedColumn<double> litersPerOdometerUnit =
+      GeneratedColumn<double>(
+        'liters_per_odometer_unit',
+        aliasedName,
+        false,
+        type: DriftSqlType.double,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _needleLitersPerRevolutionMeta =
+      const VerificationMeta('needleLitersPerRevolution');
+  @override
+  late final GeneratedColumn<double> needleLitersPerRevolution =
+      GeneratedColumn<double>(
+        'needle_liters_per_revolution',
+        aliasedName,
+        false,
+        type: DriftSqlType.double,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _totalizerLeftMeta = const VerificationMeta(
+    'totalizerLeft',
+  );
+  @override
+  late final GeneratedColumn<double> totalizerLeft = GeneratedColumn<double>(
+    'totalizer_left',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _totalizerTopMeta = const VerificationMeta(
+    'totalizerTop',
+  );
+  @override
+  late final GeneratedColumn<double> totalizerTop = GeneratedColumn<double>(
+    'totalizer_top',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _totalizerWidthMeta = const VerificationMeta(
+    'totalizerWidth',
+  );
+  @override
+  late final GeneratedColumn<double> totalizerWidth = GeneratedColumn<double>(
+    'totalizer_width',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _totalizerHeightMeta = const VerificationMeta(
+    'totalizerHeight',
+  );
+  @override
+  late final GeneratedColumn<double> totalizerHeight = GeneratedColumn<double>(
+    'totalizer_height',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _dialCenterXMeta = const VerificationMeta(
+    'dialCenterX',
+  );
+  @override
+  late final GeneratedColumn<double> dialCenterX = GeneratedColumn<double>(
+    'dial_center_x',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _dialCenterYMeta = const VerificationMeta(
+    'dialCenterY',
+  );
+  @override
+  late final GeneratedColumn<double> dialCenterY = GeneratedColumn<double>(
+    'dial_center_y',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _dialRadiusMeta = const VerificationMeta(
+    'dialRadius',
+  );
+  @override
+  late final GeneratedColumn<double> dialRadius = GeneratedColumn<double>(
+    'dial_radius',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _dialMultiplierMeta = const VerificationMeta(
+    'dialMultiplier',
+  );
+  @override
+  late final GeneratedColumn<double> dialMultiplier = GeneratedColumn<double>(
+    'dial_multiplier',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _dialLitersPerRevolutionMeta =
+      const VerificationMeta('dialLitersPerRevolution');
+  @override
+  late final GeneratedColumn<double> dialLitersPerRevolution =
+      GeneratedColumn<double>(
+        'dial_liters_per_revolution',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _dialZeroAngleDegreesMeta =
+      const VerificationMeta('dialZeroAngleDegrees');
+  @override
+  late final GeneratedColumn<double> dialZeroAngleDegrees =
+      GeneratedColumn<double>(
+        'dial_zero_angle_degrees',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _dialClockwiseMeta = const VerificationMeta(
+    'dialClockwise',
+  );
+  @override
+  late final GeneratedColumn<bool> dialClockwise = GeneratedColumn<bool>(
+    'dial_clockwise',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dial_clockwise" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _dialConfigurationSourceMeta =
+      const VerificationMeta('dialConfigurationSource');
+  @override
+  late final GeneratedColumn<String> dialConfigurationSource =
+      GeneratedColumn<String>(
+        'dial_configuration_source',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _totalizerDigitCountMeta =
+      const VerificationMeta('totalizerDigitCount');
+  @override
+  late final GeneratedColumn<int> totalizerDigitCount = GeneratedColumn<int>(
+    'totalizer_digit_count',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _totalizerDecimalPlacesMeta =
+      const VerificationMeta('totalizerDecimalPlaces');
+  @override
+  late final GeneratedColumn<int> totalizerDecimalPlaces = GeneratedColumn<int>(
+    'totalizer_decimal_places',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _totalizerUnitMeta = const VerificationMeta(
+    'totalizerUnit',
+  );
+  @override
+  late final GeneratedColumn<String> totalizerUnit = GeneratedColumn<String>(
+    'totalizer_unit',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _totalizerLeadingZerosAllowedMeta =
+      const VerificationMeta('totalizerLeadingZerosAllowed');
+  @override
+  late final GeneratedColumn<bool> totalizerLeadingZerosAllowed =
+      GeneratedColumn<bool>(
+        'totalizer_leading_zeros_allowed',
+        aliasedName,
+        true,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("totalizer_leading_zeros_allowed" IN (0, 1))',
+        ),
+      );
+  static const VerificationMeta _totalizerConfigurationSourceMeta =
+      const VerificationMeta('totalizerConfigurationSource');
+  @override
+  late final GeneratedColumn<String> totalizerConfigurationSource =
+      GeneratedColumn<String>(
+        'totalizer_configuration_source',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _createdAtMsMeta = const VerificationMeta(
+    'createdAtMs',
+  );
+  @override
+  late final GeneratedColumn<int> createdAtMs = GeneratedColumn<int>(
+    'created_at_ms',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMsMeta = const VerificationMeta(
+    'updatedAtMs',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAtMs = GeneratedColumn<int>(
+    'updated_at_ms',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _startedAtMsMeta = const VerificationMeta(
+    'startedAtMs',
+  );
+  @override
+  late final GeneratedColumn<int> startedAtMs = GeneratedColumn<int>(
+    'started_at_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _endedAtMsMeta = const VerificationMeta(
+    'endedAtMs',
+  );
+  @override
+  late final GeneratedColumn<int> endedAtMs = GeneratedColumn<int>(
+    'ended_at_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _gpsLatitudeMeta = const VerificationMeta(
+    'gpsLatitude',
+  );
+  @override
+  late final GeneratedColumn<double> gpsLatitude = GeneratedColumn<double>(
+    'gps_latitude',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _gpsLongitudeMeta = const VerificationMeta(
+    'gpsLongitude',
+  );
+  @override
+  late final GeneratedColumn<double> gpsLongitude = GeneratedColumn<double>(
+    'gps_longitude',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _gpsAccuracyMetersMeta = const VerificationMeta(
+    'gpsAccuracyMeters',
+  );
+  @override
+  late final GeneratedColumn<double> gpsAccuracyMeters =
+      GeneratedColumn<double>(
+        'gps_accuracy_meters',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _gpsCapturedAtMsMeta = const VerificationMeta(
+    'gpsCapturedAtMs',
+  );
+  @override
+  late final GeneratedColumn<int> gpsCapturedAtMs = GeneratedColumn<int>(
+    'gps_captured_at_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _pulseCountMeta = const VerificationMeta(
+    'pulseCount',
+  );
+  @override
+  late final GeneratedColumn<int> pulseCount = GeneratedColumn<int>(
+    'pulse_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _progressReferenceLitersMeta =
+      const VerificationMeta('progressReferenceLiters');
+  @override
+  late final GeneratedColumn<double> progressReferenceLiters =
+      GeneratedColumn<double>(
+        'progress_reference_liters',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _initialOdometerUnitsMeta =
+      const VerificationMeta('initialOdometerUnits');
+  @override
+  late final GeneratedColumn<double> initialOdometerUnits =
+      GeneratedColumn<double>(
+        'initial_odometer_units',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _initialNeedleLitersMeta =
+      const VerificationMeta('initialNeedleLiters');
+  @override
+  late final GeneratedColumn<double> initialNeedleLiters =
+      GeneratedColumn<double>(
+        'initial_needle_liters',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _initialReadingSourceMeta =
+      const VerificationMeta('initialReadingSource');
+  @override
+  late final GeneratedColumn<String> initialReadingSource =
+      GeneratedColumn<String>(
+        'initial_reading_source',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _initialReadingEvidenceIdMeta =
+      const VerificationMeta('initialReadingEvidenceId');
+  @override
+  late final GeneratedColumn<String> initialReadingEvidenceId =
+      GeneratedColumn<String>(
+        'initial_reading_evidence_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'REFERENCES evidence_items (id)',
+        ),
+      );
+  static const VerificationMeta _finalOdometerUnitsMeta =
+      const VerificationMeta('finalOdometerUnits');
+  @override
+  late final GeneratedColumn<double> finalOdometerUnits =
+      GeneratedColumn<double>(
+        'final_odometer_units',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _finalNeedleLitersMeta = const VerificationMeta(
+    'finalNeedleLiters',
+  );
+  @override
+  late final GeneratedColumn<double> finalNeedleLiters =
+      GeneratedColumn<double>(
+        'final_needle_liters',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _finalReadingSourceMeta =
+      const VerificationMeta('finalReadingSource');
+  @override
+  late final GeneratedColumn<String> finalReadingSource =
+      GeneratedColumn<String>(
+        'final_reading_source',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _finalReadingEvidenceIdMeta =
+      const VerificationMeta('finalReadingEvidenceId');
+  @override
+  late final GeneratedColumn<String> finalReadingEvidenceId =
+      GeneratedColumn<String>(
+        'final_reading_evidence_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'REFERENCES evidence_items (id)',
+        ),
+      );
+  static const VerificationMeta _referenceLitersMeta = const VerificationMeta(
+    'referenceLiters',
+  );
+  @override
+  late final GeneratedColumn<double> referenceLiters = GeneratedColumn<double>(
+    'reference_liters',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _indicatedLitersMeta = const VerificationMeta(
+    'indicatedLiters',
+  );
+  @override
+  late final GeneratedColumn<double> indicatedLiters = GeneratedColumn<double>(
+    'indicated_liters',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _errorPctMeta = const VerificationMeta(
+    'errorPct',
+  );
+  @override
+  late final GeneratedColumn<double> errorPct = GeneratedColumn<double>(
+    'error_pct',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _uncertaintyPctMeta = const VerificationMeta(
+    'uncertaintyPct',
+  );
+  @override
+  late final GeneratedColumn<double> uncertaintyPct = GeneratedColumn<double>(
+    'uncertainty_pct',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _resultMpePctMeta = const VerificationMeta(
+    'resultMpePct',
+  );
+  @override
+  late final GeneratedColumn<double> resultMpePct = GeneratedColumn<double>(
+    'result_mpe_pct',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _acceptanceMetricPctMeta =
+      const VerificationMeta('acceptanceMetricPct');
+  @override
+  late final GeneratedColumn<double> acceptanceMetricPct =
+      GeneratedColumn<double>(
+        'acceptance_metric_pct',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _rejectionMetricPctMeta =
+      const VerificationMeta('rejectionMetricPct');
+  @override
+  late final GeneratedColumn<double> rejectionMetricPct =
+      GeneratedColumn<double>(
+        'rejection_metric_pct',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _verdictMeta = const VerificationMeta(
+    'verdict',
+  );
+  @override
+  late final GeneratedColumn<String> verdict = GeneratedColumn<String>(
+    'verdict',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _checksumMeta = const VerificationMeta(
+    'checksum',
+  );
+  @override
+  late final GeneratedColumn<String> checksum = GeneratedColumn<String>(
+    'checksum',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    flowPointId,
+    sampleNumber,
+    status,
+    measurementMethod,
+    litersPerPulse,
+    evidenceStepLiters,
+    readingUncertaintyLiters,
+    flowPointCode,
+    mpePct,
+    lpsApprox,
+    litersPerOdometerUnit,
+    needleLitersPerRevolution,
+    totalizerLeft,
+    totalizerTop,
+    totalizerWidth,
+    totalizerHeight,
+    dialCenterX,
+    dialCenterY,
+    dialRadius,
+    dialMultiplier,
+    dialLitersPerRevolution,
+    dialZeroAngleDegrees,
+    dialClockwise,
+    dialConfigurationSource,
+    totalizerDigitCount,
+    totalizerDecimalPlaces,
+    totalizerUnit,
+    totalizerLeadingZerosAllowed,
+    totalizerConfigurationSource,
+    createdAtMs,
+    updatedAtMs,
+    startedAtMs,
+    endedAtMs,
+    gpsLatitude,
+    gpsLongitude,
+    gpsAccuracyMeters,
+    gpsCapturedAtMs,
+    pulseCount,
+    progressReferenceLiters,
+    initialOdometerUnits,
+    initialNeedleLiters,
+    initialReadingSource,
+    initialReadingEvidenceId,
+    finalOdometerUnits,
+    finalNeedleLiters,
+    finalReadingSource,
+    finalReadingEvidenceId,
+    referenceLiters,
+    indicatedLiters,
+    errorPct,
+    uncertaintyPct,
+    resultMpePct,
+    acceptanceMetricPct,
+    rejectionMetricPct,
+    verdict,
+    checksum,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'samples';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SampleRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('flow_point_id')) {
+      context.handle(
+        _flowPointIdMeta,
+        flowPointId.isAcceptableOrUnknown(
+          data['flow_point_id']!,
+          _flowPointIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_flowPointIdMeta);
+    }
+    if (data.containsKey('sample_number')) {
+      context.handle(
+        _sampleNumberMeta,
+        sampleNumber.isAcceptableOrUnknown(
+          data['sample_number']!,
+          _sampleNumberMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_sampleNumberMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_statusMeta);
+    }
+    if (data.containsKey('measurement_method')) {
+      context.handle(
+        _measurementMethodMeta,
+        measurementMethod.isAcceptableOrUnknown(
+          data['measurement_method']!,
+          _measurementMethodMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_measurementMethodMeta);
+    }
+    if (data.containsKey('liters_per_pulse')) {
+      context.handle(
+        _litersPerPulseMeta,
+        litersPerPulse.isAcceptableOrUnknown(
+          data['liters_per_pulse']!,
+          _litersPerPulseMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_litersPerPulseMeta);
+    }
+    if (data.containsKey('evidence_step_liters')) {
+      context.handle(
+        _evidenceStepLitersMeta,
+        evidenceStepLiters.isAcceptableOrUnknown(
+          data['evidence_step_liters']!,
+          _evidenceStepLitersMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_evidenceStepLitersMeta);
+    }
+    if (data.containsKey('reading_uncertainty_liters')) {
+      context.handle(
+        _readingUncertaintyLitersMeta,
+        readingUncertaintyLiters.isAcceptableOrUnknown(
+          data['reading_uncertainty_liters']!,
+          _readingUncertaintyLitersMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_readingUncertaintyLitersMeta);
+    }
+    if (data.containsKey('flow_point_code')) {
+      context.handle(
+        _flowPointCodeMeta,
+        flowPointCode.isAcceptableOrUnknown(
+          data['flow_point_code']!,
+          _flowPointCodeMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_flowPointCodeMeta);
+    }
+    if (data.containsKey('mpe_pct')) {
+      context.handle(
+        _mpePctMeta,
+        mpePct.isAcceptableOrUnknown(data['mpe_pct']!, _mpePctMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_mpePctMeta);
+    }
+    if (data.containsKey('lps_approx')) {
+      context.handle(
+        _lpsApproxMeta,
+        lpsApprox.isAcceptableOrUnknown(data['lps_approx']!, _lpsApproxMeta),
+      );
+    }
+    if (data.containsKey('liters_per_odometer_unit')) {
+      context.handle(
+        _litersPerOdometerUnitMeta,
+        litersPerOdometerUnit.isAcceptableOrUnknown(
+          data['liters_per_odometer_unit']!,
+          _litersPerOdometerUnitMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_litersPerOdometerUnitMeta);
+    }
+    if (data.containsKey('needle_liters_per_revolution')) {
+      context.handle(
+        _needleLitersPerRevolutionMeta,
+        needleLitersPerRevolution.isAcceptableOrUnknown(
+          data['needle_liters_per_revolution']!,
+          _needleLitersPerRevolutionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_needleLitersPerRevolutionMeta);
+    }
+    if (data.containsKey('totalizer_left')) {
+      context.handle(
+        _totalizerLeftMeta,
+        totalizerLeft.isAcceptableOrUnknown(
+          data['totalizer_left']!,
+          _totalizerLeftMeta,
+        ),
+      );
+    }
+    if (data.containsKey('totalizer_top')) {
+      context.handle(
+        _totalizerTopMeta,
+        totalizerTop.isAcceptableOrUnknown(
+          data['totalizer_top']!,
+          _totalizerTopMeta,
+        ),
+      );
+    }
+    if (data.containsKey('totalizer_width')) {
+      context.handle(
+        _totalizerWidthMeta,
+        totalizerWidth.isAcceptableOrUnknown(
+          data['totalizer_width']!,
+          _totalizerWidthMeta,
+        ),
+      );
+    }
+    if (data.containsKey('totalizer_height')) {
+      context.handle(
+        _totalizerHeightMeta,
+        totalizerHeight.isAcceptableOrUnknown(
+          data['totalizer_height']!,
+          _totalizerHeightMeta,
+        ),
+      );
+    }
+    if (data.containsKey('dial_center_x')) {
+      context.handle(
+        _dialCenterXMeta,
+        dialCenterX.isAcceptableOrUnknown(
+          data['dial_center_x']!,
+          _dialCenterXMeta,
+        ),
+      );
+    }
+    if (data.containsKey('dial_center_y')) {
+      context.handle(
+        _dialCenterYMeta,
+        dialCenterY.isAcceptableOrUnknown(
+          data['dial_center_y']!,
+          _dialCenterYMeta,
+        ),
+      );
+    }
+    if (data.containsKey('dial_radius')) {
+      context.handle(
+        _dialRadiusMeta,
+        dialRadius.isAcceptableOrUnknown(data['dial_radius']!, _dialRadiusMeta),
+      );
+    }
+    if (data.containsKey('dial_multiplier')) {
+      context.handle(
+        _dialMultiplierMeta,
+        dialMultiplier.isAcceptableOrUnknown(
+          data['dial_multiplier']!,
+          _dialMultiplierMeta,
+        ),
+      );
+    }
+    if (data.containsKey('dial_liters_per_revolution')) {
+      context.handle(
+        _dialLitersPerRevolutionMeta,
+        dialLitersPerRevolution.isAcceptableOrUnknown(
+          data['dial_liters_per_revolution']!,
+          _dialLitersPerRevolutionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('dial_zero_angle_degrees')) {
+      context.handle(
+        _dialZeroAngleDegreesMeta,
+        dialZeroAngleDegrees.isAcceptableOrUnknown(
+          data['dial_zero_angle_degrees']!,
+          _dialZeroAngleDegreesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('dial_clockwise')) {
+      context.handle(
+        _dialClockwiseMeta,
+        dialClockwise.isAcceptableOrUnknown(
+          data['dial_clockwise']!,
+          _dialClockwiseMeta,
+        ),
+      );
+    }
+    if (data.containsKey('dial_configuration_source')) {
+      context.handle(
+        _dialConfigurationSourceMeta,
+        dialConfigurationSource.isAcceptableOrUnknown(
+          data['dial_configuration_source']!,
+          _dialConfigurationSourceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('totalizer_digit_count')) {
+      context.handle(
+        _totalizerDigitCountMeta,
+        totalizerDigitCount.isAcceptableOrUnknown(
+          data['totalizer_digit_count']!,
+          _totalizerDigitCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('totalizer_decimal_places')) {
+      context.handle(
+        _totalizerDecimalPlacesMeta,
+        totalizerDecimalPlaces.isAcceptableOrUnknown(
+          data['totalizer_decimal_places']!,
+          _totalizerDecimalPlacesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('totalizer_unit')) {
+      context.handle(
+        _totalizerUnitMeta,
+        totalizerUnit.isAcceptableOrUnknown(
+          data['totalizer_unit']!,
+          _totalizerUnitMeta,
+        ),
+      );
+    }
+    if (data.containsKey('totalizer_leading_zeros_allowed')) {
+      context.handle(
+        _totalizerLeadingZerosAllowedMeta,
+        totalizerLeadingZerosAllowed.isAcceptableOrUnknown(
+          data['totalizer_leading_zeros_allowed']!,
+          _totalizerLeadingZerosAllowedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('totalizer_configuration_source')) {
+      context.handle(
+        _totalizerConfigurationSourceMeta,
+        totalizerConfigurationSource.isAcceptableOrUnknown(
+          data['totalizer_configuration_source']!,
+          _totalizerConfigurationSourceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at_ms')) {
+      context.handle(
+        _createdAtMsMeta,
+        createdAtMs.isAcceptableOrUnknown(
+          data['created_at_ms']!,
+          _createdAtMsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMsMeta);
+    }
+    if (data.containsKey('updated_at_ms')) {
+      context.handle(
+        _updatedAtMsMeta,
+        updatedAtMs.isAcceptableOrUnknown(
+          data['updated_at_ms']!,
+          _updatedAtMsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMsMeta);
+    }
+    if (data.containsKey('started_at_ms')) {
+      context.handle(
+        _startedAtMsMeta,
+        startedAtMs.isAcceptableOrUnknown(
+          data['started_at_ms']!,
+          _startedAtMsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('ended_at_ms')) {
+      context.handle(
+        _endedAtMsMeta,
+        endedAtMs.isAcceptableOrUnknown(data['ended_at_ms']!, _endedAtMsMeta),
+      );
+    }
+    if (data.containsKey('gps_latitude')) {
+      context.handle(
+        _gpsLatitudeMeta,
+        gpsLatitude.isAcceptableOrUnknown(
+          data['gps_latitude']!,
+          _gpsLatitudeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('gps_longitude')) {
+      context.handle(
+        _gpsLongitudeMeta,
+        gpsLongitude.isAcceptableOrUnknown(
+          data['gps_longitude']!,
+          _gpsLongitudeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('gps_accuracy_meters')) {
+      context.handle(
+        _gpsAccuracyMetersMeta,
+        gpsAccuracyMeters.isAcceptableOrUnknown(
+          data['gps_accuracy_meters']!,
+          _gpsAccuracyMetersMeta,
+        ),
+      );
+    }
+    if (data.containsKey('gps_captured_at_ms')) {
+      context.handle(
+        _gpsCapturedAtMsMeta,
+        gpsCapturedAtMs.isAcceptableOrUnknown(
+          data['gps_captured_at_ms']!,
+          _gpsCapturedAtMsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('pulse_count')) {
+      context.handle(
+        _pulseCountMeta,
+        pulseCount.isAcceptableOrUnknown(data['pulse_count']!, _pulseCountMeta),
+      );
+    }
+    if (data.containsKey('progress_reference_liters')) {
+      context.handle(
+        _progressReferenceLitersMeta,
+        progressReferenceLiters.isAcceptableOrUnknown(
+          data['progress_reference_liters']!,
+          _progressReferenceLitersMeta,
+        ),
+      );
+    }
+    if (data.containsKey('initial_odometer_units')) {
+      context.handle(
+        _initialOdometerUnitsMeta,
+        initialOdometerUnits.isAcceptableOrUnknown(
+          data['initial_odometer_units']!,
+          _initialOdometerUnitsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('initial_needle_liters')) {
+      context.handle(
+        _initialNeedleLitersMeta,
+        initialNeedleLiters.isAcceptableOrUnknown(
+          data['initial_needle_liters']!,
+          _initialNeedleLitersMeta,
+        ),
+      );
+    }
+    if (data.containsKey('initial_reading_source')) {
+      context.handle(
+        _initialReadingSourceMeta,
+        initialReadingSource.isAcceptableOrUnknown(
+          data['initial_reading_source']!,
+          _initialReadingSourceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('initial_reading_evidence_id')) {
+      context.handle(
+        _initialReadingEvidenceIdMeta,
+        initialReadingEvidenceId.isAcceptableOrUnknown(
+          data['initial_reading_evidence_id']!,
+          _initialReadingEvidenceIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('final_odometer_units')) {
+      context.handle(
+        _finalOdometerUnitsMeta,
+        finalOdometerUnits.isAcceptableOrUnknown(
+          data['final_odometer_units']!,
+          _finalOdometerUnitsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('final_needle_liters')) {
+      context.handle(
+        _finalNeedleLitersMeta,
+        finalNeedleLiters.isAcceptableOrUnknown(
+          data['final_needle_liters']!,
+          _finalNeedleLitersMeta,
+        ),
+      );
+    }
+    if (data.containsKey('final_reading_source')) {
+      context.handle(
+        _finalReadingSourceMeta,
+        finalReadingSource.isAcceptableOrUnknown(
+          data['final_reading_source']!,
+          _finalReadingSourceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('final_reading_evidence_id')) {
+      context.handle(
+        _finalReadingEvidenceIdMeta,
+        finalReadingEvidenceId.isAcceptableOrUnknown(
+          data['final_reading_evidence_id']!,
+          _finalReadingEvidenceIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('reference_liters')) {
+      context.handle(
+        _referenceLitersMeta,
+        referenceLiters.isAcceptableOrUnknown(
+          data['reference_liters']!,
+          _referenceLitersMeta,
+        ),
+      );
+    }
+    if (data.containsKey('indicated_liters')) {
+      context.handle(
+        _indicatedLitersMeta,
+        indicatedLiters.isAcceptableOrUnknown(
+          data['indicated_liters']!,
+          _indicatedLitersMeta,
+        ),
+      );
+    }
+    if (data.containsKey('error_pct')) {
+      context.handle(
+        _errorPctMeta,
+        errorPct.isAcceptableOrUnknown(data['error_pct']!, _errorPctMeta),
+      );
+    }
+    if (data.containsKey('uncertainty_pct')) {
+      context.handle(
+        _uncertaintyPctMeta,
+        uncertaintyPct.isAcceptableOrUnknown(
+          data['uncertainty_pct']!,
+          _uncertaintyPctMeta,
+        ),
+      );
+    }
+    if (data.containsKey('result_mpe_pct')) {
+      context.handle(
+        _resultMpePctMeta,
+        resultMpePct.isAcceptableOrUnknown(
+          data['result_mpe_pct']!,
+          _resultMpePctMeta,
+        ),
+      );
+    }
+    if (data.containsKey('acceptance_metric_pct')) {
+      context.handle(
+        _acceptanceMetricPctMeta,
+        acceptanceMetricPct.isAcceptableOrUnknown(
+          data['acceptance_metric_pct']!,
+          _acceptanceMetricPctMeta,
+        ),
+      );
+    }
+    if (data.containsKey('rejection_metric_pct')) {
+      context.handle(
+        _rejectionMetricPctMeta,
+        rejectionMetricPct.isAcceptableOrUnknown(
+          data['rejection_metric_pct']!,
+          _rejectionMetricPctMeta,
+        ),
+      );
+    }
+    if (data.containsKey('verdict')) {
+      context.handle(
+        _verdictMeta,
+        verdict.isAcceptableOrUnknown(data['verdict']!, _verdictMeta),
+      );
+    }
+    if (data.containsKey('checksum')) {
+      context.handle(
+        _checksumMeta,
+        checksum.isAcceptableOrUnknown(data['checksum']!, _checksumMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {flowPointId, sampleNumber},
+  ];
+  @override
+  SampleRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SampleRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      flowPointId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}flow_point_id'],
+      )!,
+      sampleNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sample_number'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      measurementMethod: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}measurement_method'],
+      )!,
+      litersPerPulse: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}liters_per_pulse'],
+      )!,
+      evidenceStepLiters: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}evidence_step_liters'],
+      )!,
+      readingUncertaintyLiters: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}reading_uncertainty_liters'],
+      )!,
+      flowPointCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}flow_point_code'],
+      )!,
+      mpePct: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}mpe_pct'],
+      )!,
+      lpsApprox: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}lps_approx'],
+      ),
+      litersPerOdometerUnit: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}liters_per_odometer_unit'],
+      )!,
+      needleLitersPerRevolution: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}needle_liters_per_revolution'],
+      )!,
+      totalizerLeft: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}totalizer_left'],
+      ),
+      totalizerTop: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}totalizer_top'],
+      ),
+      totalizerWidth: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}totalizer_width'],
+      ),
+      totalizerHeight: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}totalizer_height'],
+      ),
+      dialCenterX: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}dial_center_x'],
+      ),
+      dialCenterY: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}dial_center_y'],
+      ),
+      dialRadius: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}dial_radius'],
+      ),
+      dialMultiplier: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}dial_multiplier'],
+      ),
+      dialLitersPerRevolution: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}dial_liters_per_revolution'],
+      ),
+      dialZeroAngleDegrees: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}dial_zero_angle_degrees'],
+      ),
+      dialClockwise: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dial_clockwise'],
+      ),
+      dialConfigurationSource: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}dial_configuration_source'],
+      ),
+      totalizerDigitCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}totalizer_digit_count'],
+      ),
+      totalizerDecimalPlaces: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}totalizer_decimal_places'],
+      ),
+      totalizerUnit: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}totalizer_unit'],
+      ),
+      totalizerLeadingZerosAllowed: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}totalizer_leading_zeros_allowed'],
+      ),
+      totalizerConfigurationSource: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}totalizer_configuration_source'],
+      ),
+      createdAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at_ms'],
+      )!,
+      updatedAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at_ms'],
+      )!,
+      startedAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}started_at_ms'],
+      ),
+      endedAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}ended_at_ms'],
+      ),
+      gpsLatitude: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}gps_latitude'],
+      ),
+      gpsLongitude: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}gps_longitude'],
+      ),
+      gpsAccuracyMeters: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}gps_accuracy_meters'],
+      ),
+      gpsCapturedAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}gps_captured_at_ms'],
+      ),
+      pulseCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}pulse_count'],
+      )!,
+      progressReferenceLiters: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}progress_reference_liters'],
+      ),
+      initialOdometerUnits: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}initial_odometer_units'],
+      ),
+      initialNeedleLiters: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}initial_needle_liters'],
+      ),
+      initialReadingSource: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}initial_reading_source'],
+      ),
+      initialReadingEvidenceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}initial_reading_evidence_id'],
+      ),
+      finalOdometerUnits: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}final_odometer_units'],
+      ),
+      finalNeedleLiters: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}final_needle_liters'],
+      ),
+      finalReadingSource: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}final_reading_source'],
+      ),
+      finalReadingEvidenceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}final_reading_evidence_id'],
+      ),
+      referenceLiters: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}reference_liters'],
+      ),
+      indicatedLiters: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}indicated_liters'],
+      ),
+      errorPct: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}error_pct'],
+      ),
+      uncertaintyPct: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}uncertainty_pct'],
+      ),
+      resultMpePct: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}result_mpe_pct'],
+      ),
+      acceptanceMetricPct: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}acceptance_metric_pct'],
+      ),
+      rejectionMetricPct: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}rejection_metric_pct'],
+      ),
+      verdict: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}verdict'],
+      ),
+      checksum: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}checksum'],
+      ),
+    );
+  }
+
+  @override
+  $SamplesTable createAlias(String alias) {
+    return $SamplesTable(attachedDatabase, alias);
+  }
+}
+
+class SampleRow extends DataClass implements Insertable<SampleRow> {
+  final String id;
+  final String flowPointId;
+  final int sampleNumber;
+  final String status;
+  final String measurementMethod;
+  final double litersPerPulse;
+  final double evidenceStepLiters;
+  final double readingUncertaintyLiters;
+  final String flowPointCode;
+  final double mpePct;
+  final double? lpsApprox;
+  final double litersPerOdometerUnit;
+  final double needleLitersPerRevolution;
+  final double? totalizerLeft;
+  final double? totalizerTop;
+  final double? totalizerWidth;
+  final double? totalizerHeight;
+  final double? dialCenterX;
+  final double? dialCenterY;
+  final double? dialRadius;
+  final double? dialMultiplier;
+  final double? dialLitersPerRevolution;
+  final double? dialZeroAngleDegrees;
+  final bool? dialClockwise;
+  final String? dialConfigurationSource;
+  final int? totalizerDigitCount;
+  final int? totalizerDecimalPlaces;
+  final String? totalizerUnit;
+  final bool? totalizerLeadingZerosAllowed;
+  final String? totalizerConfigurationSource;
+  final int createdAtMs;
+  final int updatedAtMs;
+  final int? startedAtMs;
+  final int? endedAtMs;
+  final double? gpsLatitude;
+  final double? gpsLongitude;
+  final double? gpsAccuracyMeters;
+  final int? gpsCapturedAtMs;
+  final int pulseCount;
+  final double? progressReferenceLiters;
+  final double? initialOdometerUnits;
+  final double? initialNeedleLiters;
+  final String? initialReadingSource;
+  final String? initialReadingEvidenceId;
+  final double? finalOdometerUnits;
+  final double? finalNeedleLiters;
+  final String? finalReadingSource;
+  final String? finalReadingEvidenceId;
+  final double? referenceLiters;
+  final double? indicatedLiters;
+  final double? errorPct;
+  final double? uncertaintyPct;
+  final double? resultMpePct;
+  final double? acceptanceMetricPct;
+  final double? rejectionMetricPct;
+  final String? verdict;
+  final String? checksum;
+  const SampleRow({
+    required this.id,
+    required this.flowPointId,
+    required this.sampleNumber,
+    required this.status,
+    required this.measurementMethod,
+    required this.litersPerPulse,
+    required this.evidenceStepLiters,
+    required this.readingUncertaintyLiters,
+    required this.flowPointCode,
+    required this.mpePct,
+    this.lpsApprox,
+    required this.litersPerOdometerUnit,
+    required this.needleLitersPerRevolution,
+    this.totalizerLeft,
+    this.totalizerTop,
+    this.totalizerWidth,
+    this.totalizerHeight,
+    this.dialCenterX,
+    this.dialCenterY,
+    this.dialRadius,
+    this.dialMultiplier,
+    this.dialLitersPerRevolution,
+    this.dialZeroAngleDegrees,
+    this.dialClockwise,
+    this.dialConfigurationSource,
+    this.totalizerDigitCount,
+    this.totalizerDecimalPlaces,
+    this.totalizerUnit,
+    this.totalizerLeadingZerosAllowed,
+    this.totalizerConfigurationSource,
+    required this.createdAtMs,
+    required this.updatedAtMs,
+    this.startedAtMs,
+    this.endedAtMs,
+    this.gpsLatitude,
+    this.gpsLongitude,
+    this.gpsAccuracyMeters,
+    this.gpsCapturedAtMs,
+    required this.pulseCount,
+    this.progressReferenceLiters,
+    this.initialOdometerUnits,
+    this.initialNeedleLiters,
+    this.initialReadingSource,
+    this.initialReadingEvidenceId,
+    this.finalOdometerUnits,
+    this.finalNeedleLiters,
+    this.finalReadingSource,
+    this.finalReadingEvidenceId,
+    this.referenceLiters,
+    this.indicatedLiters,
+    this.errorPct,
+    this.uncertaintyPct,
+    this.resultMpePct,
+    this.acceptanceMetricPct,
+    this.rejectionMetricPct,
+    this.verdict,
+    this.checksum,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['flow_point_id'] = Variable<String>(flowPointId);
+    map['sample_number'] = Variable<int>(sampleNumber);
+    map['status'] = Variable<String>(status);
+    map['measurement_method'] = Variable<String>(measurementMethod);
+    map['liters_per_pulse'] = Variable<double>(litersPerPulse);
+    map['evidence_step_liters'] = Variable<double>(evidenceStepLiters);
+    map['reading_uncertainty_liters'] = Variable<double>(
+      readingUncertaintyLiters,
+    );
+    map['flow_point_code'] = Variable<String>(flowPointCode);
+    map['mpe_pct'] = Variable<double>(mpePct);
+    if (!nullToAbsent || lpsApprox != null) {
+      map['lps_approx'] = Variable<double>(lpsApprox);
+    }
+    map['liters_per_odometer_unit'] = Variable<double>(litersPerOdometerUnit);
+    map['needle_liters_per_revolution'] = Variable<double>(
+      needleLitersPerRevolution,
+    );
+    if (!nullToAbsent || totalizerLeft != null) {
+      map['totalizer_left'] = Variable<double>(totalizerLeft);
+    }
+    if (!nullToAbsent || totalizerTop != null) {
+      map['totalizer_top'] = Variable<double>(totalizerTop);
+    }
+    if (!nullToAbsent || totalizerWidth != null) {
+      map['totalizer_width'] = Variable<double>(totalizerWidth);
+    }
+    if (!nullToAbsent || totalizerHeight != null) {
+      map['totalizer_height'] = Variable<double>(totalizerHeight);
+    }
+    if (!nullToAbsent || dialCenterX != null) {
+      map['dial_center_x'] = Variable<double>(dialCenterX);
+    }
+    if (!nullToAbsent || dialCenterY != null) {
+      map['dial_center_y'] = Variable<double>(dialCenterY);
+    }
+    if (!nullToAbsent || dialRadius != null) {
+      map['dial_radius'] = Variable<double>(dialRadius);
+    }
+    if (!nullToAbsent || dialMultiplier != null) {
+      map['dial_multiplier'] = Variable<double>(dialMultiplier);
+    }
+    if (!nullToAbsent || dialLitersPerRevolution != null) {
+      map['dial_liters_per_revolution'] = Variable<double>(
+        dialLitersPerRevolution,
+      );
+    }
+    if (!nullToAbsent || dialZeroAngleDegrees != null) {
+      map['dial_zero_angle_degrees'] = Variable<double>(dialZeroAngleDegrees);
+    }
+    if (!nullToAbsent || dialClockwise != null) {
+      map['dial_clockwise'] = Variable<bool>(dialClockwise);
+    }
+    if (!nullToAbsent || dialConfigurationSource != null) {
+      map['dial_configuration_source'] = Variable<String>(
+        dialConfigurationSource,
+      );
+    }
+    if (!nullToAbsent || totalizerDigitCount != null) {
+      map['totalizer_digit_count'] = Variable<int>(totalizerDigitCount);
+    }
+    if (!nullToAbsent || totalizerDecimalPlaces != null) {
+      map['totalizer_decimal_places'] = Variable<int>(totalizerDecimalPlaces);
+    }
+    if (!nullToAbsent || totalizerUnit != null) {
+      map['totalizer_unit'] = Variable<String>(totalizerUnit);
+    }
+    if (!nullToAbsent || totalizerLeadingZerosAllowed != null) {
+      map['totalizer_leading_zeros_allowed'] = Variable<bool>(
+        totalizerLeadingZerosAllowed,
+      );
+    }
+    if (!nullToAbsent || totalizerConfigurationSource != null) {
+      map['totalizer_configuration_source'] = Variable<String>(
+        totalizerConfigurationSource,
+      );
+    }
+    map['created_at_ms'] = Variable<int>(createdAtMs);
+    map['updated_at_ms'] = Variable<int>(updatedAtMs);
+    if (!nullToAbsent || startedAtMs != null) {
+      map['started_at_ms'] = Variable<int>(startedAtMs);
+    }
+    if (!nullToAbsent || endedAtMs != null) {
+      map['ended_at_ms'] = Variable<int>(endedAtMs);
+    }
+    if (!nullToAbsent || gpsLatitude != null) {
+      map['gps_latitude'] = Variable<double>(gpsLatitude);
+    }
+    if (!nullToAbsent || gpsLongitude != null) {
+      map['gps_longitude'] = Variable<double>(gpsLongitude);
+    }
+    if (!nullToAbsent || gpsAccuracyMeters != null) {
+      map['gps_accuracy_meters'] = Variable<double>(gpsAccuracyMeters);
+    }
+    if (!nullToAbsent || gpsCapturedAtMs != null) {
+      map['gps_captured_at_ms'] = Variable<int>(gpsCapturedAtMs);
+    }
+    map['pulse_count'] = Variable<int>(pulseCount);
+    if (!nullToAbsent || progressReferenceLiters != null) {
+      map['progress_reference_liters'] = Variable<double>(
+        progressReferenceLiters,
+      );
+    }
+    if (!nullToAbsent || initialOdometerUnits != null) {
+      map['initial_odometer_units'] = Variable<double>(initialOdometerUnits);
+    }
+    if (!nullToAbsent || initialNeedleLiters != null) {
+      map['initial_needle_liters'] = Variable<double>(initialNeedleLiters);
+    }
+    if (!nullToAbsent || initialReadingSource != null) {
+      map['initial_reading_source'] = Variable<String>(initialReadingSource);
+    }
+    if (!nullToAbsent || initialReadingEvidenceId != null) {
+      map['initial_reading_evidence_id'] = Variable<String>(
+        initialReadingEvidenceId,
+      );
+    }
+    if (!nullToAbsent || finalOdometerUnits != null) {
+      map['final_odometer_units'] = Variable<double>(finalOdometerUnits);
+    }
+    if (!nullToAbsent || finalNeedleLiters != null) {
+      map['final_needle_liters'] = Variable<double>(finalNeedleLiters);
+    }
+    if (!nullToAbsent || finalReadingSource != null) {
+      map['final_reading_source'] = Variable<String>(finalReadingSource);
+    }
+    if (!nullToAbsent || finalReadingEvidenceId != null) {
+      map['final_reading_evidence_id'] = Variable<String>(
+        finalReadingEvidenceId,
+      );
+    }
+    if (!nullToAbsent || referenceLiters != null) {
+      map['reference_liters'] = Variable<double>(referenceLiters);
+    }
+    if (!nullToAbsent || indicatedLiters != null) {
+      map['indicated_liters'] = Variable<double>(indicatedLiters);
+    }
+    if (!nullToAbsent || errorPct != null) {
+      map['error_pct'] = Variable<double>(errorPct);
+    }
+    if (!nullToAbsent || uncertaintyPct != null) {
+      map['uncertainty_pct'] = Variable<double>(uncertaintyPct);
+    }
+    if (!nullToAbsent || resultMpePct != null) {
+      map['result_mpe_pct'] = Variable<double>(resultMpePct);
+    }
+    if (!nullToAbsent || acceptanceMetricPct != null) {
+      map['acceptance_metric_pct'] = Variable<double>(acceptanceMetricPct);
+    }
+    if (!nullToAbsent || rejectionMetricPct != null) {
+      map['rejection_metric_pct'] = Variable<double>(rejectionMetricPct);
+    }
+    if (!nullToAbsent || verdict != null) {
+      map['verdict'] = Variable<String>(verdict);
+    }
+    if (!nullToAbsent || checksum != null) {
+      map['checksum'] = Variable<String>(checksum);
+    }
+    return map;
+  }
+
+  SamplesCompanion toCompanion(bool nullToAbsent) {
+    return SamplesCompanion(
+      id: Value(id),
+      flowPointId: Value(flowPointId),
+      sampleNumber: Value(sampleNumber),
+      status: Value(status),
+      measurementMethod: Value(measurementMethod),
+      litersPerPulse: Value(litersPerPulse),
+      evidenceStepLiters: Value(evidenceStepLiters),
+      readingUncertaintyLiters: Value(readingUncertaintyLiters),
+      flowPointCode: Value(flowPointCode),
+      mpePct: Value(mpePct),
+      lpsApprox: lpsApprox == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lpsApprox),
+      litersPerOdometerUnit: Value(litersPerOdometerUnit),
+      needleLitersPerRevolution: Value(needleLitersPerRevolution),
+      totalizerLeft: totalizerLeft == null && nullToAbsent
+          ? const Value.absent()
+          : Value(totalizerLeft),
+      totalizerTop: totalizerTop == null && nullToAbsent
+          ? const Value.absent()
+          : Value(totalizerTop),
+      totalizerWidth: totalizerWidth == null && nullToAbsent
+          ? const Value.absent()
+          : Value(totalizerWidth),
+      totalizerHeight: totalizerHeight == null && nullToAbsent
+          ? const Value.absent()
+          : Value(totalizerHeight),
+      dialCenterX: dialCenterX == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dialCenterX),
+      dialCenterY: dialCenterY == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dialCenterY),
+      dialRadius: dialRadius == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dialRadius),
+      dialMultiplier: dialMultiplier == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dialMultiplier),
+      dialLitersPerRevolution: dialLitersPerRevolution == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dialLitersPerRevolution),
+      dialZeroAngleDegrees: dialZeroAngleDegrees == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dialZeroAngleDegrees),
+      dialClockwise: dialClockwise == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dialClockwise),
+      dialConfigurationSource: dialConfigurationSource == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dialConfigurationSource),
+      totalizerDigitCount: totalizerDigitCount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(totalizerDigitCount),
+      totalizerDecimalPlaces: totalizerDecimalPlaces == null && nullToAbsent
+          ? const Value.absent()
+          : Value(totalizerDecimalPlaces),
+      totalizerUnit: totalizerUnit == null && nullToAbsent
+          ? const Value.absent()
+          : Value(totalizerUnit),
+      totalizerLeadingZerosAllowed:
+          totalizerLeadingZerosAllowed == null && nullToAbsent
+          ? const Value.absent()
+          : Value(totalizerLeadingZerosAllowed),
+      totalizerConfigurationSource:
+          totalizerConfigurationSource == null && nullToAbsent
+          ? const Value.absent()
+          : Value(totalizerConfigurationSource),
+      createdAtMs: Value(createdAtMs),
+      updatedAtMs: Value(updatedAtMs),
+      startedAtMs: startedAtMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(startedAtMs),
+      endedAtMs: endedAtMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(endedAtMs),
+      gpsLatitude: gpsLatitude == null && nullToAbsent
+          ? const Value.absent()
+          : Value(gpsLatitude),
+      gpsLongitude: gpsLongitude == null && nullToAbsent
+          ? const Value.absent()
+          : Value(gpsLongitude),
+      gpsAccuracyMeters: gpsAccuracyMeters == null && nullToAbsent
+          ? const Value.absent()
+          : Value(gpsAccuracyMeters),
+      gpsCapturedAtMs: gpsCapturedAtMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(gpsCapturedAtMs),
+      pulseCount: Value(pulseCount),
+      progressReferenceLiters: progressReferenceLiters == null && nullToAbsent
+          ? const Value.absent()
+          : Value(progressReferenceLiters),
+      initialOdometerUnits: initialOdometerUnits == null && nullToAbsent
+          ? const Value.absent()
+          : Value(initialOdometerUnits),
+      initialNeedleLiters: initialNeedleLiters == null && nullToAbsent
+          ? const Value.absent()
+          : Value(initialNeedleLiters),
+      initialReadingSource: initialReadingSource == null && nullToAbsent
+          ? const Value.absent()
+          : Value(initialReadingSource),
+      initialReadingEvidenceId: initialReadingEvidenceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(initialReadingEvidenceId),
+      finalOdometerUnits: finalOdometerUnits == null && nullToAbsent
+          ? const Value.absent()
+          : Value(finalOdometerUnits),
+      finalNeedleLiters: finalNeedleLiters == null && nullToAbsent
+          ? const Value.absent()
+          : Value(finalNeedleLiters),
+      finalReadingSource: finalReadingSource == null && nullToAbsent
+          ? const Value.absent()
+          : Value(finalReadingSource),
+      finalReadingEvidenceId: finalReadingEvidenceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(finalReadingEvidenceId),
+      referenceLiters: referenceLiters == null && nullToAbsent
+          ? const Value.absent()
+          : Value(referenceLiters),
+      indicatedLiters: indicatedLiters == null && nullToAbsent
+          ? const Value.absent()
+          : Value(indicatedLiters),
+      errorPct: errorPct == null && nullToAbsent
+          ? const Value.absent()
+          : Value(errorPct),
+      uncertaintyPct: uncertaintyPct == null && nullToAbsent
+          ? const Value.absent()
+          : Value(uncertaintyPct),
+      resultMpePct: resultMpePct == null && nullToAbsent
+          ? const Value.absent()
+          : Value(resultMpePct),
+      acceptanceMetricPct: acceptanceMetricPct == null && nullToAbsent
+          ? const Value.absent()
+          : Value(acceptanceMetricPct),
+      rejectionMetricPct: rejectionMetricPct == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rejectionMetricPct),
+      verdict: verdict == null && nullToAbsent
+          ? const Value.absent()
+          : Value(verdict),
+      checksum: checksum == null && nullToAbsent
+          ? const Value.absent()
+          : Value(checksum),
+    );
+  }
+
+  factory SampleRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SampleRow(
+      id: serializer.fromJson<String>(json['id']),
+      flowPointId: serializer.fromJson<String>(json['flowPointId']),
+      sampleNumber: serializer.fromJson<int>(json['sampleNumber']),
+      status: serializer.fromJson<String>(json['status']),
+      measurementMethod: serializer.fromJson<String>(json['measurementMethod']),
+      litersPerPulse: serializer.fromJson<double>(json['litersPerPulse']),
+      evidenceStepLiters: serializer.fromJson<double>(
+        json['evidenceStepLiters'],
+      ),
+      readingUncertaintyLiters: serializer.fromJson<double>(
+        json['readingUncertaintyLiters'],
+      ),
+      flowPointCode: serializer.fromJson<String>(json['flowPointCode']),
+      mpePct: serializer.fromJson<double>(json['mpePct']),
+      lpsApprox: serializer.fromJson<double?>(json['lpsApprox']),
+      litersPerOdometerUnit: serializer.fromJson<double>(
+        json['litersPerOdometerUnit'],
+      ),
+      needleLitersPerRevolution: serializer.fromJson<double>(
+        json['needleLitersPerRevolution'],
+      ),
+      totalizerLeft: serializer.fromJson<double?>(json['totalizerLeft']),
+      totalizerTop: serializer.fromJson<double?>(json['totalizerTop']),
+      totalizerWidth: serializer.fromJson<double?>(json['totalizerWidth']),
+      totalizerHeight: serializer.fromJson<double?>(json['totalizerHeight']),
+      dialCenterX: serializer.fromJson<double?>(json['dialCenterX']),
+      dialCenterY: serializer.fromJson<double?>(json['dialCenterY']),
+      dialRadius: serializer.fromJson<double?>(json['dialRadius']),
+      dialMultiplier: serializer.fromJson<double?>(json['dialMultiplier']),
+      dialLitersPerRevolution: serializer.fromJson<double?>(
+        json['dialLitersPerRevolution'],
+      ),
+      dialZeroAngleDegrees: serializer.fromJson<double?>(
+        json['dialZeroAngleDegrees'],
+      ),
+      dialClockwise: serializer.fromJson<bool?>(json['dialClockwise']),
+      dialConfigurationSource: serializer.fromJson<String?>(
+        json['dialConfigurationSource'],
+      ),
+      totalizerDigitCount: serializer.fromJson<int?>(
+        json['totalizerDigitCount'],
+      ),
+      totalizerDecimalPlaces: serializer.fromJson<int?>(
+        json['totalizerDecimalPlaces'],
+      ),
+      totalizerUnit: serializer.fromJson<String?>(json['totalizerUnit']),
+      totalizerLeadingZerosAllowed: serializer.fromJson<bool?>(
+        json['totalizerLeadingZerosAllowed'],
+      ),
+      totalizerConfigurationSource: serializer.fromJson<String?>(
+        json['totalizerConfigurationSource'],
+      ),
+      createdAtMs: serializer.fromJson<int>(json['createdAtMs']),
+      updatedAtMs: serializer.fromJson<int>(json['updatedAtMs']),
+      startedAtMs: serializer.fromJson<int?>(json['startedAtMs']),
+      endedAtMs: serializer.fromJson<int?>(json['endedAtMs']),
+      gpsLatitude: serializer.fromJson<double?>(json['gpsLatitude']),
+      gpsLongitude: serializer.fromJson<double?>(json['gpsLongitude']),
+      gpsAccuracyMeters: serializer.fromJson<double?>(
+        json['gpsAccuracyMeters'],
+      ),
+      gpsCapturedAtMs: serializer.fromJson<int?>(json['gpsCapturedAtMs']),
+      pulseCount: serializer.fromJson<int>(json['pulseCount']),
+      progressReferenceLiters: serializer.fromJson<double?>(
+        json['progressReferenceLiters'],
+      ),
+      initialOdometerUnits: serializer.fromJson<double?>(
+        json['initialOdometerUnits'],
+      ),
+      initialNeedleLiters: serializer.fromJson<double?>(
+        json['initialNeedleLiters'],
+      ),
+      initialReadingSource: serializer.fromJson<String?>(
+        json['initialReadingSource'],
+      ),
+      initialReadingEvidenceId: serializer.fromJson<String?>(
+        json['initialReadingEvidenceId'],
+      ),
+      finalOdometerUnits: serializer.fromJson<double?>(
+        json['finalOdometerUnits'],
+      ),
+      finalNeedleLiters: serializer.fromJson<double?>(
+        json['finalNeedleLiters'],
+      ),
+      finalReadingSource: serializer.fromJson<String?>(
+        json['finalReadingSource'],
+      ),
+      finalReadingEvidenceId: serializer.fromJson<String?>(
+        json['finalReadingEvidenceId'],
+      ),
+      referenceLiters: serializer.fromJson<double?>(json['referenceLiters']),
+      indicatedLiters: serializer.fromJson<double?>(json['indicatedLiters']),
+      errorPct: serializer.fromJson<double?>(json['errorPct']),
+      uncertaintyPct: serializer.fromJson<double?>(json['uncertaintyPct']),
+      resultMpePct: serializer.fromJson<double?>(json['resultMpePct']),
+      acceptanceMetricPct: serializer.fromJson<double?>(
+        json['acceptanceMetricPct'],
+      ),
+      rejectionMetricPct: serializer.fromJson<double?>(
+        json['rejectionMetricPct'],
+      ),
+      verdict: serializer.fromJson<String?>(json['verdict']),
+      checksum: serializer.fromJson<String?>(json['checksum']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'flowPointId': serializer.toJson<String>(flowPointId),
+      'sampleNumber': serializer.toJson<int>(sampleNumber),
+      'status': serializer.toJson<String>(status),
+      'measurementMethod': serializer.toJson<String>(measurementMethod),
+      'litersPerPulse': serializer.toJson<double>(litersPerPulse),
+      'evidenceStepLiters': serializer.toJson<double>(evidenceStepLiters),
+      'readingUncertaintyLiters': serializer.toJson<double>(
+        readingUncertaintyLiters,
+      ),
+      'flowPointCode': serializer.toJson<String>(flowPointCode),
+      'mpePct': serializer.toJson<double>(mpePct),
+      'lpsApprox': serializer.toJson<double?>(lpsApprox),
+      'litersPerOdometerUnit': serializer.toJson<double>(litersPerOdometerUnit),
+      'needleLitersPerRevolution': serializer.toJson<double>(
+        needleLitersPerRevolution,
+      ),
+      'totalizerLeft': serializer.toJson<double?>(totalizerLeft),
+      'totalizerTop': serializer.toJson<double?>(totalizerTop),
+      'totalizerWidth': serializer.toJson<double?>(totalizerWidth),
+      'totalizerHeight': serializer.toJson<double?>(totalizerHeight),
+      'dialCenterX': serializer.toJson<double?>(dialCenterX),
+      'dialCenterY': serializer.toJson<double?>(dialCenterY),
+      'dialRadius': serializer.toJson<double?>(dialRadius),
+      'dialMultiplier': serializer.toJson<double?>(dialMultiplier),
+      'dialLitersPerRevolution': serializer.toJson<double?>(
+        dialLitersPerRevolution,
+      ),
+      'dialZeroAngleDegrees': serializer.toJson<double?>(dialZeroAngleDegrees),
+      'dialClockwise': serializer.toJson<bool?>(dialClockwise),
+      'dialConfigurationSource': serializer.toJson<String?>(
+        dialConfigurationSource,
+      ),
+      'totalizerDigitCount': serializer.toJson<int?>(totalizerDigitCount),
+      'totalizerDecimalPlaces': serializer.toJson<int?>(totalizerDecimalPlaces),
+      'totalizerUnit': serializer.toJson<String?>(totalizerUnit),
+      'totalizerLeadingZerosAllowed': serializer.toJson<bool?>(
+        totalizerLeadingZerosAllowed,
+      ),
+      'totalizerConfigurationSource': serializer.toJson<String?>(
+        totalizerConfigurationSource,
+      ),
+      'createdAtMs': serializer.toJson<int>(createdAtMs),
+      'updatedAtMs': serializer.toJson<int>(updatedAtMs),
+      'startedAtMs': serializer.toJson<int?>(startedAtMs),
+      'endedAtMs': serializer.toJson<int?>(endedAtMs),
+      'gpsLatitude': serializer.toJson<double?>(gpsLatitude),
+      'gpsLongitude': serializer.toJson<double?>(gpsLongitude),
+      'gpsAccuracyMeters': serializer.toJson<double?>(gpsAccuracyMeters),
+      'gpsCapturedAtMs': serializer.toJson<int?>(gpsCapturedAtMs),
+      'pulseCount': serializer.toJson<int>(pulseCount),
+      'progressReferenceLiters': serializer.toJson<double?>(
+        progressReferenceLiters,
+      ),
+      'initialOdometerUnits': serializer.toJson<double?>(initialOdometerUnits),
+      'initialNeedleLiters': serializer.toJson<double?>(initialNeedleLiters),
+      'initialReadingSource': serializer.toJson<String?>(initialReadingSource),
+      'initialReadingEvidenceId': serializer.toJson<String?>(
+        initialReadingEvidenceId,
+      ),
+      'finalOdometerUnits': serializer.toJson<double?>(finalOdometerUnits),
+      'finalNeedleLiters': serializer.toJson<double?>(finalNeedleLiters),
+      'finalReadingSource': serializer.toJson<String?>(finalReadingSource),
+      'finalReadingEvidenceId': serializer.toJson<String?>(
+        finalReadingEvidenceId,
+      ),
+      'referenceLiters': serializer.toJson<double?>(referenceLiters),
+      'indicatedLiters': serializer.toJson<double?>(indicatedLiters),
+      'errorPct': serializer.toJson<double?>(errorPct),
+      'uncertaintyPct': serializer.toJson<double?>(uncertaintyPct),
+      'resultMpePct': serializer.toJson<double?>(resultMpePct),
+      'acceptanceMetricPct': serializer.toJson<double?>(acceptanceMetricPct),
+      'rejectionMetricPct': serializer.toJson<double?>(rejectionMetricPct),
+      'verdict': serializer.toJson<String?>(verdict),
+      'checksum': serializer.toJson<String?>(checksum),
+    };
+  }
+
+  SampleRow copyWith({
+    String? id,
+    String? flowPointId,
+    int? sampleNumber,
+    String? status,
+    String? measurementMethod,
+    double? litersPerPulse,
+    double? evidenceStepLiters,
+    double? readingUncertaintyLiters,
+    String? flowPointCode,
+    double? mpePct,
+    Value<double?> lpsApprox = const Value.absent(),
+    double? litersPerOdometerUnit,
+    double? needleLitersPerRevolution,
+    Value<double?> totalizerLeft = const Value.absent(),
+    Value<double?> totalizerTop = const Value.absent(),
+    Value<double?> totalizerWidth = const Value.absent(),
+    Value<double?> totalizerHeight = const Value.absent(),
+    Value<double?> dialCenterX = const Value.absent(),
+    Value<double?> dialCenterY = const Value.absent(),
+    Value<double?> dialRadius = const Value.absent(),
+    Value<double?> dialMultiplier = const Value.absent(),
+    Value<double?> dialLitersPerRevolution = const Value.absent(),
+    Value<double?> dialZeroAngleDegrees = const Value.absent(),
+    Value<bool?> dialClockwise = const Value.absent(),
+    Value<String?> dialConfigurationSource = const Value.absent(),
+    Value<int?> totalizerDigitCount = const Value.absent(),
+    Value<int?> totalizerDecimalPlaces = const Value.absent(),
+    Value<String?> totalizerUnit = const Value.absent(),
+    Value<bool?> totalizerLeadingZerosAllowed = const Value.absent(),
+    Value<String?> totalizerConfigurationSource = const Value.absent(),
+    int? createdAtMs,
+    int? updatedAtMs,
+    Value<int?> startedAtMs = const Value.absent(),
+    Value<int?> endedAtMs = const Value.absent(),
+    Value<double?> gpsLatitude = const Value.absent(),
+    Value<double?> gpsLongitude = const Value.absent(),
+    Value<double?> gpsAccuracyMeters = const Value.absent(),
+    Value<int?> gpsCapturedAtMs = const Value.absent(),
+    int? pulseCount,
+    Value<double?> progressReferenceLiters = const Value.absent(),
+    Value<double?> initialOdometerUnits = const Value.absent(),
+    Value<double?> initialNeedleLiters = const Value.absent(),
+    Value<String?> initialReadingSource = const Value.absent(),
+    Value<String?> initialReadingEvidenceId = const Value.absent(),
+    Value<double?> finalOdometerUnits = const Value.absent(),
+    Value<double?> finalNeedleLiters = const Value.absent(),
+    Value<String?> finalReadingSource = const Value.absent(),
+    Value<String?> finalReadingEvidenceId = const Value.absent(),
+    Value<double?> referenceLiters = const Value.absent(),
+    Value<double?> indicatedLiters = const Value.absent(),
+    Value<double?> errorPct = const Value.absent(),
+    Value<double?> uncertaintyPct = const Value.absent(),
+    Value<double?> resultMpePct = const Value.absent(),
+    Value<double?> acceptanceMetricPct = const Value.absent(),
+    Value<double?> rejectionMetricPct = const Value.absent(),
+    Value<String?> verdict = const Value.absent(),
+    Value<String?> checksum = const Value.absent(),
+  }) => SampleRow(
+    id: id ?? this.id,
+    flowPointId: flowPointId ?? this.flowPointId,
+    sampleNumber: sampleNumber ?? this.sampleNumber,
+    status: status ?? this.status,
+    measurementMethod: measurementMethod ?? this.measurementMethod,
+    litersPerPulse: litersPerPulse ?? this.litersPerPulse,
+    evidenceStepLiters: evidenceStepLiters ?? this.evidenceStepLiters,
+    readingUncertaintyLiters:
+        readingUncertaintyLiters ?? this.readingUncertaintyLiters,
+    flowPointCode: flowPointCode ?? this.flowPointCode,
+    mpePct: mpePct ?? this.mpePct,
+    lpsApprox: lpsApprox.present ? lpsApprox.value : this.lpsApprox,
+    litersPerOdometerUnit: litersPerOdometerUnit ?? this.litersPerOdometerUnit,
+    needleLitersPerRevolution:
+        needleLitersPerRevolution ?? this.needleLitersPerRevolution,
+    totalizerLeft: totalizerLeft.present
+        ? totalizerLeft.value
+        : this.totalizerLeft,
+    totalizerTop: totalizerTop.present ? totalizerTop.value : this.totalizerTop,
+    totalizerWidth: totalizerWidth.present
+        ? totalizerWidth.value
+        : this.totalizerWidth,
+    totalizerHeight: totalizerHeight.present
+        ? totalizerHeight.value
+        : this.totalizerHeight,
+    dialCenterX: dialCenterX.present ? dialCenterX.value : this.dialCenterX,
+    dialCenterY: dialCenterY.present ? dialCenterY.value : this.dialCenterY,
+    dialRadius: dialRadius.present ? dialRadius.value : this.dialRadius,
+    dialMultiplier: dialMultiplier.present
+        ? dialMultiplier.value
+        : this.dialMultiplier,
+    dialLitersPerRevolution: dialLitersPerRevolution.present
+        ? dialLitersPerRevolution.value
+        : this.dialLitersPerRevolution,
+    dialZeroAngleDegrees: dialZeroAngleDegrees.present
+        ? dialZeroAngleDegrees.value
+        : this.dialZeroAngleDegrees,
+    dialClockwise: dialClockwise.present
+        ? dialClockwise.value
+        : this.dialClockwise,
+    dialConfigurationSource: dialConfigurationSource.present
+        ? dialConfigurationSource.value
+        : this.dialConfigurationSource,
+    totalizerDigitCount: totalizerDigitCount.present
+        ? totalizerDigitCount.value
+        : this.totalizerDigitCount,
+    totalizerDecimalPlaces: totalizerDecimalPlaces.present
+        ? totalizerDecimalPlaces.value
+        : this.totalizerDecimalPlaces,
+    totalizerUnit: totalizerUnit.present
+        ? totalizerUnit.value
+        : this.totalizerUnit,
+    totalizerLeadingZerosAllowed: totalizerLeadingZerosAllowed.present
+        ? totalizerLeadingZerosAllowed.value
+        : this.totalizerLeadingZerosAllowed,
+    totalizerConfigurationSource: totalizerConfigurationSource.present
+        ? totalizerConfigurationSource.value
+        : this.totalizerConfigurationSource,
+    createdAtMs: createdAtMs ?? this.createdAtMs,
+    updatedAtMs: updatedAtMs ?? this.updatedAtMs,
+    startedAtMs: startedAtMs.present ? startedAtMs.value : this.startedAtMs,
+    endedAtMs: endedAtMs.present ? endedAtMs.value : this.endedAtMs,
+    gpsLatitude: gpsLatitude.present ? gpsLatitude.value : this.gpsLatitude,
+    gpsLongitude: gpsLongitude.present ? gpsLongitude.value : this.gpsLongitude,
+    gpsAccuracyMeters: gpsAccuracyMeters.present
+        ? gpsAccuracyMeters.value
+        : this.gpsAccuracyMeters,
+    gpsCapturedAtMs: gpsCapturedAtMs.present
+        ? gpsCapturedAtMs.value
+        : this.gpsCapturedAtMs,
+    pulseCount: pulseCount ?? this.pulseCount,
+    progressReferenceLiters: progressReferenceLiters.present
+        ? progressReferenceLiters.value
+        : this.progressReferenceLiters,
+    initialOdometerUnits: initialOdometerUnits.present
+        ? initialOdometerUnits.value
+        : this.initialOdometerUnits,
+    initialNeedleLiters: initialNeedleLiters.present
+        ? initialNeedleLiters.value
+        : this.initialNeedleLiters,
+    initialReadingSource: initialReadingSource.present
+        ? initialReadingSource.value
+        : this.initialReadingSource,
+    initialReadingEvidenceId: initialReadingEvidenceId.present
+        ? initialReadingEvidenceId.value
+        : this.initialReadingEvidenceId,
+    finalOdometerUnits: finalOdometerUnits.present
+        ? finalOdometerUnits.value
+        : this.finalOdometerUnits,
+    finalNeedleLiters: finalNeedleLiters.present
+        ? finalNeedleLiters.value
+        : this.finalNeedleLiters,
+    finalReadingSource: finalReadingSource.present
+        ? finalReadingSource.value
+        : this.finalReadingSource,
+    finalReadingEvidenceId: finalReadingEvidenceId.present
+        ? finalReadingEvidenceId.value
+        : this.finalReadingEvidenceId,
+    referenceLiters: referenceLiters.present
+        ? referenceLiters.value
+        : this.referenceLiters,
+    indicatedLiters: indicatedLiters.present
+        ? indicatedLiters.value
+        : this.indicatedLiters,
+    errorPct: errorPct.present ? errorPct.value : this.errorPct,
+    uncertaintyPct: uncertaintyPct.present
+        ? uncertaintyPct.value
+        : this.uncertaintyPct,
+    resultMpePct: resultMpePct.present ? resultMpePct.value : this.resultMpePct,
+    acceptanceMetricPct: acceptanceMetricPct.present
+        ? acceptanceMetricPct.value
+        : this.acceptanceMetricPct,
+    rejectionMetricPct: rejectionMetricPct.present
+        ? rejectionMetricPct.value
+        : this.rejectionMetricPct,
+    verdict: verdict.present ? verdict.value : this.verdict,
+    checksum: checksum.present ? checksum.value : this.checksum,
+  );
+  SampleRow copyWithCompanion(SamplesCompanion data) {
+    return SampleRow(
+      id: data.id.present ? data.id.value : this.id,
+      flowPointId: data.flowPointId.present
+          ? data.flowPointId.value
+          : this.flowPointId,
+      sampleNumber: data.sampleNumber.present
+          ? data.sampleNumber.value
+          : this.sampleNumber,
+      status: data.status.present ? data.status.value : this.status,
+      measurementMethod: data.measurementMethod.present
+          ? data.measurementMethod.value
+          : this.measurementMethod,
+      litersPerPulse: data.litersPerPulse.present
+          ? data.litersPerPulse.value
+          : this.litersPerPulse,
+      evidenceStepLiters: data.evidenceStepLiters.present
+          ? data.evidenceStepLiters.value
+          : this.evidenceStepLiters,
+      readingUncertaintyLiters: data.readingUncertaintyLiters.present
+          ? data.readingUncertaintyLiters.value
+          : this.readingUncertaintyLiters,
+      flowPointCode: data.flowPointCode.present
+          ? data.flowPointCode.value
+          : this.flowPointCode,
+      mpePct: data.mpePct.present ? data.mpePct.value : this.mpePct,
+      lpsApprox: data.lpsApprox.present ? data.lpsApprox.value : this.lpsApprox,
+      litersPerOdometerUnit: data.litersPerOdometerUnit.present
+          ? data.litersPerOdometerUnit.value
+          : this.litersPerOdometerUnit,
+      needleLitersPerRevolution: data.needleLitersPerRevolution.present
+          ? data.needleLitersPerRevolution.value
+          : this.needleLitersPerRevolution,
+      totalizerLeft: data.totalizerLeft.present
+          ? data.totalizerLeft.value
+          : this.totalizerLeft,
+      totalizerTop: data.totalizerTop.present
+          ? data.totalizerTop.value
+          : this.totalizerTop,
+      totalizerWidth: data.totalizerWidth.present
+          ? data.totalizerWidth.value
+          : this.totalizerWidth,
+      totalizerHeight: data.totalizerHeight.present
+          ? data.totalizerHeight.value
+          : this.totalizerHeight,
+      dialCenterX: data.dialCenterX.present
+          ? data.dialCenterX.value
+          : this.dialCenterX,
+      dialCenterY: data.dialCenterY.present
+          ? data.dialCenterY.value
+          : this.dialCenterY,
+      dialRadius: data.dialRadius.present
+          ? data.dialRadius.value
+          : this.dialRadius,
+      dialMultiplier: data.dialMultiplier.present
+          ? data.dialMultiplier.value
+          : this.dialMultiplier,
+      dialLitersPerRevolution: data.dialLitersPerRevolution.present
+          ? data.dialLitersPerRevolution.value
+          : this.dialLitersPerRevolution,
+      dialZeroAngleDegrees: data.dialZeroAngleDegrees.present
+          ? data.dialZeroAngleDegrees.value
+          : this.dialZeroAngleDegrees,
+      dialClockwise: data.dialClockwise.present
+          ? data.dialClockwise.value
+          : this.dialClockwise,
+      dialConfigurationSource: data.dialConfigurationSource.present
+          ? data.dialConfigurationSource.value
+          : this.dialConfigurationSource,
+      totalizerDigitCount: data.totalizerDigitCount.present
+          ? data.totalizerDigitCount.value
+          : this.totalizerDigitCount,
+      totalizerDecimalPlaces: data.totalizerDecimalPlaces.present
+          ? data.totalizerDecimalPlaces.value
+          : this.totalizerDecimalPlaces,
+      totalizerUnit: data.totalizerUnit.present
+          ? data.totalizerUnit.value
+          : this.totalizerUnit,
+      totalizerLeadingZerosAllowed: data.totalizerLeadingZerosAllowed.present
+          ? data.totalizerLeadingZerosAllowed.value
+          : this.totalizerLeadingZerosAllowed,
+      totalizerConfigurationSource: data.totalizerConfigurationSource.present
+          ? data.totalizerConfigurationSource.value
+          : this.totalizerConfigurationSource,
+      createdAtMs: data.createdAtMs.present
+          ? data.createdAtMs.value
+          : this.createdAtMs,
+      updatedAtMs: data.updatedAtMs.present
+          ? data.updatedAtMs.value
+          : this.updatedAtMs,
+      startedAtMs: data.startedAtMs.present
+          ? data.startedAtMs.value
+          : this.startedAtMs,
+      endedAtMs: data.endedAtMs.present ? data.endedAtMs.value : this.endedAtMs,
+      gpsLatitude: data.gpsLatitude.present
+          ? data.gpsLatitude.value
+          : this.gpsLatitude,
+      gpsLongitude: data.gpsLongitude.present
+          ? data.gpsLongitude.value
+          : this.gpsLongitude,
+      gpsAccuracyMeters: data.gpsAccuracyMeters.present
+          ? data.gpsAccuracyMeters.value
+          : this.gpsAccuracyMeters,
+      gpsCapturedAtMs: data.gpsCapturedAtMs.present
+          ? data.gpsCapturedAtMs.value
+          : this.gpsCapturedAtMs,
+      pulseCount: data.pulseCount.present
+          ? data.pulseCount.value
+          : this.pulseCount,
+      progressReferenceLiters: data.progressReferenceLiters.present
+          ? data.progressReferenceLiters.value
+          : this.progressReferenceLiters,
+      initialOdometerUnits: data.initialOdometerUnits.present
+          ? data.initialOdometerUnits.value
+          : this.initialOdometerUnits,
+      initialNeedleLiters: data.initialNeedleLiters.present
+          ? data.initialNeedleLiters.value
+          : this.initialNeedleLiters,
+      initialReadingSource: data.initialReadingSource.present
+          ? data.initialReadingSource.value
+          : this.initialReadingSource,
+      initialReadingEvidenceId: data.initialReadingEvidenceId.present
+          ? data.initialReadingEvidenceId.value
+          : this.initialReadingEvidenceId,
+      finalOdometerUnits: data.finalOdometerUnits.present
+          ? data.finalOdometerUnits.value
+          : this.finalOdometerUnits,
+      finalNeedleLiters: data.finalNeedleLiters.present
+          ? data.finalNeedleLiters.value
+          : this.finalNeedleLiters,
+      finalReadingSource: data.finalReadingSource.present
+          ? data.finalReadingSource.value
+          : this.finalReadingSource,
+      finalReadingEvidenceId: data.finalReadingEvidenceId.present
+          ? data.finalReadingEvidenceId.value
+          : this.finalReadingEvidenceId,
+      referenceLiters: data.referenceLiters.present
+          ? data.referenceLiters.value
+          : this.referenceLiters,
+      indicatedLiters: data.indicatedLiters.present
+          ? data.indicatedLiters.value
+          : this.indicatedLiters,
+      errorPct: data.errorPct.present ? data.errorPct.value : this.errorPct,
+      uncertaintyPct: data.uncertaintyPct.present
+          ? data.uncertaintyPct.value
+          : this.uncertaintyPct,
+      resultMpePct: data.resultMpePct.present
+          ? data.resultMpePct.value
+          : this.resultMpePct,
+      acceptanceMetricPct: data.acceptanceMetricPct.present
+          ? data.acceptanceMetricPct.value
+          : this.acceptanceMetricPct,
+      rejectionMetricPct: data.rejectionMetricPct.present
+          ? data.rejectionMetricPct.value
+          : this.rejectionMetricPct,
+      verdict: data.verdict.present ? data.verdict.value : this.verdict,
+      checksum: data.checksum.present ? data.checksum.value : this.checksum,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SampleRow(')
+          ..write('id: $id, ')
+          ..write('flowPointId: $flowPointId, ')
+          ..write('sampleNumber: $sampleNumber, ')
+          ..write('status: $status, ')
+          ..write('measurementMethod: $measurementMethod, ')
+          ..write('litersPerPulse: $litersPerPulse, ')
+          ..write('evidenceStepLiters: $evidenceStepLiters, ')
+          ..write('readingUncertaintyLiters: $readingUncertaintyLiters, ')
+          ..write('flowPointCode: $flowPointCode, ')
+          ..write('mpePct: $mpePct, ')
+          ..write('lpsApprox: $lpsApprox, ')
+          ..write('litersPerOdometerUnit: $litersPerOdometerUnit, ')
+          ..write('needleLitersPerRevolution: $needleLitersPerRevolution, ')
+          ..write('totalizerLeft: $totalizerLeft, ')
+          ..write('totalizerTop: $totalizerTop, ')
+          ..write('totalizerWidth: $totalizerWidth, ')
+          ..write('totalizerHeight: $totalizerHeight, ')
+          ..write('dialCenterX: $dialCenterX, ')
+          ..write('dialCenterY: $dialCenterY, ')
+          ..write('dialRadius: $dialRadius, ')
+          ..write('dialMultiplier: $dialMultiplier, ')
+          ..write('dialLitersPerRevolution: $dialLitersPerRevolution, ')
+          ..write('dialZeroAngleDegrees: $dialZeroAngleDegrees, ')
+          ..write('dialClockwise: $dialClockwise, ')
+          ..write('dialConfigurationSource: $dialConfigurationSource, ')
+          ..write('totalizerDigitCount: $totalizerDigitCount, ')
+          ..write('totalizerDecimalPlaces: $totalizerDecimalPlaces, ')
+          ..write('totalizerUnit: $totalizerUnit, ')
+          ..write(
+            'totalizerLeadingZerosAllowed: $totalizerLeadingZerosAllowed, ',
+          )
+          ..write(
+            'totalizerConfigurationSource: $totalizerConfigurationSource, ',
+          )
+          ..write('createdAtMs: $createdAtMs, ')
+          ..write('updatedAtMs: $updatedAtMs, ')
+          ..write('startedAtMs: $startedAtMs, ')
+          ..write('endedAtMs: $endedAtMs, ')
+          ..write('gpsLatitude: $gpsLatitude, ')
+          ..write('gpsLongitude: $gpsLongitude, ')
+          ..write('gpsAccuracyMeters: $gpsAccuracyMeters, ')
+          ..write('gpsCapturedAtMs: $gpsCapturedAtMs, ')
+          ..write('pulseCount: $pulseCount, ')
+          ..write('progressReferenceLiters: $progressReferenceLiters, ')
+          ..write('initialOdometerUnits: $initialOdometerUnits, ')
+          ..write('initialNeedleLiters: $initialNeedleLiters, ')
+          ..write('initialReadingSource: $initialReadingSource, ')
+          ..write('initialReadingEvidenceId: $initialReadingEvidenceId, ')
+          ..write('finalOdometerUnits: $finalOdometerUnits, ')
+          ..write('finalNeedleLiters: $finalNeedleLiters, ')
+          ..write('finalReadingSource: $finalReadingSource, ')
+          ..write('finalReadingEvidenceId: $finalReadingEvidenceId, ')
+          ..write('referenceLiters: $referenceLiters, ')
+          ..write('indicatedLiters: $indicatedLiters, ')
+          ..write('errorPct: $errorPct, ')
+          ..write('uncertaintyPct: $uncertaintyPct, ')
+          ..write('resultMpePct: $resultMpePct, ')
+          ..write('acceptanceMetricPct: $acceptanceMetricPct, ')
+          ..write('rejectionMetricPct: $rejectionMetricPct, ')
+          ..write('verdict: $verdict, ')
+          ..write('checksum: $checksum')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+    id,
+    flowPointId,
+    sampleNumber,
+    status,
+    measurementMethod,
+    litersPerPulse,
+    evidenceStepLiters,
+    readingUncertaintyLiters,
+    flowPointCode,
+    mpePct,
+    lpsApprox,
+    litersPerOdometerUnit,
+    needleLitersPerRevolution,
+    totalizerLeft,
+    totalizerTop,
+    totalizerWidth,
+    totalizerHeight,
+    dialCenterX,
+    dialCenterY,
+    dialRadius,
+    dialMultiplier,
+    dialLitersPerRevolution,
+    dialZeroAngleDegrees,
+    dialClockwise,
+    dialConfigurationSource,
+    totalizerDigitCount,
+    totalizerDecimalPlaces,
+    totalizerUnit,
+    totalizerLeadingZerosAllowed,
+    totalizerConfigurationSource,
+    createdAtMs,
+    updatedAtMs,
+    startedAtMs,
+    endedAtMs,
+    gpsLatitude,
+    gpsLongitude,
+    gpsAccuracyMeters,
+    gpsCapturedAtMs,
+    pulseCount,
+    progressReferenceLiters,
+    initialOdometerUnits,
+    initialNeedleLiters,
+    initialReadingSource,
+    initialReadingEvidenceId,
+    finalOdometerUnits,
+    finalNeedleLiters,
+    finalReadingSource,
+    finalReadingEvidenceId,
+    referenceLiters,
+    indicatedLiters,
+    errorPct,
+    uncertaintyPct,
+    resultMpePct,
+    acceptanceMetricPct,
+    rejectionMetricPct,
+    verdict,
+    checksum,
+  ]);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SampleRow &&
+          other.id == this.id &&
+          other.flowPointId == this.flowPointId &&
+          other.sampleNumber == this.sampleNumber &&
+          other.status == this.status &&
+          other.measurementMethod == this.measurementMethod &&
+          other.litersPerPulse == this.litersPerPulse &&
+          other.evidenceStepLiters == this.evidenceStepLiters &&
+          other.readingUncertaintyLiters == this.readingUncertaintyLiters &&
+          other.flowPointCode == this.flowPointCode &&
+          other.mpePct == this.mpePct &&
+          other.lpsApprox == this.lpsApprox &&
+          other.litersPerOdometerUnit == this.litersPerOdometerUnit &&
+          other.needleLitersPerRevolution == this.needleLitersPerRevolution &&
+          other.totalizerLeft == this.totalizerLeft &&
+          other.totalizerTop == this.totalizerTop &&
+          other.totalizerWidth == this.totalizerWidth &&
+          other.totalizerHeight == this.totalizerHeight &&
+          other.dialCenterX == this.dialCenterX &&
+          other.dialCenterY == this.dialCenterY &&
+          other.dialRadius == this.dialRadius &&
+          other.dialMultiplier == this.dialMultiplier &&
+          other.dialLitersPerRevolution == this.dialLitersPerRevolution &&
+          other.dialZeroAngleDegrees == this.dialZeroAngleDegrees &&
+          other.dialClockwise == this.dialClockwise &&
+          other.dialConfigurationSource == this.dialConfigurationSource &&
+          other.totalizerDigitCount == this.totalizerDigitCount &&
+          other.totalizerDecimalPlaces == this.totalizerDecimalPlaces &&
+          other.totalizerUnit == this.totalizerUnit &&
+          other.totalizerLeadingZerosAllowed ==
+              this.totalizerLeadingZerosAllowed &&
+          other.totalizerConfigurationSource ==
+              this.totalizerConfigurationSource &&
+          other.createdAtMs == this.createdAtMs &&
+          other.updatedAtMs == this.updatedAtMs &&
+          other.startedAtMs == this.startedAtMs &&
+          other.endedAtMs == this.endedAtMs &&
+          other.gpsLatitude == this.gpsLatitude &&
+          other.gpsLongitude == this.gpsLongitude &&
+          other.gpsAccuracyMeters == this.gpsAccuracyMeters &&
+          other.gpsCapturedAtMs == this.gpsCapturedAtMs &&
+          other.pulseCount == this.pulseCount &&
+          other.progressReferenceLiters == this.progressReferenceLiters &&
+          other.initialOdometerUnits == this.initialOdometerUnits &&
+          other.initialNeedleLiters == this.initialNeedleLiters &&
+          other.initialReadingSource == this.initialReadingSource &&
+          other.initialReadingEvidenceId == this.initialReadingEvidenceId &&
+          other.finalOdometerUnits == this.finalOdometerUnits &&
+          other.finalNeedleLiters == this.finalNeedleLiters &&
+          other.finalReadingSource == this.finalReadingSource &&
+          other.finalReadingEvidenceId == this.finalReadingEvidenceId &&
+          other.referenceLiters == this.referenceLiters &&
+          other.indicatedLiters == this.indicatedLiters &&
+          other.errorPct == this.errorPct &&
+          other.uncertaintyPct == this.uncertaintyPct &&
+          other.resultMpePct == this.resultMpePct &&
+          other.acceptanceMetricPct == this.acceptanceMetricPct &&
+          other.rejectionMetricPct == this.rejectionMetricPct &&
+          other.verdict == this.verdict &&
+          other.checksum == this.checksum);
+}
+
+class SamplesCompanion extends UpdateCompanion<SampleRow> {
+  final Value<String> id;
+  final Value<String> flowPointId;
+  final Value<int> sampleNumber;
+  final Value<String> status;
+  final Value<String> measurementMethod;
+  final Value<double> litersPerPulse;
+  final Value<double> evidenceStepLiters;
+  final Value<double> readingUncertaintyLiters;
+  final Value<String> flowPointCode;
+  final Value<double> mpePct;
+  final Value<double?> lpsApprox;
+  final Value<double> litersPerOdometerUnit;
+  final Value<double> needleLitersPerRevolution;
+  final Value<double?> totalizerLeft;
+  final Value<double?> totalizerTop;
+  final Value<double?> totalizerWidth;
+  final Value<double?> totalizerHeight;
+  final Value<double?> dialCenterX;
+  final Value<double?> dialCenterY;
+  final Value<double?> dialRadius;
+  final Value<double?> dialMultiplier;
+  final Value<double?> dialLitersPerRevolution;
+  final Value<double?> dialZeroAngleDegrees;
+  final Value<bool?> dialClockwise;
+  final Value<String?> dialConfigurationSource;
+  final Value<int?> totalizerDigitCount;
+  final Value<int?> totalizerDecimalPlaces;
+  final Value<String?> totalizerUnit;
+  final Value<bool?> totalizerLeadingZerosAllowed;
+  final Value<String?> totalizerConfigurationSource;
+  final Value<int> createdAtMs;
+  final Value<int> updatedAtMs;
+  final Value<int?> startedAtMs;
+  final Value<int?> endedAtMs;
+  final Value<double?> gpsLatitude;
+  final Value<double?> gpsLongitude;
+  final Value<double?> gpsAccuracyMeters;
+  final Value<int?> gpsCapturedAtMs;
+  final Value<int> pulseCount;
+  final Value<double?> progressReferenceLiters;
+  final Value<double?> initialOdometerUnits;
+  final Value<double?> initialNeedleLiters;
+  final Value<String?> initialReadingSource;
+  final Value<String?> initialReadingEvidenceId;
+  final Value<double?> finalOdometerUnits;
+  final Value<double?> finalNeedleLiters;
+  final Value<String?> finalReadingSource;
+  final Value<String?> finalReadingEvidenceId;
+  final Value<double?> referenceLiters;
+  final Value<double?> indicatedLiters;
+  final Value<double?> errorPct;
+  final Value<double?> uncertaintyPct;
+  final Value<double?> resultMpePct;
+  final Value<double?> acceptanceMetricPct;
+  final Value<double?> rejectionMetricPct;
+  final Value<String?> verdict;
+  final Value<String?> checksum;
+  final Value<int> rowid;
+  const SamplesCompanion({
+    this.id = const Value.absent(),
+    this.flowPointId = const Value.absent(),
+    this.sampleNumber = const Value.absent(),
+    this.status = const Value.absent(),
+    this.measurementMethod = const Value.absent(),
+    this.litersPerPulse = const Value.absent(),
+    this.evidenceStepLiters = const Value.absent(),
+    this.readingUncertaintyLiters = const Value.absent(),
+    this.flowPointCode = const Value.absent(),
+    this.mpePct = const Value.absent(),
+    this.lpsApprox = const Value.absent(),
+    this.litersPerOdometerUnit = const Value.absent(),
+    this.needleLitersPerRevolution = const Value.absent(),
+    this.totalizerLeft = const Value.absent(),
+    this.totalizerTop = const Value.absent(),
+    this.totalizerWidth = const Value.absent(),
+    this.totalizerHeight = const Value.absent(),
+    this.dialCenterX = const Value.absent(),
+    this.dialCenterY = const Value.absent(),
+    this.dialRadius = const Value.absent(),
+    this.dialMultiplier = const Value.absent(),
+    this.dialLitersPerRevolution = const Value.absent(),
+    this.dialZeroAngleDegrees = const Value.absent(),
+    this.dialClockwise = const Value.absent(),
+    this.dialConfigurationSource = const Value.absent(),
+    this.totalizerDigitCount = const Value.absent(),
+    this.totalizerDecimalPlaces = const Value.absent(),
+    this.totalizerUnit = const Value.absent(),
+    this.totalizerLeadingZerosAllowed = const Value.absent(),
+    this.totalizerConfigurationSource = const Value.absent(),
+    this.createdAtMs = const Value.absent(),
+    this.updatedAtMs = const Value.absent(),
+    this.startedAtMs = const Value.absent(),
+    this.endedAtMs = const Value.absent(),
+    this.gpsLatitude = const Value.absent(),
+    this.gpsLongitude = const Value.absent(),
+    this.gpsAccuracyMeters = const Value.absent(),
+    this.gpsCapturedAtMs = const Value.absent(),
+    this.pulseCount = const Value.absent(),
+    this.progressReferenceLiters = const Value.absent(),
+    this.initialOdometerUnits = const Value.absent(),
+    this.initialNeedleLiters = const Value.absent(),
+    this.initialReadingSource = const Value.absent(),
+    this.initialReadingEvidenceId = const Value.absent(),
+    this.finalOdometerUnits = const Value.absent(),
+    this.finalNeedleLiters = const Value.absent(),
+    this.finalReadingSource = const Value.absent(),
+    this.finalReadingEvidenceId = const Value.absent(),
+    this.referenceLiters = const Value.absent(),
+    this.indicatedLiters = const Value.absent(),
+    this.errorPct = const Value.absent(),
+    this.uncertaintyPct = const Value.absent(),
+    this.resultMpePct = const Value.absent(),
+    this.acceptanceMetricPct = const Value.absent(),
+    this.rejectionMetricPct = const Value.absent(),
+    this.verdict = const Value.absent(),
+    this.checksum = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SamplesCompanion.insert({
+    required String id,
+    required String flowPointId,
+    required int sampleNumber,
+    required String status,
+    required String measurementMethod,
+    required double litersPerPulse,
+    required double evidenceStepLiters,
+    required double readingUncertaintyLiters,
+    required String flowPointCode,
+    required double mpePct,
+    this.lpsApprox = const Value.absent(),
+    required double litersPerOdometerUnit,
+    required double needleLitersPerRevolution,
+    this.totalizerLeft = const Value.absent(),
+    this.totalizerTop = const Value.absent(),
+    this.totalizerWidth = const Value.absent(),
+    this.totalizerHeight = const Value.absent(),
+    this.dialCenterX = const Value.absent(),
+    this.dialCenterY = const Value.absent(),
+    this.dialRadius = const Value.absent(),
+    this.dialMultiplier = const Value.absent(),
+    this.dialLitersPerRevolution = const Value.absent(),
+    this.dialZeroAngleDegrees = const Value.absent(),
+    this.dialClockwise = const Value.absent(),
+    this.dialConfigurationSource = const Value.absent(),
+    this.totalizerDigitCount = const Value.absent(),
+    this.totalizerDecimalPlaces = const Value.absent(),
+    this.totalizerUnit = const Value.absent(),
+    this.totalizerLeadingZerosAllowed = const Value.absent(),
+    this.totalizerConfigurationSource = const Value.absent(),
+    required int createdAtMs,
+    required int updatedAtMs,
+    this.startedAtMs = const Value.absent(),
+    this.endedAtMs = const Value.absent(),
+    this.gpsLatitude = const Value.absent(),
+    this.gpsLongitude = const Value.absent(),
+    this.gpsAccuracyMeters = const Value.absent(),
+    this.gpsCapturedAtMs = const Value.absent(),
+    this.pulseCount = const Value.absent(),
+    this.progressReferenceLiters = const Value.absent(),
+    this.initialOdometerUnits = const Value.absent(),
+    this.initialNeedleLiters = const Value.absent(),
+    this.initialReadingSource = const Value.absent(),
+    this.initialReadingEvidenceId = const Value.absent(),
+    this.finalOdometerUnits = const Value.absent(),
+    this.finalNeedleLiters = const Value.absent(),
+    this.finalReadingSource = const Value.absent(),
+    this.finalReadingEvidenceId = const Value.absent(),
+    this.referenceLiters = const Value.absent(),
+    this.indicatedLiters = const Value.absent(),
+    this.errorPct = const Value.absent(),
+    this.uncertaintyPct = const Value.absent(),
+    this.resultMpePct = const Value.absent(),
+    this.acceptanceMetricPct = const Value.absent(),
+    this.rejectionMetricPct = const Value.absent(),
+    this.verdict = const Value.absent(),
+    this.checksum = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       flowPointId = Value(flowPointId),
+       sampleNumber = Value(sampleNumber),
+       status = Value(status),
+       measurementMethod = Value(measurementMethod),
+       litersPerPulse = Value(litersPerPulse),
+       evidenceStepLiters = Value(evidenceStepLiters),
+       readingUncertaintyLiters = Value(readingUncertaintyLiters),
+       flowPointCode = Value(flowPointCode),
+       mpePct = Value(mpePct),
+       litersPerOdometerUnit = Value(litersPerOdometerUnit),
+       needleLitersPerRevolution = Value(needleLitersPerRevolution),
+       createdAtMs = Value(createdAtMs),
+       updatedAtMs = Value(updatedAtMs);
+  static Insertable<SampleRow> custom({
+    Expression<String>? id,
+    Expression<String>? flowPointId,
+    Expression<int>? sampleNumber,
+    Expression<String>? status,
+    Expression<String>? measurementMethod,
+    Expression<double>? litersPerPulse,
+    Expression<double>? evidenceStepLiters,
+    Expression<double>? readingUncertaintyLiters,
+    Expression<String>? flowPointCode,
+    Expression<double>? mpePct,
+    Expression<double>? lpsApprox,
+    Expression<double>? litersPerOdometerUnit,
+    Expression<double>? needleLitersPerRevolution,
+    Expression<double>? totalizerLeft,
+    Expression<double>? totalizerTop,
+    Expression<double>? totalizerWidth,
+    Expression<double>? totalizerHeight,
+    Expression<double>? dialCenterX,
+    Expression<double>? dialCenterY,
+    Expression<double>? dialRadius,
+    Expression<double>? dialMultiplier,
+    Expression<double>? dialLitersPerRevolution,
+    Expression<double>? dialZeroAngleDegrees,
+    Expression<bool>? dialClockwise,
+    Expression<String>? dialConfigurationSource,
+    Expression<int>? totalizerDigitCount,
+    Expression<int>? totalizerDecimalPlaces,
+    Expression<String>? totalizerUnit,
+    Expression<bool>? totalizerLeadingZerosAllowed,
+    Expression<String>? totalizerConfigurationSource,
+    Expression<int>? createdAtMs,
+    Expression<int>? updatedAtMs,
+    Expression<int>? startedAtMs,
+    Expression<int>? endedAtMs,
+    Expression<double>? gpsLatitude,
+    Expression<double>? gpsLongitude,
+    Expression<double>? gpsAccuracyMeters,
+    Expression<int>? gpsCapturedAtMs,
+    Expression<int>? pulseCount,
+    Expression<double>? progressReferenceLiters,
+    Expression<double>? initialOdometerUnits,
+    Expression<double>? initialNeedleLiters,
+    Expression<String>? initialReadingSource,
+    Expression<String>? initialReadingEvidenceId,
+    Expression<double>? finalOdometerUnits,
+    Expression<double>? finalNeedleLiters,
+    Expression<String>? finalReadingSource,
+    Expression<String>? finalReadingEvidenceId,
+    Expression<double>? referenceLiters,
+    Expression<double>? indicatedLiters,
+    Expression<double>? errorPct,
+    Expression<double>? uncertaintyPct,
+    Expression<double>? resultMpePct,
+    Expression<double>? acceptanceMetricPct,
+    Expression<double>? rejectionMetricPct,
+    Expression<String>? verdict,
+    Expression<String>? checksum,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (flowPointId != null) 'flow_point_id': flowPointId,
+      if (sampleNumber != null) 'sample_number': sampleNumber,
+      if (status != null) 'status': status,
+      if (measurementMethod != null) 'measurement_method': measurementMethod,
+      if (litersPerPulse != null) 'liters_per_pulse': litersPerPulse,
+      if (evidenceStepLiters != null)
+        'evidence_step_liters': evidenceStepLiters,
+      if (readingUncertaintyLiters != null)
+        'reading_uncertainty_liters': readingUncertaintyLiters,
+      if (flowPointCode != null) 'flow_point_code': flowPointCode,
+      if (mpePct != null) 'mpe_pct': mpePct,
+      if (lpsApprox != null) 'lps_approx': lpsApprox,
+      if (litersPerOdometerUnit != null)
+        'liters_per_odometer_unit': litersPerOdometerUnit,
+      if (needleLitersPerRevolution != null)
+        'needle_liters_per_revolution': needleLitersPerRevolution,
+      if (totalizerLeft != null) 'totalizer_left': totalizerLeft,
+      if (totalizerTop != null) 'totalizer_top': totalizerTop,
+      if (totalizerWidth != null) 'totalizer_width': totalizerWidth,
+      if (totalizerHeight != null) 'totalizer_height': totalizerHeight,
+      if (dialCenterX != null) 'dial_center_x': dialCenterX,
+      if (dialCenterY != null) 'dial_center_y': dialCenterY,
+      if (dialRadius != null) 'dial_radius': dialRadius,
+      if (dialMultiplier != null) 'dial_multiplier': dialMultiplier,
+      if (dialLitersPerRevolution != null)
+        'dial_liters_per_revolution': dialLitersPerRevolution,
+      if (dialZeroAngleDegrees != null)
+        'dial_zero_angle_degrees': dialZeroAngleDegrees,
+      if (dialClockwise != null) 'dial_clockwise': dialClockwise,
+      if (dialConfigurationSource != null)
+        'dial_configuration_source': dialConfigurationSource,
+      if (totalizerDigitCount != null)
+        'totalizer_digit_count': totalizerDigitCount,
+      if (totalizerDecimalPlaces != null)
+        'totalizer_decimal_places': totalizerDecimalPlaces,
+      if (totalizerUnit != null) 'totalizer_unit': totalizerUnit,
+      if (totalizerLeadingZerosAllowed != null)
+        'totalizer_leading_zeros_allowed': totalizerLeadingZerosAllowed,
+      if (totalizerConfigurationSource != null)
+        'totalizer_configuration_source': totalizerConfigurationSource,
+      if (createdAtMs != null) 'created_at_ms': createdAtMs,
+      if (updatedAtMs != null) 'updated_at_ms': updatedAtMs,
+      if (startedAtMs != null) 'started_at_ms': startedAtMs,
+      if (endedAtMs != null) 'ended_at_ms': endedAtMs,
+      if (gpsLatitude != null) 'gps_latitude': gpsLatitude,
+      if (gpsLongitude != null) 'gps_longitude': gpsLongitude,
+      if (gpsAccuracyMeters != null) 'gps_accuracy_meters': gpsAccuracyMeters,
+      if (gpsCapturedAtMs != null) 'gps_captured_at_ms': gpsCapturedAtMs,
+      if (pulseCount != null) 'pulse_count': pulseCount,
+      if (progressReferenceLiters != null)
+        'progress_reference_liters': progressReferenceLiters,
+      if (initialOdometerUnits != null)
+        'initial_odometer_units': initialOdometerUnits,
+      if (initialNeedleLiters != null)
+        'initial_needle_liters': initialNeedleLiters,
+      if (initialReadingSource != null)
+        'initial_reading_source': initialReadingSource,
+      if (initialReadingEvidenceId != null)
+        'initial_reading_evidence_id': initialReadingEvidenceId,
+      if (finalOdometerUnits != null)
+        'final_odometer_units': finalOdometerUnits,
+      if (finalNeedleLiters != null) 'final_needle_liters': finalNeedleLiters,
+      if (finalReadingSource != null)
+        'final_reading_source': finalReadingSource,
+      if (finalReadingEvidenceId != null)
+        'final_reading_evidence_id': finalReadingEvidenceId,
+      if (referenceLiters != null) 'reference_liters': referenceLiters,
+      if (indicatedLiters != null) 'indicated_liters': indicatedLiters,
+      if (errorPct != null) 'error_pct': errorPct,
+      if (uncertaintyPct != null) 'uncertainty_pct': uncertaintyPct,
+      if (resultMpePct != null) 'result_mpe_pct': resultMpePct,
+      if (acceptanceMetricPct != null)
+        'acceptance_metric_pct': acceptanceMetricPct,
+      if (rejectionMetricPct != null)
+        'rejection_metric_pct': rejectionMetricPct,
+      if (verdict != null) 'verdict': verdict,
+      if (checksum != null) 'checksum': checksum,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SamplesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? flowPointId,
+    Value<int>? sampleNumber,
+    Value<String>? status,
+    Value<String>? measurementMethod,
+    Value<double>? litersPerPulse,
+    Value<double>? evidenceStepLiters,
+    Value<double>? readingUncertaintyLiters,
+    Value<String>? flowPointCode,
+    Value<double>? mpePct,
+    Value<double?>? lpsApprox,
+    Value<double>? litersPerOdometerUnit,
+    Value<double>? needleLitersPerRevolution,
+    Value<double?>? totalizerLeft,
+    Value<double?>? totalizerTop,
+    Value<double?>? totalizerWidth,
+    Value<double?>? totalizerHeight,
+    Value<double?>? dialCenterX,
+    Value<double?>? dialCenterY,
+    Value<double?>? dialRadius,
+    Value<double?>? dialMultiplier,
+    Value<double?>? dialLitersPerRevolution,
+    Value<double?>? dialZeroAngleDegrees,
+    Value<bool?>? dialClockwise,
+    Value<String?>? dialConfigurationSource,
+    Value<int?>? totalizerDigitCount,
+    Value<int?>? totalizerDecimalPlaces,
+    Value<String?>? totalizerUnit,
+    Value<bool?>? totalizerLeadingZerosAllowed,
+    Value<String?>? totalizerConfigurationSource,
+    Value<int>? createdAtMs,
+    Value<int>? updatedAtMs,
+    Value<int?>? startedAtMs,
+    Value<int?>? endedAtMs,
+    Value<double?>? gpsLatitude,
+    Value<double?>? gpsLongitude,
+    Value<double?>? gpsAccuracyMeters,
+    Value<int?>? gpsCapturedAtMs,
+    Value<int>? pulseCount,
+    Value<double?>? progressReferenceLiters,
+    Value<double?>? initialOdometerUnits,
+    Value<double?>? initialNeedleLiters,
+    Value<String?>? initialReadingSource,
+    Value<String?>? initialReadingEvidenceId,
+    Value<double?>? finalOdometerUnits,
+    Value<double?>? finalNeedleLiters,
+    Value<String?>? finalReadingSource,
+    Value<String?>? finalReadingEvidenceId,
+    Value<double?>? referenceLiters,
+    Value<double?>? indicatedLiters,
+    Value<double?>? errorPct,
+    Value<double?>? uncertaintyPct,
+    Value<double?>? resultMpePct,
+    Value<double?>? acceptanceMetricPct,
+    Value<double?>? rejectionMetricPct,
+    Value<String?>? verdict,
+    Value<String?>? checksum,
+    Value<int>? rowid,
+  }) {
+    return SamplesCompanion(
+      id: id ?? this.id,
+      flowPointId: flowPointId ?? this.flowPointId,
+      sampleNumber: sampleNumber ?? this.sampleNumber,
+      status: status ?? this.status,
+      measurementMethod: measurementMethod ?? this.measurementMethod,
+      litersPerPulse: litersPerPulse ?? this.litersPerPulse,
+      evidenceStepLiters: evidenceStepLiters ?? this.evidenceStepLiters,
+      readingUncertaintyLiters:
+          readingUncertaintyLiters ?? this.readingUncertaintyLiters,
+      flowPointCode: flowPointCode ?? this.flowPointCode,
+      mpePct: mpePct ?? this.mpePct,
+      lpsApprox: lpsApprox ?? this.lpsApprox,
+      litersPerOdometerUnit:
+          litersPerOdometerUnit ?? this.litersPerOdometerUnit,
+      needleLitersPerRevolution:
+          needleLitersPerRevolution ?? this.needleLitersPerRevolution,
+      totalizerLeft: totalizerLeft ?? this.totalizerLeft,
+      totalizerTop: totalizerTop ?? this.totalizerTop,
+      totalizerWidth: totalizerWidth ?? this.totalizerWidth,
+      totalizerHeight: totalizerHeight ?? this.totalizerHeight,
+      dialCenterX: dialCenterX ?? this.dialCenterX,
+      dialCenterY: dialCenterY ?? this.dialCenterY,
+      dialRadius: dialRadius ?? this.dialRadius,
+      dialMultiplier: dialMultiplier ?? this.dialMultiplier,
+      dialLitersPerRevolution:
+          dialLitersPerRevolution ?? this.dialLitersPerRevolution,
+      dialZeroAngleDegrees: dialZeroAngleDegrees ?? this.dialZeroAngleDegrees,
+      dialClockwise: dialClockwise ?? this.dialClockwise,
+      dialConfigurationSource:
+          dialConfigurationSource ?? this.dialConfigurationSource,
+      totalizerDigitCount: totalizerDigitCount ?? this.totalizerDigitCount,
+      totalizerDecimalPlaces:
+          totalizerDecimalPlaces ?? this.totalizerDecimalPlaces,
+      totalizerUnit: totalizerUnit ?? this.totalizerUnit,
+      totalizerLeadingZerosAllowed:
+          totalizerLeadingZerosAllowed ?? this.totalizerLeadingZerosAllowed,
+      totalizerConfigurationSource:
+          totalizerConfigurationSource ?? this.totalizerConfigurationSource,
+      createdAtMs: createdAtMs ?? this.createdAtMs,
+      updatedAtMs: updatedAtMs ?? this.updatedAtMs,
+      startedAtMs: startedAtMs ?? this.startedAtMs,
+      endedAtMs: endedAtMs ?? this.endedAtMs,
+      gpsLatitude: gpsLatitude ?? this.gpsLatitude,
+      gpsLongitude: gpsLongitude ?? this.gpsLongitude,
+      gpsAccuracyMeters: gpsAccuracyMeters ?? this.gpsAccuracyMeters,
+      gpsCapturedAtMs: gpsCapturedAtMs ?? this.gpsCapturedAtMs,
+      pulseCount: pulseCount ?? this.pulseCount,
+      progressReferenceLiters:
+          progressReferenceLiters ?? this.progressReferenceLiters,
+      initialOdometerUnits: initialOdometerUnits ?? this.initialOdometerUnits,
+      initialNeedleLiters: initialNeedleLiters ?? this.initialNeedleLiters,
+      initialReadingSource: initialReadingSource ?? this.initialReadingSource,
+      initialReadingEvidenceId:
+          initialReadingEvidenceId ?? this.initialReadingEvidenceId,
+      finalOdometerUnits: finalOdometerUnits ?? this.finalOdometerUnits,
+      finalNeedleLiters: finalNeedleLiters ?? this.finalNeedleLiters,
+      finalReadingSource: finalReadingSource ?? this.finalReadingSource,
+      finalReadingEvidenceId:
+          finalReadingEvidenceId ?? this.finalReadingEvidenceId,
+      referenceLiters: referenceLiters ?? this.referenceLiters,
+      indicatedLiters: indicatedLiters ?? this.indicatedLiters,
+      errorPct: errorPct ?? this.errorPct,
+      uncertaintyPct: uncertaintyPct ?? this.uncertaintyPct,
+      resultMpePct: resultMpePct ?? this.resultMpePct,
+      acceptanceMetricPct: acceptanceMetricPct ?? this.acceptanceMetricPct,
+      rejectionMetricPct: rejectionMetricPct ?? this.rejectionMetricPct,
+      verdict: verdict ?? this.verdict,
+      checksum: checksum ?? this.checksum,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (flowPointId.present) {
+      map['flow_point_id'] = Variable<String>(flowPointId.value);
+    }
+    if (sampleNumber.present) {
+      map['sample_number'] = Variable<int>(sampleNumber.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (measurementMethod.present) {
+      map['measurement_method'] = Variable<String>(measurementMethod.value);
+    }
+    if (litersPerPulse.present) {
+      map['liters_per_pulse'] = Variable<double>(litersPerPulse.value);
+    }
+    if (evidenceStepLiters.present) {
+      map['evidence_step_liters'] = Variable<double>(evidenceStepLiters.value);
+    }
+    if (readingUncertaintyLiters.present) {
+      map['reading_uncertainty_liters'] = Variable<double>(
+        readingUncertaintyLiters.value,
+      );
+    }
+    if (flowPointCode.present) {
+      map['flow_point_code'] = Variable<String>(flowPointCode.value);
+    }
+    if (mpePct.present) {
+      map['mpe_pct'] = Variable<double>(mpePct.value);
+    }
+    if (lpsApprox.present) {
+      map['lps_approx'] = Variable<double>(lpsApprox.value);
+    }
+    if (litersPerOdometerUnit.present) {
+      map['liters_per_odometer_unit'] = Variable<double>(
+        litersPerOdometerUnit.value,
+      );
+    }
+    if (needleLitersPerRevolution.present) {
+      map['needle_liters_per_revolution'] = Variable<double>(
+        needleLitersPerRevolution.value,
+      );
+    }
+    if (totalizerLeft.present) {
+      map['totalizer_left'] = Variable<double>(totalizerLeft.value);
+    }
+    if (totalizerTop.present) {
+      map['totalizer_top'] = Variable<double>(totalizerTop.value);
+    }
+    if (totalizerWidth.present) {
+      map['totalizer_width'] = Variable<double>(totalizerWidth.value);
+    }
+    if (totalizerHeight.present) {
+      map['totalizer_height'] = Variable<double>(totalizerHeight.value);
+    }
+    if (dialCenterX.present) {
+      map['dial_center_x'] = Variable<double>(dialCenterX.value);
+    }
+    if (dialCenterY.present) {
+      map['dial_center_y'] = Variable<double>(dialCenterY.value);
+    }
+    if (dialRadius.present) {
+      map['dial_radius'] = Variable<double>(dialRadius.value);
+    }
+    if (dialMultiplier.present) {
+      map['dial_multiplier'] = Variable<double>(dialMultiplier.value);
+    }
+    if (dialLitersPerRevolution.present) {
+      map['dial_liters_per_revolution'] = Variable<double>(
+        dialLitersPerRevolution.value,
+      );
+    }
+    if (dialZeroAngleDegrees.present) {
+      map['dial_zero_angle_degrees'] = Variable<double>(
+        dialZeroAngleDegrees.value,
+      );
+    }
+    if (dialClockwise.present) {
+      map['dial_clockwise'] = Variable<bool>(dialClockwise.value);
+    }
+    if (dialConfigurationSource.present) {
+      map['dial_configuration_source'] = Variable<String>(
+        dialConfigurationSource.value,
+      );
+    }
+    if (totalizerDigitCount.present) {
+      map['totalizer_digit_count'] = Variable<int>(totalizerDigitCount.value);
+    }
+    if (totalizerDecimalPlaces.present) {
+      map['totalizer_decimal_places'] = Variable<int>(
+        totalizerDecimalPlaces.value,
+      );
+    }
+    if (totalizerUnit.present) {
+      map['totalizer_unit'] = Variable<String>(totalizerUnit.value);
+    }
+    if (totalizerLeadingZerosAllowed.present) {
+      map['totalizer_leading_zeros_allowed'] = Variable<bool>(
+        totalizerLeadingZerosAllowed.value,
+      );
+    }
+    if (totalizerConfigurationSource.present) {
+      map['totalizer_configuration_source'] = Variable<String>(
+        totalizerConfigurationSource.value,
+      );
+    }
+    if (createdAtMs.present) {
+      map['created_at_ms'] = Variable<int>(createdAtMs.value);
+    }
+    if (updatedAtMs.present) {
+      map['updated_at_ms'] = Variable<int>(updatedAtMs.value);
+    }
+    if (startedAtMs.present) {
+      map['started_at_ms'] = Variable<int>(startedAtMs.value);
+    }
+    if (endedAtMs.present) {
+      map['ended_at_ms'] = Variable<int>(endedAtMs.value);
+    }
+    if (gpsLatitude.present) {
+      map['gps_latitude'] = Variable<double>(gpsLatitude.value);
+    }
+    if (gpsLongitude.present) {
+      map['gps_longitude'] = Variable<double>(gpsLongitude.value);
+    }
+    if (gpsAccuracyMeters.present) {
+      map['gps_accuracy_meters'] = Variable<double>(gpsAccuracyMeters.value);
+    }
+    if (gpsCapturedAtMs.present) {
+      map['gps_captured_at_ms'] = Variable<int>(gpsCapturedAtMs.value);
+    }
+    if (pulseCount.present) {
+      map['pulse_count'] = Variable<int>(pulseCount.value);
+    }
+    if (progressReferenceLiters.present) {
+      map['progress_reference_liters'] = Variable<double>(
+        progressReferenceLiters.value,
+      );
+    }
+    if (initialOdometerUnits.present) {
+      map['initial_odometer_units'] = Variable<double>(
+        initialOdometerUnits.value,
+      );
+    }
+    if (initialNeedleLiters.present) {
+      map['initial_needle_liters'] = Variable<double>(
+        initialNeedleLiters.value,
+      );
+    }
+    if (initialReadingSource.present) {
+      map['initial_reading_source'] = Variable<String>(
+        initialReadingSource.value,
+      );
+    }
+    if (initialReadingEvidenceId.present) {
+      map['initial_reading_evidence_id'] = Variable<String>(
+        initialReadingEvidenceId.value,
+      );
+    }
+    if (finalOdometerUnits.present) {
+      map['final_odometer_units'] = Variable<double>(finalOdometerUnits.value);
+    }
+    if (finalNeedleLiters.present) {
+      map['final_needle_liters'] = Variable<double>(finalNeedleLiters.value);
+    }
+    if (finalReadingSource.present) {
+      map['final_reading_source'] = Variable<String>(finalReadingSource.value);
+    }
+    if (finalReadingEvidenceId.present) {
+      map['final_reading_evidence_id'] = Variable<String>(
+        finalReadingEvidenceId.value,
+      );
+    }
+    if (referenceLiters.present) {
+      map['reference_liters'] = Variable<double>(referenceLiters.value);
+    }
+    if (indicatedLiters.present) {
+      map['indicated_liters'] = Variable<double>(indicatedLiters.value);
+    }
+    if (errorPct.present) {
+      map['error_pct'] = Variable<double>(errorPct.value);
+    }
+    if (uncertaintyPct.present) {
+      map['uncertainty_pct'] = Variable<double>(uncertaintyPct.value);
+    }
+    if (resultMpePct.present) {
+      map['result_mpe_pct'] = Variable<double>(resultMpePct.value);
+    }
+    if (acceptanceMetricPct.present) {
+      map['acceptance_metric_pct'] = Variable<double>(
+        acceptanceMetricPct.value,
+      );
+    }
+    if (rejectionMetricPct.present) {
+      map['rejection_metric_pct'] = Variable<double>(rejectionMetricPct.value);
+    }
+    if (verdict.present) {
+      map['verdict'] = Variable<String>(verdict.value);
+    }
+    if (checksum.present) {
+      map['checksum'] = Variable<String>(checksum.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SamplesCompanion(')
+          ..write('id: $id, ')
+          ..write('flowPointId: $flowPointId, ')
+          ..write('sampleNumber: $sampleNumber, ')
+          ..write('status: $status, ')
+          ..write('measurementMethod: $measurementMethod, ')
+          ..write('litersPerPulse: $litersPerPulse, ')
+          ..write('evidenceStepLiters: $evidenceStepLiters, ')
+          ..write('readingUncertaintyLiters: $readingUncertaintyLiters, ')
+          ..write('flowPointCode: $flowPointCode, ')
+          ..write('mpePct: $mpePct, ')
+          ..write('lpsApprox: $lpsApprox, ')
+          ..write('litersPerOdometerUnit: $litersPerOdometerUnit, ')
+          ..write('needleLitersPerRevolution: $needleLitersPerRevolution, ')
+          ..write('totalizerLeft: $totalizerLeft, ')
+          ..write('totalizerTop: $totalizerTop, ')
+          ..write('totalizerWidth: $totalizerWidth, ')
+          ..write('totalizerHeight: $totalizerHeight, ')
+          ..write('dialCenterX: $dialCenterX, ')
+          ..write('dialCenterY: $dialCenterY, ')
+          ..write('dialRadius: $dialRadius, ')
+          ..write('dialMultiplier: $dialMultiplier, ')
+          ..write('dialLitersPerRevolution: $dialLitersPerRevolution, ')
+          ..write('dialZeroAngleDegrees: $dialZeroAngleDegrees, ')
+          ..write('dialClockwise: $dialClockwise, ')
+          ..write('dialConfigurationSource: $dialConfigurationSource, ')
+          ..write('totalizerDigitCount: $totalizerDigitCount, ')
+          ..write('totalizerDecimalPlaces: $totalizerDecimalPlaces, ')
+          ..write('totalizerUnit: $totalizerUnit, ')
+          ..write(
+            'totalizerLeadingZerosAllowed: $totalizerLeadingZerosAllowed, ',
+          )
+          ..write(
+            'totalizerConfigurationSource: $totalizerConfigurationSource, ',
+          )
+          ..write('createdAtMs: $createdAtMs, ')
+          ..write('updatedAtMs: $updatedAtMs, ')
+          ..write('startedAtMs: $startedAtMs, ')
+          ..write('endedAtMs: $endedAtMs, ')
+          ..write('gpsLatitude: $gpsLatitude, ')
+          ..write('gpsLongitude: $gpsLongitude, ')
+          ..write('gpsAccuracyMeters: $gpsAccuracyMeters, ')
+          ..write('gpsCapturedAtMs: $gpsCapturedAtMs, ')
+          ..write('pulseCount: $pulseCount, ')
+          ..write('progressReferenceLiters: $progressReferenceLiters, ')
+          ..write('initialOdometerUnits: $initialOdometerUnits, ')
+          ..write('initialNeedleLiters: $initialNeedleLiters, ')
+          ..write('initialReadingSource: $initialReadingSource, ')
+          ..write('initialReadingEvidenceId: $initialReadingEvidenceId, ')
+          ..write('finalOdometerUnits: $finalOdometerUnits, ')
+          ..write('finalNeedleLiters: $finalNeedleLiters, ')
+          ..write('finalReadingSource: $finalReadingSource, ')
+          ..write('finalReadingEvidenceId: $finalReadingEvidenceId, ')
+          ..write('referenceLiters: $referenceLiters, ')
+          ..write('indicatedLiters: $indicatedLiters, ')
+          ..write('errorPct: $errorPct, ')
+          ..write('uncertaintyPct: $uncertaintyPct, ')
+          ..write('resultMpePct: $resultMpePct, ')
+          ..write('acceptanceMetricPct: $acceptanceMetricPct, ')
+          ..write('rejectionMetricPct: $rejectionMetricPct, ')
+          ..write('verdict: $verdict, ')
+          ..write('checksum: $checksum, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $SyncItemsTable extends SyncItems
     with TableInfo<$SyncItemsTable, SyncItemRow> {
   @override
@@ -6584,9 +7733,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $VerificationCasesTable verificationCases =
       $VerificationCasesTable(this);
   late final $FlowPointsTable flowPoints = $FlowPointsTable(this);
-  late final $SamplesTable samples = $SamplesTable(this);
   late final $TestPointsTable testPoints = $TestPointsTable(this);
   late final $EvidenceItemsTable evidenceItems = $EvidenceItemsTable(this);
+  late final $SamplesTable samples = $SamplesTable(this);
   late final $SyncItemsTable syncItems = $SyncItemsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -6597,9 +7746,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     meters,
     verificationCases,
     flowPoints,
-    samples,
     testPoints,
     evidenceItems,
+    samples,
     syncItems,
   ];
 }
@@ -8462,1203 +9611,6 @@ typedef $$FlowPointsTableProcessedTableManager =
       FlowPointRow,
       PrefetchHooks Function({bool caseId, bool samplesRefs})
     >;
-typedef $$SamplesTableCreateCompanionBuilder =
-    SamplesCompanion Function({
-      required String id,
-      required String flowPointId,
-      required int sampleNumber,
-      required String status,
-      required String measurementMethod,
-      required double litersPerPulse,
-      required double evidenceStepLiters,
-      required double readingUncertaintyLiters,
-      required String flowPointCode,
-      required double mpePct,
-      Value<double?> lpsApprox,
-      required double litersPerOdometerUnit,
-      required double needleLitersPerRevolution,
-      required int createdAtMs,
-      required int updatedAtMs,
-      Value<int?> startedAtMs,
-      Value<int?> endedAtMs,
-      Value<double?> gpsLatitude,
-      Value<double?> gpsLongitude,
-      Value<double?> gpsAccuracyMeters,
-      Value<int?> gpsCapturedAtMs,
-      Value<int> pulseCount,
-      Value<double?> progressReferenceLiters,
-      Value<double?> initialOdometerUnits,
-      Value<double?> initialNeedleLiters,
-      Value<String?> initialReadingSource,
-      Value<double?> finalOdometerUnits,
-      Value<double?> finalNeedleLiters,
-      Value<String?> finalReadingSource,
-      Value<double?> referenceLiters,
-      Value<double?> indicatedLiters,
-      Value<double?> errorPct,
-      Value<double?> uncertaintyPct,
-      Value<double?> resultMpePct,
-      Value<double?> acceptanceMetricPct,
-      Value<double?> rejectionMetricPct,
-      Value<String?> verdict,
-      Value<String?> checksum,
-      Value<int> rowid,
-    });
-typedef $$SamplesTableUpdateCompanionBuilder =
-    SamplesCompanion Function({
-      Value<String> id,
-      Value<String> flowPointId,
-      Value<int> sampleNumber,
-      Value<String> status,
-      Value<String> measurementMethod,
-      Value<double> litersPerPulse,
-      Value<double> evidenceStepLiters,
-      Value<double> readingUncertaintyLiters,
-      Value<String> flowPointCode,
-      Value<double> mpePct,
-      Value<double?> lpsApprox,
-      Value<double> litersPerOdometerUnit,
-      Value<double> needleLitersPerRevolution,
-      Value<int> createdAtMs,
-      Value<int> updatedAtMs,
-      Value<int?> startedAtMs,
-      Value<int?> endedAtMs,
-      Value<double?> gpsLatitude,
-      Value<double?> gpsLongitude,
-      Value<double?> gpsAccuracyMeters,
-      Value<int?> gpsCapturedAtMs,
-      Value<int> pulseCount,
-      Value<double?> progressReferenceLiters,
-      Value<double?> initialOdometerUnits,
-      Value<double?> initialNeedleLiters,
-      Value<String?> initialReadingSource,
-      Value<double?> finalOdometerUnits,
-      Value<double?> finalNeedleLiters,
-      Value<String?> finalReadingSource,
-      Value<double?> referenceLiters,
-      Value<double?> indicatedLiters,
-      Value<double?> errorPct,
-      Value<double?> uncertaintyPct,
-      Value<double?> resultMpePct,
-      Value<double?> acceptanceMetricPct,
-      Value<double?> rejectionMetricPct,
-      Value<String?> verdict,
-      Value<String?> checksum,
-      Value<int> rowid,
-    });
-
-final class $$SamplesTableReferences
-    extends BaseReferences<_$AppDatabase, $SamplesTable, SampleRow> {
-  $$SamplesTableReferences(super.$_db, super.$_table, super.$_typedResult);
-
-  static $FlowPointsTable _flowPointIdTable(_$AppDatabase db) =>
-      db.flowPoints.createAlias('samples__flow_point_id__flow_points__id');
-
-  $$FlowPointsTableProcessedTableManager get flowPointId {
-    final $_column = $_itemColumn<String>('flow_point_id')!;
-
-    final manager = $$FlowPointsTableTableManager(
-      $_db,
-      $_db.flowPoints,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_flowPointIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-
-  static MultiTypedResultKey<$TestPointsTable, List<PointRow>>
-  _testPointsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.testPoints,
-    aliasName: 'samples__id__test_points__sample_id',
-  );
-
-  $$TestPointsTableProcessedTableManager get testPointsRefs {
-    final manager = $$TestPointsTableTableManager(
-      $_db,
-      $_db.testPoints,
-    ).filter((f) => f.sampleId.id.sqlEquals($_itemColumn<String>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_testPointsRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-
-  static MultiTypedResultKey<$EvidenceItemsTable, List<EvidenceRow>>
-  _evidenceItemsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.evidenceItems,
-    aliasName: 'samples__id__evidence_items__sample_id',
-  );
-
-  $$EvidenceItemsTableProcessedTableManager get evidenceItemsRefs {
-    final manager = $$EvidenceItemsTableTableManager(
-      $_db,
-      $_db.evidenceItems,
-    ).filter((f) => f.sampleId.id.sqlEquals($_itemColumn<String>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_evidenceItemsRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-}
-
-class $$SamplesTableFilterComposer
-    extends Composer<_$AppDatabase, $SamplesTable> {
-  $$SamplesTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get sampleNumber => $composableBuilder(
-    column: $table.sampleNumber,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get status => $composableBuilder(
-    column: $table.status,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get measurementMethod => $composableBuilder(
-    column: $table.measurementMethod,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get litersPerPulse => $composableBuilder(
-    column: $table.litersPerPulse,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get evidenceStepLiters => $composableBuilder(
-    column: $table.evidenceStepLiters,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get readingUncertaintyLiters => $composableBuilder(
-    column: $table.readingUncertaintyLiters,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get flowPointCode => $composableBuilder(
-    column: $table.flowPointCode,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get mpePct => $composableBuilder(
-    column: $table.mpePct,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get lpsApprox => $composableBuilder(
-    column: $table.lpsApprox,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get litersPerOdometerUnit => $composableBuilder(
-    column: $table.litersPerOdometerUnit,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get needleLitersPerRevolution => $composableBuilder(
-    column: $table.needleLitersPerRevolution,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get createdAtMs => $composableBuilder(
-    column: $table.createdAtMs,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get updatedAtMs => $composableBuilder(
-    column: $table.updatedAtMs,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get startedAtMs => $composableBuilder(
-    column: $table.startedAtMs,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get endedAtMs => $composableBuilder(
-    column: $table.endedAtMs,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get gpsLatitude => $composableBuilder(
-    column: $table.gpsLatitude,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get gpsLongitude => $composableBuilder(
-    column: $table.gpsLongitude,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get gpsAccuracyMeters => $composableBuilder(
-    column: $table.gpsAccuracyMeters,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get gpsCapturedAtMs => $composableBuilder(
-    column: $table.gpsCapturedAtMs,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get pulseCount => $composableBuilder(
-    column: $table.pulseCount,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get progressReferenceLiters => $composableBuilder(
-    column: $table.progressReferenceLiters,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get initialOdometerUnits => $composableBuilder(
-    column: $table.initialOdometerUnits,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get initialNeedleLiters => $composableBuilder(
-    column: $table.initialNeedleLiters,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get initialReadingSource => $composableBuilder(
-    column: $table.initialReadingSource,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get finalOdometerUnits => $composableBuilder(
-    column: $table.finalOdometerUnits,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get finalNeedleLiters => $composableBuilder(
-    column: $table.finalNeedleLiters,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get finalReadingSource => $composableBuilder(
-    column: $table.finalReadingSource,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get referenceLiters => $composableBuilder(
-    column: $table.referenceLiters,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get indicatedLiters => $composableBuilder(
-    column: $table.indicatedLiters,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get errorPct => $composableBuilder(
-    column: $table.errorPct,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get uncertaintyPct => $composableBuilder(
-    column: $table.uncertaintyPct,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get resultMpePct => $composableBuilder(
-    column: $table.resultMpePct,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get acceptanceMetricPct => $composableBuilder(
-    column: $table.acceptanceMetricPct,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get rejectionMetricPct => $composableBuilder(
-    column: $table.rejectionMetricPct,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get verdict => $composableBuilder(
-    column: $table.verdict,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get checksum => $composableBuilder(
-    column: $table.checksum,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  $$FlowPointsTableFilterComposer get flowPointId {
-    final $$FlowPointsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.flowPointId,
-      referencedTable: $db.flowPoints,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$FlowPointsTableFilterComposer(
-            $db: $db,
-            $table: $db.flowPoints,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  Expression<bool> testPointsRefs(
-    Expression<bool> Function($$TestPointsTableFilterComposer f) f,
-  ) {
-    final $$TestPointsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.testPoints,
-      getReferencedColumn: (t) => t.sampleId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$TestPointsTableFilterComposer(
-            $db: $db,
-            $table: $db.testPoints,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<bool> evidenceItemsRefs(
-    Expression<bool> Function($$EvidenceItemsTableFilterComposer f) f,
-  ) {
-    final $$EvidenceItemsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.evidenceItems,
-      getReferencedColumn: (t) => t.sampleId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$EvidenceItemsTableFilterComposer(
-            $db: $db,
-            $table: $db.evidenceItems,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-}
-
-class $$SamplesTableOrderingComposer
-    extends Composer<_$AppDatabase, $SamplesTable> {
-  $$SamplesTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get sampleNumber => $composableBuilder(
-    column: $table.sampleNumber,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get status => $composableBuilder(
-    column: $table.status,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get measurementMethod => $composableBuilder(
-    column: $table.measurementMethod,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get litersPerPulse => $composableBuilder(
-    column: $table.litersPerPulse,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get evidenceStepLiters => $composableBuilder(
-    column: $table.evidenceStepLiters,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get readingUncertaintyLiters => $composableBuilder(
-    column: $table.readingUncertaintyLiters,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get flowPointCode => $composableBuilder(
-    column: $table.flowPointCode,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get mpePct => $composableBuilder(
-    column: $table.mpePct,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get lpsApprox => $composableBuilder(
-    column: $table.lpsApprox,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get litersPerOdometerUnit => $composableBuilder(
-    column: $table.litersPerOdometerUnit,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get needleLitersPerRevolution => $composableBuilder(
-    column: $table.needleLitersPerRevolution,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get createdAtMs => $composableBuilder(
-    column: $table.createdAtMs,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get updatedAtMs => $composableBuilder(
-    column: $table.updatedAtMs,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get startedAtMs => $composableBuilder(
-    column: $table.startedAtMs,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get endedAtMs => $composableBuilder(
-    column: $table.endedAtMs,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get gpsLatitude => $composableBuilder(
-    column: $table.gpsLatitude,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get gpsLongitude => $composableBuilder(
-    column: $table.gpsLongitude,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get gpsAccuracyMeters => $composableBuilder(
-    column: $table.gpsAccuracyMeters,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get gpsCapturedAtMs => $composableBuilder(
-    column: $table.gpsCapturedAtMs,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get pulseCount => $composableBuilder(
-    column: $table.pulseCount,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get progressReferenceLiters => $composableBuilder(
-    column: $table.progressReferenceLiters,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get initialOdometerUnits => $composableBuilder(
-    column: $table.initialOdometerUnits,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get initialNeedleLiters => $composableBuilder(
-    column: $table.initialNeedleLiters,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get initialReadingSource => $composableBuilder(
-    column: $table.initialReadingSource,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get finalOdometerUnits => $composableBuilder(
-    column: $table.finalOdometerUnits,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get finalNeedleLiters => $composableBuilder(
-    column: $table.finalNeedleLiters,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get finalReadingSource => $composableBuilder(
-    column: $table.finalReadingSource,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get referenceLiters => $composableBuilder(
-    column: $table.referenceLiters,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get indicatedLiters => $composableBuilder(
-    column: $table.indicatedLiters,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get errorPct => $composableBuilder(
-    column: $table.errorPct,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get uncertaintyPct => $composableBuilder(
-    column: $table.uncertaintyPct,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get resultMpePct => $composableBuilder(
-    column: $table.resultMpePct,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get acceptanceMetricPct => $composableBuilder(
-    column: $table.acceptanceMetricPct,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get rejectionMetricPct => $composableBuilder(
-    column: $table.rejectionMetricPct,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get verdict => $composableBuilder(
-    column: $table.verdict,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get checksum => $composableBuilder(
-    column: $table.checksum,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  $$FlowPointsTableOrderingComposer get flowPointId {
-    final $$FlowPointsTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.flowPointId,
-      referencedTable: $db.flowPoints,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$FlowPointsTableOrderingComposer(
-            $db: $db,
-            $table: $db.flowPoints,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$SamplesTableAnnotationComposer
-    extends Composer<_$AppDatabase, $SamplesTable> {
-  $$SamplesTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<String> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<int> get sampleNumber => $composableBuilder(
-    column: $table.sampleNumber,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get status =>
-      $composableBuilder(column: $table.status, builder: (column) => column);
-
-  GeneratedColumn<String> get measurementMethod => $composableBuilder(
-    column: $table.measurementMethod,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<double> get litersPerPulse => $composableBuilder(
-    column: $table.litersPerPulse,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<double> get evidenceStepLiters => $composableBuilder(
-    column: $table.evidenceStepLiters,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<double> get readingUncertaintyLiters => $composableBuilder(
-    column: $table.readingUncertaintyLiters,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get flowPointCode => $composableBuilder(
-    column: $table.flowPointCode,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<double> get mpePct =>
-      $composableBuilder(column: $table.mpePct, builder: (column) => column);
-
-  GeneratedColumn<double> get lpsApprox =>
-      $composableBuilder(column: $table.lpsApprox, builder: (column) => column);
-
-  GeneratedColumn<double> get litersPerOdometerUnit => $composableBuilder(
-    column: $table.litersPerOdometerUnit,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<double> get needleLitersPerRevolution => $composableBuilder(
-    column: $table.needleLitersPerRevolution,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<int> get createdAtMs => $composableBuilder(
-    column: $table.createdAtMs,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<int> get updatedAtMs => $composableBuilder(
-    column: $table.updatedAtMs,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<int> get startedAtMs => $composableBuilder(
-    column: $table.startedAtMs,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<int> get endedAtMs =>
-      $composableBuilder(column: $table.endedAtMs, builder: (column) => column);
-
-  GeneratedColumn<double> get gpsLatitude => $composableBuilder(
-    column: $table.gpsLatitude,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<double> get gpsLongitude => $composableBuilder(
-    column: $table.gpsLongitude,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<double> get gpsAccuracyMeters => $composableBuilder(
-    column: $table.gpsAccuracyMeters,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<int> get gpsCapturedAtMs => $composableBuilder(
-    column: $table.gpsCapturedAtMs,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<int> get pulseCount => $composableBuilder(
-    column: $table.pulseCount,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<double> get progressReferenceLiters => $composableBuilder(
-    column: $table.progressReferenceLiters,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<double> get initialOdometerUnits => $composableBuilder(
-    column: $table.initialOdometerUnits,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<double> get initialNeedleLiters => $composableBuilder(
-    column: $table.initialNeedleLiters,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get initialReadingSource => $composableBuilder(
-    column: $table.initialReadingSource,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<double> get finalOdometerUnits => $composableBuilder(
-    column: $table.finalOdometerUnits,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<double> get finalNeedleLiters => $composableBuilder(
-    column: $table.finalNeedleLiters,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get finalReadingSource => $composableBuilder(
-    column: $table.finalReadingSource,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<double> get referenceLiters => $composableBuilder(
-    column: $table.referenceLiters,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<double> get indicatedLiters => $composableBuilder(
-    column: $table.indicatedLiters,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<double> get errorPct =>
-      $composableBuilder(column: $table.errorPct, builder: (column) => column);
-
-  GeneratedColumn<double> get uncertaintyPct => $composableBuilder(
-    column: $table.uncertaintyPct,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<double> get resultMpePct => $composableBuilder(
-    column: $table.resultMpePct,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<double> get acceptanceMetricPct => $composableBuilder(
-    column: $table.acceptanceMetricPct,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<double> get rejectionMetricPct => $composableBuilder(
-    column: $table.rejectionMetricPct,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get verdict =>
-      $composableBuilder(column: $table.verdict, builder: (column) => column);
-
-  GeneratedColumn<String> get checksum =>
-      $composableBuilder(column: $table.checksum, builder: (column) => column);
-
-  $$FlowPointsTableAnnotationComposer get flowPointId {
-    final $$FlowPointsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.flowPointId,
-      referencedTable: $db.flowPoints,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$FlowPointsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.flowPoints,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  Expression<T> testPointsRefs<T extends Object>(
-    Expression<T> Function($$TestPointsTableAnnotationComposer a) f,
-  ) {
-    final $$TestPointsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.testPoints,
-      getReferencedColumn: (t) => t.sampleId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$TestPointsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.testPoints,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<T> evidenceItemsRefs<T extends Object>(
-    Expression<T> Function($$EvidenceItemsTableAnnotationComposer a) f,
-  ) {
-    final $$EvidenceItemsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.evidenceItems,
-      getReferencedColumn: (t) => t.sampleId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$EvidenceItemsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.evidenceItems,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-}
-
-class $$SamplesTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $SamplesTable,
-          SampleRow,
-          $$SamplesTableFilterComposer,
-          $$SamplesTableOrderingComposer,
-          $$SamplesTableAnnotationComposer,
-          $$SamplesTableCreateCompanionBuilder,
-          $$SamplesTableUpdateCompanionBuilder,
-          (SampleRow, $$SamplesTableReferences),
-          SampleRow,
-          PrefetchHooks Function({
-            bool flowPointId,
-            bool testPointsRefs,
-            bool evidenceItemsRefs,
-          })
-        > {
-  $$SamplesTableTableManager(_$AppDatabase db, $SamplesTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$SamplesTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$SamplesTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$SamplesTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<String> id = const Value.absent(),
-                Value<String> flowPointId = const Value.absent(),
-                Value<int> sampleNumber = const Value.absent(),
-                Value<String> status = const Value.absent(),
-                Value<String> measurementMethod = const Value.absent(),
-                Value<double> litersPerPulse = const Value.absent(),
-                Value<double> evidenceStepLiters = const Value.absent(),
-                Value<double> readingUncertaintyLiters = const Value.absent(),
-                Value<String> flowPointCode = const Value.absent(),
-                Value<double> mpePct = const Value.absent(),
-                Value<double?> lpsApprox = const Value.absent(),
-                Value<double> litersPerOdometerUnit = const Value.absent(),
-                Value<double> needleLitersPerRevolution = const Value.absent(),
-                Value<int> createdAtMs = const Value.absent(),
-                Value<int> updatedAtMs = const Value.absent(),
-                Value<int?> startedAtMs = const Value.absent(),
-                Value<int?> endedAtMs = const Value.absent(),
-                Value<double?> gpsLatitude = const Value.absent(),
-                Value<double?> gpsLongitude = const Value.absent(),
-                Value<double?> gpsAccuracyMeters = const Value.absent(),
-                Value<int?> gpsCapturedAtMs = const Value.absent(),
-                Value<int> pulseCount = const Value.absent(),
-                Value<double?> progressReferenceLiters = const Value.absent(),
-                Value<double?> initialOdometerUnits = const Value.absent(),
-                Value<double?> initialNeedleLiters = const Value.absent(),
-                Value<String?> initialReadingSource = const Value.absent(),
-                Value<double?> finalOdometerUnits = const Value.absent(),
-                Value<double?> finalNeedleLiters = const Value.absent(),
-                Value<String?> finalReadingSource = const Value.absent(),
-                Value<double?> referenceLiters = const Value.absent(),
-                Value<double?> indicatedLiters = const Value.absent(),
-                Value<double?> errorPct = const Value.absent(),
-                Value<double?> uncertaintyPct = const Value.absent(),
-                Value<double?> resultMpePct = const Value.absent(),
-                Value<double?> acceptanceMetricPct = const Value.absent(),
-                Value<double?> rejectionMetricPct = const Value.absent(),
-                Value<String?> verdict = const Value.absent(),
-                Value<String?> checksum = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => SamplesCompanion(
-                id: id,
-                flowPointId: flowPointId,
-                sampleNumber: sampleNumber,
-                status: status,
-                measurementMethod: measurementMethod,
-                litersPerPulse: litersPerPulse,
-                evidenceStepLiters: evidenceStepLiters,
-                readingUncertaintyLiters: readingUncertaintyLiters,
-                flowPointCode: flowPointCode,
-                mpePct: mpePct,
-                lpsApprox: lpsApprox,
-                litersPerOdometerUnit: litersPerOdometerUnit,
-                needleLitersPerRevolution: needleLitersPerRevolution,
-                createdAtMs: createdAtMs,
-                updatedAtMs: updatedAtMs,
-                startedAtMs: startedAtMs,
-                endedAtMs: endedAtMs,
-                gpsLatitude: gpsLatitude,
-                gpsLongitude: gpsLongitude,
-                gpsAccuracyMeters: gpsAccuracyMeters,
-                gpsCapturedAtMs: gpsCapturedAtMs,
-                pulseCount: pulseCount,
-                progressReferenceLiters: progressReferenceLiters,
-                initialOdometerUnits: initialOdometerUnits,
-                initialNeedleLiters: initialNeedleLiters,
-                initialReadingSource: initialReadingSource,
-                finalOdometerUnits: finalOdometerUnits,
-                finalNeedleLiters: finalNeedleLiters,
-                finalReadingSource: finalReadingSource,
-                referenceLiters: referenceLiters,
-                indicatedLiters: indicatedLiters,
-                errorPct: errorPct,
-                uncertaintyPct: uncertaintyPct,
-                resultMpePct: resultMpePct,
-                acceptanceMetricPct: acceptanceMetricPct,
-                rejectionMetricPct: rejectionMetricPct,
-                verdict: verdict,
-                checksum: checksum,
-                rowid: rowid,
-              ),
-          createCompanionCallback:
-              ({
-                required String id,
-                required String flowPointId,
-                required int sampleNumber,
-                required String status,
-                required String measurementMethod,
-                required double litersPerPulse,
-                required double evidenceStepLiters,
-                required double readingUncertaintyLiters,
-                required String flowPointCode,
-                required double mpePct,
-                Value<double?> lpsApprox = const Value.absent(),
-                required double litersPerOdometerUnit,
-                required double needleLitersPerRevolution,
-                required int createdAtMs,
-                required int updatedAtMs,
-                Value<int?> startedAtMs = const Value.absent(),
-                Value<int?> endedAtMs = const Value.absent(),
-                Value<double?> gpsLatitude = const Value.absent(),
-                Value<double?> gpsLongitude = const Value.absent(),
-                Value<double?> gpsAccuracyMeters = const Value.absent(),
-                Value<int?> gpsCapturedAtMs = const Value.absent(),
-                Value<int> pulseCount = const Value.absent(),
-                Value<double?> progressReferenceLiters = const Value.absent(),
-                Value<double?> initialOdometerUnits = const Value.absent(),
-                Value<double?> initialNeedleLiters = const Value.absent(),
-                Value<String?> initialReadingSource = const Value.absent(),
-                Value<double?> finalOdometerUnits = const Value.absent(),
-                Value<double?> finalNeedleLiters = const Value.absent(),
-                Value<String?> finalReadingSource = const Value.absent(),
-                Value<double?> referenceLiters = const Value.absent(),
-                Value<double?> indicatedLiters = const Value.absent(),
-                Value<double?> errorPct = const Value.absent(),
-                Value<double?> uncertaintyPct = const Value.absent(),
-                Value<double?> resultMpePct = const Value.absent(),
-                Value<double?> acceptanceMetricPct = const Value.absent(),
-                Value<double?> rejectionMetricPct = const Value.absent(),
-                Value<String?> verdict = const Value.absent(),
-                Value<String?> checksum = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => SamplesCompanion.insert(
-                id: id,
-                flowPointId: flowPointId,
-                sampleNumber: sampleNumber,
-                status: status,
-                measurementMethod: measurementMethod,
-                litersPerPulse: litersPerPulse,
-                evidenceStepLiters: evidenceStepLiters,
-                readingUncertaintyLiters: readingUncertaintyLiters,
-                flowPointCode: flowPointCode,
-                mpePct: mpePct,
-                lpsApprox: lpsApprox,
-                litersPerOdometerUnit: litersPerOdometerUnit,
-                needleLitersPerRevolution: needleLitersPerRevolution,
-                createdAtMs: createdAtMs,
-                updatedAtMs: updatedAtMs,
-                startedAtMs: startedAtMs,
-                endedAtMs: endedAtMs,
-                gpsLatitude: gpsLatitude,
-                gpsLongitude: gpsLongitude,
-                gpsAccuracyMeters: gpsAccuracyMeters,
-                gpsCapturedAtMs: gpsCapturedAtMs,
-                pulseCount: pulseCount,
-                progressReferenceLiters: progressReferenceLiters,
-                initialOdometerUnits: initialOdometerUnits,
-                initialNeedleLiters: initialNeedleLiters,
-                initialReadingSource: initialReadingSource,
-                finalOdometerUnits: finalOdometerUnits,
-                finalNeedleLiters: finalNeedleLiters,
-                finalReadingSource: finalReadingSource,
-                referenceLiters: referenceLiters,
-                indicatedLiters: indicatedLiters,
-                errorPct: errorPct,
-                uncertaintyPct: uncertaintyPct,
-                resultMpePct: resultMpePct,
-                acceptanceMetricPct: acceptanceMetricPct,
-                rejectionMetricPct: rejectionMetricPct,
-                verdict: verdict,
-                checksum: checksum,
-                rowid: rowid,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable(table),
-                  $$SamplesTableReferences(db, table, e),
-                ),
-              )
-              .toList(),
-          prefetchHooksCallback:
-              ({
-                flowPointId = false,
-                testPointsRefs = false,
-                evidenceItemsRefs = false,
-              }) {
-                return PrefetchHooks(
-                  db: db,
-                  explicitlyWatchedTables: [
-                    if (testPointsRefs) db.testPoints,
-                    if (evidenceItemsRefs) db.evidenceItems,
-                  ],
-                  addJoins:
-                      <
-                        T extends TableManagerState<
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic
-                        >
-                      >(state) {
-                        if (flowPointId) {
-                          state =
-                              state.withJoin(
-                                    currentTable: table,
-                                    currentColumn: table.flowPointId,
-                                    referencedTable: $$SamplesTableReferences
-                                        ._flowPointIdTable(db),
-                                    referencedColumn: $$SamplesTableReferences
-                                        ._flowPointIdTable(db)
-                                        .id,
-                                  )
-                                  as T;
-                        }
-
-                        return state;
-                      },
-                  getPrefetchedDataCallback: (items) async {
-                    return [
-                      if (testPointsRefs)
-                        await $_getPrefetchedData<
-                          SampleRow,
-                          $SamplesTable,
-                          PointRow
-                        >(
-                          currentTable: table,
-                          referencedTable: $$SamplesTableReferences
-                              ._testPointsRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$SamplesTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).testPointsRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.sampleId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                      if (evidenceItemsRefs)
-                        await $_getPrefetchedData<
-                          SampleRow,
-                          $SamplesTable,
-                          EvidenceRow
-                        >(
-                          currentTable: table,
-                          referencedTable: $$SamplesTableReferences
-                              ._evidenceItemsRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$SamplesTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).evidenceItemsRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.sampleId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                    ];
-                  },
-                );
-              },
-        ),
-      );
-}
-
-typedef $$SamplesTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $SamplesTable,
-      SampleRow,
-      $$SamplesTableFilterComposer,
-      $$SamplesTableOrderingComposer,
-      $$SamplesTableAnnotationComposer,
-      $$SamplesTableCreateCompanionBuilder,
-      $$SamplesTableUpdateCompanionBuilder,
-      (SampleRow, $$SamplesTableReferences),
-      SampleRow,
-      PrefetchHooks Function({
-        bool flowPointId,
-        bool testPointsRefs,
-        bool evidenceItemsRefs,
-      })
-    >;
 typedef $$TestPointsTableCreateCompanionBuilder =
     TestPointsCompanion Function({
       required String id,
@@ -10253,6 +10205,46 @@ final class $$EvidenceItemsTableReferences
       manager.$state.copyWith(prefetchedData: [item]),
     );
   }
+
+  static MultiTypedResultKey<$SamplesTable, List<SampleRow>>
+  _initialReadingEvidenceTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.samples,
+        aliasName: 'evidence_items__id__samples__initial_reading_evidence_id',
+      );
+
+  $$SamplesTableProcessedTableManager get initialReadingEvidence {
+    final manager = $$SamplesTableTableManager($_db, $_db.samples).filter(
+      (f) =>
+          f.initialReadingEvidenceId.id.sqlEquals($_itemColumn<String>('id')!),
+    );
+
+    final cache = $_typedResult.readTableOrNull(
+      _initialReadingEvidenceTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$SamplesTable, List<SampleRow>>
+  _finalReadingEvidenceTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.samples,
+    aliasName: 'evidence_items__id__samples__final_reading_evidence_id',
+  );
+
+  $$SamplesTableProcessedTableManager get finalReadingEvidence {
+    final manager = $$SamplesTableTableManager($_db, $_db.samples).filter(
+      (f) => f.finalReadingEvidenceId.id.sqlEquals($_itemColumn<String>('id')!),
+    );
+
+    final cache = $_typedResult.readTableOrNull(
+      _finalReadingEvidenceTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$EvidenceItemsTableFilterComposer
@@ -10358,6 +10350,56 @@ class $$EvidenceItemsTableFilterComposer
           ),
     );
     return composer;
+  }
+
+  Expression<bool> initialReadingEvidence(
+    Expression<bool> Function($$SamplesTableFilterComposer f) f,
+  ) {
+    final $$SamplesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.samples,
+      getReferencedColumn: (t) => t.initialReadingEvidenceId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SamplesTableFilterComposer(
+            $db: $db,
+            $table: $db.samples,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> finalReadingEvidence(
+    Expression<bool> Function($$SamplesTableFilterComposer f) f,
+  ) {
+    final $$SamplesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.samples,
+      getReferencedColumn: (t) => t.finalReadingEvidenceId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SamplesTableFilterComposer(
+            $db: $db,
+            $table: $db.samples,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
   }
 }
 
@@ -10561,6 +10603,56 @@ class $$EvidenceItemsTableAnnotationComposer
     );
     return composer;
   }
+
+  Expression<T> initialReadingEvidence<T extends Object>(
+    Expression<T> Function($$SamplesTableAnnotationComposer a) f,
+  ) {
+    final $$SamplesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.samples,
+      getReferencedColumn: (t) => t.initialReadingEvidenceId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SamplesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.samples,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> finalReadingEvidence<T extends Object>(
+    Expression<T> Function($$SamplesTableAnnotationComposer a) f,
+  ) {
+    final $$SamplesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.samples,
+      getReferencedColumn: (t) => t.finalReadingEvidenceId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SamplesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.samples,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$EvidenceItemsTableTableManager
@@ -10576,7 +10668,12 @@ class $$EvidenceItemsTableTableManager
           $$EvidenceItemsTableUpdateCompanionBuilder,
           (EvidenceRow, $$EvidenceItemsTableReferences),
           EvidenceRow,
-          PrefetchHooks Function({bool sampleId, bool pointId})
+          PrefetchHooks Function({
+            bool sampleId,
+            bool pointId,
+            bool initialReadingEvidence,
+            bool finalReadingEvidence,
+          })
         > {
   $$EvidenceItemsTableTableManager(_$AppDatabase db, $EvidenceItemsTable table)
     : super(
@@ -10657,60 +10754,116 @@ class $$EvidenceItemsTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({sampleId = false, pointId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (sampleId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.sampleId,
-                                referencedTable: $$EvidenceItemsTableReferences
-                                    ._sampleIdTable(db),
-                                referencedColumn: $$EvidenceItemsTableReferences
-                                    ._sampleIdTable(db)
-                                    .id,
-                              )
-                              as T;
-                    }
-                    if (pointId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.pointId,
-                                referencedTable: $$EvidenceItemsTableReferences
-                                    ._pointIdTable(db),
-                                referencedColumn: $$EvidenceItemsTableReferences
-                                    ._pointIdTable(db)
-                                    .id,
-                              )
-                              as T;
-                    }
+          prefetchHooksCallback:
+              ({
+                sampleId = false,
+                pointId = false,
+                initialReadingEvidence = false,
+                finalReadingEvidence = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (initialReadingEvidence) db.samples,
+                    if (finalReadingEvidence) db.samples,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (sampleId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.sampleId,
+                                    referencedTable:
+                                        $$EvidenceItemsTableReferences
+                                            ._sampleIdTable(db),
+                                    referencedColumn:
+                                        $$EvidenceItemsTableReferences
+                                            ._sampleIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (pointId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.pointId,
+                                    referencedTable:
+                                        $$EvidenceItemsTableReferences
+                                            ._pointIdTable(db),
+                                    referencedColumn:
+                                        $$EvidenceItemsTableReferences
+                                            ._pointIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
 
-                    return state;
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (initialReadingEvidence)
+                        await $_getPrefetchedData<
+                          EvidenceRow,
+                          $EvidenceItemsTable,
+                          SampleRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$EvidenceItemsTableReferences
+                              ._initialReadingEvidenceTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$EvidenceItemsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).initialReadingEvidence,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.initialReadingEvidenceId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (finalReadingEvidence)
+                        await $_getPrefetchedData<
+                          EvidenceRow,
+                          $EvidenceItemsTable,
+                          SampleRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$EvidenceItemsTableReferences
+                              ._finalReadingEvidenceTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$EvidenceItemsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).finalReadingEvidence,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.finalReadingEvidenceId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
                   },
-              getPrefetchedDataCallback: (items) async {
-                return [];
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -10727,7 +10880,1797 @@ typedef $$EvidenceItemsTableProcessedTableManager =
       $$EvidenceItemsTableUpdateCompanionBuilder,
       (EvidenceRow, $$EvidenceItemsTableReferences),
       EvidenceRow,
-      PrefetchHooks Function({bool sampleId, bool pointId})
+      PrefetchHooks Function({
+        bool sampleId,
+        bool pointId,
+        bool initialReadingEvidence,
+        bool finalReadingEvidence,
+      })
+    >;
+typedef $$SamplesTableCreateCompanionBuilder =
+    SamplesCompanion Function({
+      required String id,
+      required String flowPointId,
+      required int sampleNumber,
+      required String status,
+      required String measurementMethod,
+      required double litersPerPulse,
+      required double evidenceStepLiters,
+      required double readingUncertaintyLiters,
+      required String flowPointCode,
+      required double mpePct,
+      Value<double?> lpsApprox,
+      required double litersPerOdometerUnit,
+      required double needleLitersPerRevolution,
+      Value<double?> totalizerLeft,
+      Value<double?> totalizerTop,
+      Value<double?> totalizerWidth,
+      Value<double?> totalizerHeight,
+      Value<double?> dialCenterX,
+      Value<double?> dialCenterY,
+      Value<double?> dialRadius,
+      Value<double?> dialMultiplier,
+      Value<double?> dialLitersPerRevolution,
+      Value<double?> dialZeroAngleDegrees,
+      Value<bool?> dialClockwise,
+      Value<String?> dialConfigurationSource,
+      Value<int?> totalizerDigitCount,
+      Value<int?> totalizerDecimalPlaces,
+      Value<String?> totalizerUnit,
+      Value<bool?> totalizerLeadingZerosAllowed,
+      Value<String?> totalizerConfigurationSource,
+      required int createdAtMs,
+      required int updatedAtMs,
+      Value<int?> startedAtMs,
+      Value<int?> endedAtMs,
+      Value<double?> gpsLatitude,
+      Value<double?> gpsLongitude,
+      Value<double?> gpsAccuracyMeters,
+      Value<int?> gpsCapturedAtMs,
+      Value<int> pulseCount,
+      Value<double?> progressReferenceLiters,
+      Value<double?> initialOdometerUnits,
+      Value<double?> initialNeedleLiters,
+      Value<String?> initialReadingSource,
+      Value<String?> initialReadingEvidenceId,
+      Value<double?> finalOdometerUnits,
+      Value<double?> finalNeedleLiters,
+      Value<String?> finalReadingSource,
+      Value<String?> finalReadingEvidenceId,
+      Value<double?> referenceLiters,
+      Value<double?> indicatedLiters,
+      Value<double?> errorPct,
+      Value<double?> uncertaintyPct,
+      Value<double?> resultMpePct,
+      Value<double?> acceptanceMetricPct,
+      Value<double?> rejectionMetricPct,
+      Value<String?> verdict,
+      Value<String?> checksum,
+      Value<int> rowid,
+    });
+typedef $$SamplesTableUpdateCompanionBuilder =
+    SamplesCompanion Function({
+      Value<String> id,
+      Value<String> flowPointId,
+      Value<int> sampleNumber,
+      Value<String> status,
+      Value<String> measurementMethod,
+      Value<double> litersPerPulse,
+      Value<double> evidenceStepLiters,
+      Value<double> readingUncertaintyLiters,
+      Value<String> flowPointCode,
+      Value<double> mpePct,
+      Value<double?> lpsApprox,
+      Value<double> litersPerOdometerUnit,
+      Value<double> needleLitersPerRevolution,
+      Value<double?> totalizerLeft,
+      Value<double?> totalizerTop,
+      Value<double?> totalizerWidth,
+      Value<double?> totalizerHeight,
+      Value<double?> dialCenterX,
+      Value<double?> dialCenterY,
+      Value<double?> dialRadius,
+      Value<double?> dialMultiplier,
+      Value<double?> dialLitersPerRevolution,
+      Value<double?> dialZeroAngleDegrees,
+      Value<bool?> dialClockwise,
+      Value<String?> dialConfigurationSource,
+      Value<int?> totalizerDigitCount,
+      Value<int?> totalizerDecimalPlaces,
+      Value<String?> totalizerUnit,
+      Value<bool?> totalizerLeadingZerosAllowed,
+      Value<String?> totalizerConfigurationSource,
+      Value<int> createdAtMs,
+      Value<int> updatedAtMs,
+      Value<int?> startedAtMs,
+      Value<int?> endedAtMs,
+      Value<double?> gpsLatitude,
+      Value<double?> gpsLongitude,
+      Value<double?> gpsAccuracyMeters,
+      Value<int?> gpsCapturedAtMs,
+      Value<int> pulseCount,
+      Value<double?> progressReferenceLiters,
+      Value<double?> initialOdometerUnits,
+      Value<double?> initialNeedleLiters,
+      Value<String?> initialReadingSource,
+      Value<String?> initialReadingEvidenceId,
+      Value<double?> finalOdometerUnits,
+      Value<double?> finalNeedleLiters,
+      Value<String?> finalReadingSource,
+      Value<String?> finalReadingEvidenceId,
+      Value<double?> referenceLiters,
+      Value<double?> indicatedLiters,
+      Value<double?> errorPct,
+      Value<double?> uncertaintyPct,
+      Value<double?> resultMpePct,
+      Value<double?> acceptanceMetricPct,
+      Value<double?> rejectionMetricPct,
+      Value<String?> verdict,
+      Value<String?> checksum,
+      Value<int> rowid,
+    });
+
+final class $$SamplesTableReferences
+    extends BaseReferences<_$AppDatabase, $SamplesTable, SampleRow> {
+  $$SamplesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $FlowPointsTable _flowPointIdTable(_$AppDatabase db) =>
+      db.flowPoints.createAlias('samples__flow_point_id__flow_points__id');
+
+  $$FlowPointsTableProcessedTableManager get flowPointId {
+    final $_column = $_itemColumn<String>('flow_point_id')!;
+
+    final manager = $$FlowPointsTableTableManager(
+      $_db,
+      $_db.flowPoints,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_flowPointIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $EvidenceItemsTable _initialReadingEvidenceIdTable(_$AppDatabase db) =>
+      db.evidenceItems.createAlias(
+        'samples__initial_reading_evidence_id__evidence_items__id',
+      );
+
+  $$EvidenceItemsTableProcessedTableManager? get initialReadingEvidenceId {
+    final $_column = $_itemColumn<String>('initial_reading_evidence_id');
+    if ($_column == null) return null;
+    final manager = $$EvidenceItemsTableTableManager(
+      $_db,
+      $_db.evidenceItems,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(
+      _initialReadingEvidenceIdTable($_db),
+    );
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $EvidenceItemsTable _finalReadingEvidenceIdTable(_$AppDatabase db) =>
+      db.evidenceItems.createAlias(
+        'samples__final_reading_evidence_id__evidence_items__id',
+      );
+
+  $$EvidenceItemsTableProcessedTableManager? get finalReadingEvidenceId {
+    final $_column = $_itemColumn<String>('final_reading_evidence_id');
+    if ($_column == null) return null;
+    final manager = $$EvidenceItemsTableTableManager(
+      $_db,
+      $_db.evidenceItems,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(
+      _finalReadingEvidenceIdTable($_db),
+    );
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<$TestPointsTable, List<PointRow>>
+  _testPointsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.testPoints,
+    aliasName: 'samples__id__test_points__sample_id',
+  );
+
+  $$TestPointsTableProcessedTableManager get testPointsRefs {
+    final manager = $$TestPointsTableTableManager(
+      $_db,
+      $_db.testPoints,
+    ).filter((f) => f.sampleId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_testPointsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$EvidenceItemsTable, List<EvidenceRow>>
+  _evidenceItemsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.evidenceItems,
+    aliasName: 'samples__id__evidence_items__sample_id',
+  );
+
+  $$EvidenceItemsTableProcessedTableManager get evidenceItemsRefs {
+    final manager = $$EvidenceItemsTableTableManager(
+      $_db,
+      $_db.evidenceItems,
+    ).filter((f) => f.sampleId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_evidenceItemsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$SamplesTableFilterComposer
+    extends Composer<_$AppDatabase, $SamplesTable> {
+  $$SamplesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sampleNumber => $composableBuilder(
+    column: $table.sampleNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get measurementMethod => $composableBuilder(
+    column: $table.measurementMethod,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get litersPerPulse => $composableBuilder(
+    column: $table.litersPerPulse,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get evidenceStepLiters => $composableBuilder(
+    column: $table.evidenceStepLiters,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get readingUncertaintyLiters => $composableBuilder(
+    column: $table.readingUncertaintyLiters,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get flowPointCode => $composableBuilder(
+    column: $table.flowPointCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get mpePct => $composableBuilder(
+    column: $table.mpePct,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get lpsApprox => $composableBuilder(
+    column: $table.lpsApprox,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get litersPerOdometerUnit => $composableBuilder(
+    column: $table.litersPerOdometerUnit,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get needleLitersPerRevolution => $composableBuilder(
+    column: $table.needleLitersPerRevolution,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get totalizerLeft => $composableBuilder(
+    column: $table.totalizerLeft,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get totalizerTop => $composableBuilder(
+    column: $table.totalizerTop,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get totalizerWidth => $composableBuilder(
+    column: $table.totalizerWidth,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get totalizerHeight => $composableBuilder(
+    column: $table.totalizerHeight,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get dialCenterX => $composableBuilder(
+    column: $table.dialCenterX,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get dialCenterY => $composableBuilder(
+    column: $table.dialCenterY,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get dialRadius => $composableBuilder(
+    column: $table.dialRadius,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get dialMultiplier => $composableBuilder(
+    column: $table.dialMultiplier,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get dialLitersPerRevolution => $composableBuilder(
+    column: $table.dialLitersPerRevolution,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get dialZeroAngleDegrees => $composableBuilder(
+    column: $table.dialZeroAngleDegrees,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get dialClockwise => $composableBuilder(
+    column: $table.dialClockwise,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dialConfigurationSource => $composableBuilder(
+    column: $table.dialConfigurationSource,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get totalizerDigitCount => $composableBuilder(
+    column: $table.totalizerDigitCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get totalizerDecimalPlaces => $composableBuilder(
+    column: $table.totalizerDecimalPlaces,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get totalizerUnit => $composableBuilder(
+    column: $table.totalizerUnit,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get totalizerLeadingZerosAllowed => $composableBuilder(
+    column: $table.totalizerLeadingZerosAllowed,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get totalizerConfigurationSource => $composableBuilder(
+    column: $table.totalizerConfigurationSource,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAtMs => $composableBuilder(
+    column: $table.createdAtMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAtMs => $composableBuilder(
+    column: $table.updatedAtMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get startedAtMs => $composableBuilder(
+    column: $table.startedAtMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get endedAtMs => $composableBuilder(
+    column: $table.endedAtMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get gpsLatitude => $composableBuilder(
+    column: $table.gpsLatitude,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get gpsLongitude => $composableBuilder(
+    column: $table.gpsLongitude,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get gpsAccuracyMeters => $composableBuilder(
+    column: $table.gpsAccuracyMeters,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get gpsCapturedAtMs => $composableBuilder(
+    column: $table.gpsCapturedAtMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get pulseCount => $composableBuilder(
+    column: $table.pulseCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get progressReferenceLiters => $composableBuilder(
+    column: $table.progressReferenceLiters,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get initialOdometerUnits => $composableBuilder(
+    column: $table.initialOdometerUnits,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get initialNeedleLiters => $composableBuilder(
+    column: $table.initialNeedleLiters,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get initialReadingSource => $composableBuilder(
+    column: $table.initialReadingSource,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get finalOdometerUnits => $composableBuilder(
+    column: $table.finalOdometerUnits,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get finalNeedleLiters => $composableBuilder(
+    column: $table.finalNeedleLiters,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get finalReadingSource => $composableBuilder(
+    column: $table.finalReadingSource,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get referenceLiters => $composableBuilder(
+    column: $table.referenceLiters,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get indicatedLiters => $composableBuilder(
+    column: $table.indicatedLiters,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get errorPct => $composableBuilder(
+    column: $table.errorPct,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get uncertaintyPct => $composableBuilder(
+    column: $table.uncertaintyPct,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get resultMpePct => $composableBuilder(
+    column: $table.resultMpePct,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get acceptanceMetricPct => $composableBuilder(
+    column: $table.acceptanceMetricPct,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get rejectionMetricPct => $composableBuilder(
+    column: $table.rejectionMetricPct,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get verdict => $composableBuilder(
+    column: $table.verdict,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get checksum => $composableBuilder(
+    column: $table.checksum,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$FlowPointsTableFilterComposer get flowPointId {
+    final $$FlowPointsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.flowPointId,
+      referencedTable: $db.flowPoints,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$FlowPointsTableFilterComposer(
+            $db: $db,
+            $table: $db.flowPoints,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$EvidenceItemsTableFilterComposer get initialReadingEvidenceId {
+    final $$EvidenceItemsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.initialReadingEvidenceId,
+      referencedTable: $db.evidenceItems,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$EvidenceItemsTableFilterComposer(
+            $db: $db,
+            $table: $db.evidenceItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$EvidenceItemsTableFilterComposer get finalReadingEvidenceId {
+    final $$EvidenceItemsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.finalReadingEvidenceId,
+      referencedTable: $db.evidenceItems,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$EvidenceItemsTableFilterComposer(
+            $db: $db,
+            $table: $db.evidenceItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<bool> testPointsRefs(
+    Expression<bool> Function($$TestPointsTableFilterComposer f) f,
+  ) {
+    final $$TestPointsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.testPoints,
+      getReferencedColumn: (t) => t.sampleId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TestPointsTableFilterComposer(
+            $db: $db,
+            $table: $db.testPoints,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> evidenceItemsRefs(
+    Expression<bool> Function($$EvidenceItemsTableFilterComposer f) f,
+  ) {
+    final $$EvidenceItemsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.evidenceItems,
+      getReferencedColumn: (t) => t.sampleId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$EvidenceItemsTableFilterComposer(
+            $db: $db,
+            $table: $db.evidenceItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$SamplesTableOrderingComposer
+    extends Composer<_$AppDatabase, $SamplesTable> {
+  $$SamplesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sampleNumber => $composableBuilder(
+    column: $table.sampleNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get measurementMethod => $composableBuilder(
+    column: $table.measurementMethod,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get litersPerPulse => $composableBuilder(
+    column: $table.litersPerPulse,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get evidenceStepLiters => $composableBuilder(
+    column: $table.evidenceStepLiters,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get readingUncertaintyLiters => $composableBuilder(
+    column: $table.readingUncertaintyLiters,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get flowPointCode => $composableBuilder(
+    column: $table.flowPointCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get mpePct => $composableBuilder(
+    column: $table.mpePct,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get lpsApprox => $composableBuilder(
+    column: $table.lpsApprox,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get litersPerOdometerUnit => $composableBuilder(
+    column: $table.litersPerOdometerUnit,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get needleLitersPerRevolution => $composableBuilder(
+    column: $table.needleLitersPerRevolution,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get totalizerLeft => $composableBuilder(
+    column: $table.totalizerLeft,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get totalizerTop => $composableBuilder(
+    column: $table.totalizerTop,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get totalizerWidth => $composableBuilder(
+    column: $table.totalizerWidth,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get totalizerHeight => $composableBuilder(
+    column: $table.totalizerHeight,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get dialCenterX => $composableBuilder(
+    column: $table.dialCenterX,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get dialCenterY => $composableBuilder(
+    column: $table.dialCenterY,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get dialRadius => $composableBuilder(
+    column: $table.dialRadius,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get dialMultiplier => $composableBuilder(
+    column: $table.dialMultiplier,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get dialLitersPerRevolution => $composableBuilder(
+    column: $table.dialLitersPerRevolution,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get dialZeroAngleDegrees => $composableBuilder(
+    column: $table.dialZeroAngleDegrees,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get dialClockwise => $composableBuilder(
+    column: $table.dialClockwise,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get dialConfigurationSource => $composableBuilder(
+    column: $table.dialConfigurationSource,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get totalizerDigitCount => $composableBuilder(
+    column: $table.totalizerDigitCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get totalizerDecimalPlaces => $composableBuilder(
+    column: $table.totalizerDecimalPlaces,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get totalizerUnit => $composableBuilder(
+    column: $table.totalizerUnit,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get totalizerLeadingZerosAllowed => $composableBuilder(
+    column: $table.totalizerLeadingZerosAllowed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get totalizerConfigurationSource =>
+      $composableBuilder(
+        column: $table.totalizerConfigurationSource,
+        builder: (column) => ColumnOrderings(column),
+      );
+
+  ColumnOrderings<int> get createdAtMs => $composableBuilder(
+    column: $table.createdAtMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAtMs => $composableBuilder(
+    column: $table.updatedAtMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get startedAtMs => $composableBuilder(
+    column: $table.startedAtMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get endedAtMs => $composableBuilder(
+    column: $table.endedAtMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get gpsLatitude => $composableBuilder(
+    column: $table.gpsLatitude,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get gpsLongitude => $composableBuilder(
+    column: $table.gpsLongitude,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get gpsAccuracyMeters => $composableBuilder(
+    column: $table.gpsAccuracyMeters,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get gpsCapturedAtMs => $composableBuilder(
+    column: $table.gpsCapturedAtMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get pulseCount => $composableBuilder(
+    column: $table.pulseCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get progressReferenceLiters => $composableBuilder(
+    column: $table.progressReferenceLiters,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get initialOdometerUnits => $composableBuilder(
+    column: $table.initialOdometerUnits,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get initialNeedleLiters => $composableBuilder(
+    column: $table.initialNeedleLiters,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get initialReadingSource => $composableBuilder(
+    column: $table.initialReadingSource,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get finalOdometerUnits => $composableBuilder(
+    column: $table.finalOdometerUnits,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get finalNeedleLiters => $composableBuilder(
+    column: $table.finalNeedleLiters,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get finalReadingSource => $composableBuilder(
+    column: $table.finalReadingSource,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get referenceLiters => $composableBuilder(
+    column: $table.referenceLiters,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get indicatedLiters => $composableBuilder(
+    column: $table.indicatedLiters,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get errorPct => $composableBuilder(
+    column: $table.errorPct,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get uncertaintyPct => $composableBuilder(
+    column: $table.uncertaintyPct,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get resultMpePct => $composableBuilder(
+    column: $table.resultMpePct,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get acceptanceMetricPct => $composableBuilder(
+    column: $table.acceptanceMetricPct,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get rejectionMetricPct => $composableBuilder(
+    column: $table.rejectionMetricPct,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get verdict => $composableBuilder(
+    column: $table.verdict,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get checksum => $composableBuilder(
+    column: $table.checksum,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$FlowPointsTableOrderingComposer get flowPointId {
+    final $$FlowPointsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.flowPointId,
+      referencedTable: $db.flowPoints,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$FlowPointsTableOrderingComposer(
+            $db: $db,
+            $table: $db.flowPoints,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$EvidenceItemsTableOrderingComposer get initialReadingEvidenceId {
+    final $$EvidenceItemsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.initialReadingEvidenceId,
+      referencedTable: $db.evidenceItems,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$EvidenceItemsTableOrderingComposer(
+            $db: $db,
+            $table: $db.evidenceItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$EvidenceItemsTableOrderingComposer get finalReadingEvidenceId {
+    final $$EvidenceItemsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.finalReadingEvidenceId,
+      referencedTable: $db.evidenceItems,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$EvidenceItemsTableOrderingComposer(
+            $db: $db,
+            $table: $db.evidenceItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SamplesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SamplesTable> {
+  $$SamplesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get sampleNumber => $composableBuilder(
+    column: $table.sampleNumber,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get measurementMethod => $composableBuilder(
+    column: $table.measurementMethod,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get litersPerPulse => $composableBuilder(
+    column: $table.litersPerPulse,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get evidenceStepLiters => $composableBuilder(
+    column: $table.evidenceStepLiters,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get readingUncertaintyLiters => $composableBuilder(
+    column: $table.readingUncertaintyLiters,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get flowPointCode => $composableBuilder(
+    column: $table.flowPointCode,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get mpePct =>
+      $composableBuilder(column: $table.mpePct, builder: (column) => column);
+
+  GeneratedColumn<double> get lpsApprox =>
+      $composableBuilder(column: $table.lpsApprox, builder: (column) => column);
+
+  GeneratedColumn<double> get litersPerOdometerUnit => $composableBuilder(
+    column: $table.litersPerOdometerUnit,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get needleLitersPerRevolution => $composableBuilder(
+    column: $table.needleLitersPerRevolution,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get totalizerLeft => $composableBuilder(
+    column: $table.totalizerLeft,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get totalizerTop => $composableBuilder(
+    column: $table.totalizerTop,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get totalizerWidth => $composableBuilder(
+    column: $table.totalizerWidth,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get totalizerHeight => $composableBuilder(
+    column: $table.totalizerHeight,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get dialCenterX => $composableBuilder(
+    column: $table.dialCenterX,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get dialCenterY => $composableBuilder(
+    column: $table.dialCenterY,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get dialRadius => $composableBuilder(
+    column: $table.dialRadius,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get dialMultiplier => $composableBuilder(
+    column: $table.dialMultiplier,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get dialLitersPerRevolution => $composableBuilder(
+    column: $table.dialLitersPerRevolution,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get dialZeroAngleDegrees => $composableBuilder(
+    column: $table.dialZeroAngleDegrees,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get dialClockwise => $composableBuilder(
+    column: $table.dialClockwise,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get dialConfigurationSource => $composableBuilder(
+    column: $table.dialConfigurationSource,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get totalizerDigitCount => $composableBuilder(
+    column: $table.totalizerDigitCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get totalizerDecimalPlaces => $composableBuilder(
+    column: $table.totalizerDecimalPlaces,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get totalizerUnit => $composableBuilder(
+    column: $table.totalizerUnit,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get totalizerLeadingZerosAllowed => $composableBuilder(
+    column: $table.totalizerLeadingZerosAllowed,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get totalizerConfigurationSource =>
+      $composableBuilder(
+        column: $table.totalizerConfigurationSource,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<int> get createdAtMs => $composableBuilder(
+    column: $table.createdAtMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get updatedAtMs => $composableBuilder(
+    column: $table.updatedAtMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get startedAtMs => $composableBuilder(
+    column: $table.startedAtMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get endedAtMs =>
+      $composableBuilder(column: $table.endedAtMs, builder: (column) => column);
+
+  GeneratedColumn<double> get gpsLatitude => $composableBuilder(
+    column: $table.gpsLatitude,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get gpsLongitude => $composableBuilder(
+    column: $table.gpsLongitude,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get gpsAccuracyMeters => $composableBuilder(
+    column: $table.gpsAccuracyMeters,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get gpsCapturedAtMs => $composableBuilder(
+    column: $table.gpsCapturedAtMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get pulseCount => $composableBuilder(
+    column: $table.pulseCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get progressReferenceLiters => $composableBuilder(
+    column: $table.progressReferenceLiters,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get initialOdometerUnits => $composableBuilder(
+    column: $table.initialOdometerUnits,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get initialNeedleLiters => $composableBuilder(
+    column: $table.initialNeedleLiters,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get initialReadingSource => $composableBuilder(
+    column: $table.initialReadingSource,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get finalOdometerUnits => $composableBuilder(
+    column: $table.finalOdometerUnits,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get finalNeedleLiters => $composableBuilder(
+    column: $table.finalNeedleLiters,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get finalReadingSource => $composableBuilder(
+    column: $table.finalReadingSource,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get referenceLiters => $composableBuilder(
+    column: $table.referenceLiters,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get indicatedLiters => $composableBuilder(
+    column: $table.indicatedLiters,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get errorPct =>
+      $composableBuilder(column: $table.errorPct, builder: (column) => column);
+
+  GeneratedColumn<double> get uncertaintyPct => $composableBuilder(
+    column: $table.uncertaintyPct,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get resultMpePct => $composableBuilder(
+    column: $table.resultMpePct,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get acceptanceMetricPct => $composableBuilder(
+    column: $table.acceptanceMetricPct,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get rejectionMetricPct => $composableBuilder(
+    column: $table.rejectionMetricPct,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get verdict =>
+      $composableBuilder(column: $table.verdict, builder: (column) => column);
+
+  GeneratedColumn<String> get checksum =>
+      $composableBuilder(column: $table.checksum, builder: (column) => column);
+
+  $$FlowPointsTableAnnotationComposer get flowPointId {
+    final $$FlowPointsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.flowPointId,
+      referencedTable: $db.flowPoints,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$FlowPointsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.flowPoints,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$EvidenceItemsTableAnnotationComposer get initialReadingEvidenceId {
+    final $$EvidenceItemsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.initialReadingEvidenceId,
+      referencedTable: $db.evidenceItems,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$EvidenceItemsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.evidenceItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$EvidenceItemsTableAnnotationComposer get finalReadingEvidenceId {
+    final $$EvidenceItemsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.finalReadingEvidenceId,
+      referencedTable: $db.evidenceItems,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$EvidenceItemsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.evidenceItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<T> testPointsRefs<T extends Object>(
+    Expression<T> Function($$TestPointsTableAnnotationComposer a) f,
+  ) {
+    final $$TestPointsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.testPoints,
+      getReferencedColumn: (t) => t.sampleId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TestPointsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.testPoints,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> evidenceItemsRefs<T extends Object>(
+    Expression<T> Function($$EvidenceItemsTableAnnotationComposer a) f,
+  ) {
+    final $$EvidenceItemsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.evidenceItems,
+      getReferencedColumn: (t) => t.sampleId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$EvidenceItemsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.evidenceItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$SamplesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SamplesTable,
+          SampleRow,
+          $$SamplesTableFilterComposer,
+          $$SamplesTableOrderingComposer,
+          $$SamplesTableAnnotationComposer,
+          $$SamplesTableCreateCompanionBuilder,
+          $$SamplesTableUpdateCompanionBuilder,
+          (SampleRow, $$SamplesTableReferences),
+          SampleRow,
+          PrefetchHooks Function({
+            bool flowPointId,
+            bool initialReadingEvidenceId,
+            bool finalReadingEvidenceId,
+            bool testPointsRefs,
+            bool evidenceItemsRefs,
+          })
+        > {
+  $$SamplesTableTableManager(_$AppDatabase db, $SamplesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SamplesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SamplesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SamplesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> flowPointId = const Value.absent(),
+                Value<int> sampleNumber = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String> measurementMethod = const Value.absent(),
+                Value<double> litersPerPulse = const Value.absent(),
+                Value<double> evidenceStepLiters = const Value.absent(),
+                Value<double> readingUncertaintyLiters = const Value.absent(),
+                Value<String> flowPointCode = const Value.absent(),
+                Value<double> mpePct = const Value.absent(),
+                Value<double?> lpsApprox = const Value.absent(),
+                Value<double> litersPerOdometerUnit = const Value.absent(),
+                Value<double> needleLitersPerRevolution = const Value.absent(),
+                Value<double?> totalizerLeft = const Value.absent(),
+                Value<double?> totalizerTop = const Value.absent(),
+                Value<double?> totalizerWidth = const Value.absent(),
+                Value<double?> totalizerHeight = const Value.absent(),
+                Value<double?> dialCenterX = const Value.absent(),
+                Value<double?> dialCenterY = const Value.absent(),
+                Value<double?> dialRadius = const Value.absent(),
+                Value<double?> dialMultiplier = const Value.absent(),
+                Value<double?> dialLitersPerRevolution = const Value.absent(),
+                Value<double?> dialZeroAngleDegrees = const Value.absent(),
+                Value<bool?> dialClockwise = const Value.absent(),
+                Value<String?> dialConfigurationSource = const Value.absent(),
+                Value<int?> totalizerDigitCount = const Value.absent(),
+                Value<int?> totalizerDecimalPlaces = const Value.absent(),
+                Value<String?> totalizerUnit = const Value.absent(),
+                Value<bool?> totalizerLeadingZerosAllowed =
+                    const Value.absent(),
+                Value<String?> totalizerConfigurationSource =
+                    const Value.absent(),
+                Value<int> createdAtMs = const Value.absent(),
+                Value<int> updatedAtMs = const Value.absent(),
+                Value<int?> startedAtMs = const Value.absent(),
+                Value<int?> endedAtMs = const Value.absent(),
+                Value<double?> gpsLatitude = const Value.absent(),
+                Value<double?> gpsLongitude = const Value.absent(),
+                Value<double?> gpsAccuracyMeters = const Value.absent(),
+                Value<int?> gpsCapturedAtMs = const Value.absent(),
+                Value<int> pulseCount = const Value.absent(),
+                Value<double?> progressReferenceLiters = const Value.absent(),
+                Value<double?> initialOdometerUnits = const Value.absent(),
+                Value<double?> initialNeedleLiters = const Value.absent(),
+                Value<String?> initialReadingSource = const Value.absent(),
+                Value<String?> initialReadingEvidenceId = const Value.absent(),
+                Value<double?> finalOdometerUnits = const Value.absent(),
+                Value<double?> finalNeedleLiters = const Value.absent(),
+                Value<String?> finalReadingSource = const Value.absent(),
+                Value<String?> finalReadingEvidenceId = const Value.absent(),
+                Value<double?> referenceLiters = const Value.absent(),
+                Value<double?> indicatedLiters = const Value.absent(),
+                Value<double?> errorPct = const Value.absent(),
+                Value<double?> uncertaintyPct = const Value.absent(),
+                Value<double?> resultMpePct = const Value.absent(),
+                Value<double?> acceptanceMetricPct = const Value.absent(),
+                Value<double?> rejectionMetricPct = const Value.absent(),
+                Value<String?> verdict = const Value.absent(),
+                Value<String?> checksum = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SamplesCompanion(
+                id: id,
+                flowPointId: flowPointId,
+                sampleNumber: sampleNumber,
+                status: status,
+                measurementMethod: measurementMethod,
+                litersPerPulse: litersPerPulse,
+                evidenceStepLiters: evidenceStepLiters,
+                readingUncertaintyLiters: readingUncertaintyLiters,
+                flowPointCode: flowPointCode,
+                mpePct: mpePct,
+                lpsApprox: lpsApprox,
+                litersPerOdometerUnit: litersPerOdometerUnit,
+                needleLitersPerRevolution: needleLitersPerRevolution,
+                totalizerLeft: totalizerLeft,
+                totalizerTop: totalizerTop,
+                totalizerWidth: totalizerWidth,
+                totalizerHeight: totalizerHeight,
+                dialCenterX: dialCenterX,
+                dialCenterY: dialCenterY,
+                dialRadius: dialRadius,
+                dialMultiplier: dialMultiplier,
+                dialLitersPerRevolution: dialLitersPerRevolution,
+                dialZeroAngleDegrees: dialZeroAngleDegrees,
+                dialClockwise: dialClockwise,
+                dialConfigurationSource: dialConfigurationSource,
+                totalizerDigitCount: totalizerDigitCount,
+                totalizerDecimalPlaces: totalizerDecimalPlaces,
+                totalizerUnit: totalizerUnit,
+                totalizerLeadingZerosAllowed: totalizerLeadingZerosAllowed,
+                totalizerConfigurationSource: totalizerConfigurationSource,
+                createdAtMs: createdAtMs,
+                updatedAtMs: updatedAtMs,
+                startedAtMs: startedAtMs,
+                endedAtMs: endedAtMs,
+                gpsLatitude: gpsLatitude,
+                gpsLongitude: gpsLongitude,
+                gpsAccuracyMeters: gpsAccuracyMeters,
+                gpsCapturedAtMs: gpsCapturedAtMs,
+                pulseCount: pulseCount,
+                progressReferenceLiters: progressReferenceLiters,
+                initialOdometerUnits: initialOdometerUnits,
+                initialNeedleLiters: initialNeedleLiters,
+                initialReadingSource: initialReadingSource,
+                initialReadingEvidenceId: initialReadingEvidenceId,
+                finalOdometerUnits: finalOdometerUnits,
+                finalNeedleLiters: finalNeedleLiters,
+                finalReadingSource: finalReadingSource,
+                finalReadingEvidenceId: finalReadingEvidenceId,
+                referenceLiters: referenceLiters,
+                indicatedLiters: indicatedLiters,
+                errorPct: errorPct,
+                uncertaintyPct: uncertaintyPct,
+                resultMpePct: resultMpePct,
+                acceptanceMetricPct: acceptanceMetricPct,
+                rejectionMetricPct: rejectionMetricPct,
+                verdict: verdict,
+                checksum: checksum,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String flowPointId,
+                required int sampleNumber,
+                required String status,
+                required String measurementMethod,
+                required double litersPerPulse,
+                required double evidenceStepLiters,
+                required double readingUncertaintyLiters,
+                required String flowPointCode,
+                required double mpePct,
+                Value<double?> lpsApprox = const Value.absent(),
+                required double litersPerOdometerUnit,
+                required double needleLitersPerRevolution,
+                Value<double?> totalizerLeft = const Value.absent(),
+                Value<double?> totalizerTop = const Value.absent(),
+                Value<double?> totalizerWidth = const Value.absent(),
+                Value<double?> totalizerHeight = const Value.absent(),
+                Value<double?> dialCenterX = const Value.absent(),
+                Value<double?> dialCenterY = const Value.absent(),
+                Value<double?> dialRadius = const Value.absent(),
+                Value<double?> dialMultiplier = const Value.absent(),
+                Value<double?> dialLitersPerRevolution = const Value.absent(),
+                Value<double?> dialZeroAngleDegrees = const Value.absent(),
+                Value<bool?> dialClockwise = const Value.absent(),
+                Value<String?> dialConfigurationSource = const Value.absent(),
+                Value<int?> totalizerDigitCount = const Value.absent(),
+                Value<int?> totalizerDecimalPlaces = const Value.absent(),
+                Value<String?> totalizerUnit = const Value.absent(),
+                Value<bool?> totalizerLeadingZerosAllowed =
+                    const Value.absent(),
+                Value<String?> totalizerConfigurationSource =
+                    const Value.absent(),
+                required int createdAtMs,
+                required int updatedAtMs,
+                Value<int?> startedAtMs = const Value.absent(),
+                Value<int?> endedAtMs = const Value.absent(),
+                Value<double?> gpsLatitude = const Value.absent(),
+                Value<double?> gpsLongitude = const Value.absent(),
+                Value<double?> gpsAccuracyMeters = const Value.absent(),
+                Value<int?> gpsCapturedAtMs = const Value.absent(),
+                Value<int> pulseCount = const Value.absent(),
+                Value<double?> progressReferenceLiters = const Value.absent(),
+                Value<double?> initialOdometerUnits = const Value.absent(),
+                Value<double?> initialNeedleLiters = const Value.absent(),
+                Value<String?> initialReadingSource = const Value.absent(),
+                Value<String?> initialReadingEvidenceId = const Value.absent(),
+                Value<double?> finalOdometerUnits = const Value.absent(),
+                Value<double?> finalNeedleLiters = const Value.absent(),
+                Value<String?> finalReadingSource = const Value.absent(),
+                Value<String?> finalReadingEvidenceId = const Value.absent(),
+                Value<double?> referenceLiters = const Value.absent(),
+                Value<double?> indicatedLiters = const Value.absent(),
+                Value<double?> errorPct = const Value.absent(),
+                Value<double?> uncertaintyPct = const Value.absent(),
+                Value<double?> resultMpePct = const Value.absent(),
+                Value<double?> acceptanceMetricPct = const Value.absent(),
+                Value<double?> rejectionMetricPct = const Value.absent(),
+                Value<String?> verdict = const Value.absent(),
+                Value<String?> checksum = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SamplesCompanion.insert(
+                id: id,
+                flowPointId: flowPointId,
+                sampleNumber: sampleNumber,
+                status: status,
+                measurementMethod: measurementMethod,
+                litersPerPulse: litersPerPulse,
+                evidenceStepLiters: evidenceStepLiters,
+                readingUncertaintyLiters: readingUncertaintyLiters,
+                flowPointCode: flowPointCode,
+                mpePct: mpePct,
+                lpsApprox: lpsApprox,
+                litersPerOdometerUnit: litersPerOdometerUnit,
+                needleLitersPerRevolution: needleLitersPerRevolution,
+                totalizerLeft: totalizerLeft,
+                totalizerTop: totalizerTop,
+                totalizerWidth: totalizerWidth,
+                totalizerHeight: totalizerHeight,
+                dialCenterX: dialCenterX,
+                dialCenterY: dialCenterY,
+                dialRadius: dialRadius,
+                dialMultiplier: dialMultiplier,
+                dialLitersPerRevolution: dialLitersPerRevolution,
+                dialZeroAngleDegrees: dialZeroAngleDegrees,
+                dialClockwise: dialClockwise,
+                dialConfigurationSource: dialConfigurationSource,
+                totalizerDigitCount: totalizerDigitCount,
+                totalizerDecimalPlaces: totalizerDecimalPlaces,
+                totalizerUnit: totalizerUnit,
+                totalizerLeadingZerosAllowed: totalizerLeadingZerosAllowed,
+                totalizerConfigurationSource: totalizerConfigurationSource,
+                createdAtMs: createdAtMs,
+                updatedAtMs: updatedAtMs,
+                startedAtMs: startedAtMs,
+                endedAtMs: endedAtMs,
+                gpsLatitude: gpsLatitude,
+                gpsLongitude: gpsLongitude,
+                gpsAccuracyMeters: gpsAccuracyMeters,
+                gpsCapturedAtMs: gpsCapturedAtMs,
+                pulseCount: pulseCount,
+                progressReferenceLiters: progressReferenceLiters,
+                initialOdometerUnits: initialOdometerUnits,
+                initialNeedleLiters: initialNeedleLiters,
+                initialReadingSource: initialReadingSource,
+                initialReadingEvidenceId: initialReadingEvidenceId,
+                finalOdometerUnits: finalOdometerUnits,
+                finalNeedleLiters: finalNeedleLiters,
+                finalReadingSource: finalReadingSource,
+                finalReadingEvidenceId: finalReadingEvidenceId,
+                referenceLiters: referenceLiters,
+                indicatedLiters: indicatedLiters,
+                errorPct: errorPct,
+                uncertaintyPct: uncertaintyPct,
+                resultMpePct: resultMpePct,
+                acceptanceMetricPct: acceptanceMetricPct,
+                rejectionMetricPct: rejectionMetricPct,
+                verdict: verdict,
+                checksum: checksum,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$SamplesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({
+                flowPointId = false,
+                initialReadingEvidenceId = false,
+                finalReadingEvidenceId = false,
+                testPointsRefs = false,
+                evidenceItemsRefs = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (testPointsRefs) db.testPoints,
+                    if (evidenceItemsRefs) db.evidenceItems,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (flowPointId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.flowPointId,
+                                    referencedTable: $$SamplesTableReferences
+                                        ._flowPointIdTable(db),
+                                    referencedColumn: $$SamplesTableReferences
+                                        ._flowPointIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+                        if (initialReadingEvidenceId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn:
+                                        table.initialReadingEvidenceId,
+                                    referencedTable: $$SamplesTableReferences
+                                        ._initialReadingEvidenceIdTable(db),
+                                    referencedColumn: $$SamplesTableReferences
+                                        ._initialReadingEvidenceIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+                        if (finalReadingEvidenceId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.finalReadingEvidenceId,
+                                    referencedTable: $$SamplesTableReferences
+                                        ._finalReadingEvidenceIdTable(db),
+                                    referencedColumn: $$SamplesTableReferences
+                                        ._finalReadingEvidenceIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (testPointsRefs)
+                        await $_getPrefetchedData<
+                          SampleRow,
+                          $SamplesTable,
+                          PointRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$SamplesTableReferences
+                              ._testPointsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SamplesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).testPointsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.sampleId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (evidenceItemsRefs)
+                        await $_getPrefetchedData<
+                          SampleRow,
+                          $SamplesTable,
+                          EvidenceRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$SamplesTableReferences
+                              ._evidenceItemsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SamplesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).evidenceItemsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.sampleId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$SamplesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SamplesTable,
+      SampleRow,
+      $$SamplesTableFilterComposer,
+      $$SamplesTableOrderingComposer,
+      $$SamplesTableAnnotationComposer,
+      $$SamplesTableCreateCompanionBuilder,
+      $$SamplesTableUpdateCompanionBuilder,
+      (SampleRow, $$SamplesTableReferences),
+      SampleRow,
+      PrefetchHooks Function({
+        bool flowPointId,
+        bool initialReadingEvidenceId,
+        bool finalReadingEvidenceId,
+        bool testPointsRefs,
+        bool evidenceItemsRefs,
+      })
     >;
 typedef $$SyncItemsTableCreateCompanionBuilder =
     SyncItemsCompanion Function({
@@ -11044,12 +12987,12 @@ class $AppDatabaseManager {
       $$VerificationCasesTableTableManager(_db, _db.verificationCases);
   $$FlowPointsTableTableManager get flowPoints =>
       $$FlowPointsTableTableManager(_db, _db.flowPoints);
-  $$SamplesTableTableManager get samples =>
-      $$SamplesTableTableManager(_db, _db.samples);
   $$TestPointsTableTableManager get testPoints =>
       $$TestPointsTableTableManager(_db, _db.testPoints);
   $$EvidenceItemsTableTableManager get evidenceItems =>
       $$EvidenceItemsTableTableManager(_db, _db.evidenceItems);
+  $$SamplesTableTableManager get samples =>
+      $$SamplesTableTableManager(_db, _db.samples);
   $$SyncItemsTableTableManager get syncItems =>
       $$SyncItemsTableTableManager(_db, _db.syncItems);
 }

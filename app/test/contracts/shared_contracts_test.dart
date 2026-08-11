@@ -36,6 +36,17 @@ void main() {
         (properties['measurement_source'] as Map<String, Object?>)['enum'],
         ['VISUAL', 'MANUAL', 'LED', 'BLE'],
       );
+      expect(
+        (properties['schema'] as Map<String, Object?>)['const'],
+        'ddr001.verification.sample/v6',
+      );
+      final definitions = sample[r'$defs'] as Map<String, Object?>;
+      final reading = definitions['reading'] as Map<String, Object?>;
+      final readingProperties = reading['properties'] as Map<String, Object?>;
+      expect(
+        (readingProperties['evidence_id'] as Map<String, Object?>)['type'],
+        ['string', 'null'],
+      );
     },
   );
 }

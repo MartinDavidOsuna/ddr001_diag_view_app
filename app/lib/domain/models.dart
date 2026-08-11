@@ -197,11 +197,80 @@ final class SampleConfiguration {
   final double needleLitersPerRevolution;
 }
 
+enum DialConfigurationSource { autoConfirmed, manual }
+
+enum TotalizerUnit { cubicMeters }
+
+final class TotalizerConfiguration {
+  const TotalizerConfiguration({
+    required this.digitCount,
+    required this.decimalPlaces,
+    this.unit = TotalizerUnit.cubicMeters,
+    this.leadingZerosAllowed = true,
+    this.source = DialConfigurationSource.manual,
+  }) : assert(digitCount > 0),
+       assert(decimalPlaces >= 0),
+       assert(decimalPlaces < digitCount);
+
+  final int digitCount;
+  final int decimalPlaces;
+  final TotalizerUnit unit;
+  final bool leadingZerosAllowed;
+  final DialConfigurationSource source;
+
+  String get pattern {
+    final integerDigits = digitCount - decimalPlaces;
+    final integerPattern = List.filled(integerDigits, '#').join();
+    final fractionPattern = List.filled(decimalPlaces, '#').join();
+    return decimalPlaces == 0
+        ? integerPattern
+        : '$integerPattern.$fractionPattern';
+  }
+}
+
+/// Geometry is normalized to the oriented full evidence image, never screen pixels.
+final class MeterFaceConfiguration {
+  const MeterFaceConfiguration({
+    required this.totalizerLeft,
+    required this.totalizerTop,
+    required this.totalizerWidth,
+    required this.totalizerHeight,
+    required this.dialCenterX,
+    required this.dialCenterY,
+    required this.dialRadius,
+    required this.multiplier,
+    required this.litersPerRevolution,
+    required this.zeroAngleDegrees,
+    required this.clockwise,
+    required this.source,
+    this.totalizerConfiguration,
+  });
+
+  final double totalizerLeft;
+  final double totalizerTop;
+  final double totalizerWidth;
+  final double totalizerHeight;
+  final double dialCenterX;
+  final double dialCenterY;
+  final double dialRadius;
+  final double multiplier;
+  final double litersPerRevolution;
+  final double zeroAngleDegrees;
+  final bool clockwise;
+  final DialConfigurationSource source;
+  final TotalizerConfiguration? totalizerConfiguration;
+}
+
 final class ConfirmedReading {
-  const ConfirmedReading({required this.reading, required this.source});
+  const ConfirmedReading({
+    required this.reading,
+    required this.source,
+    this.evidenceId,
+  });
 
   final MeterReading reading;
   final ReadingSource source;
+  final String? evidenceId;
 }
 
 final class Sample {
@@ -220,6 +289,7 @@ final class Sample {
     this.gps,
     this.initialReading,
     this.finalReading,
+    this.meterFaceConfiguration,
     this.result,
     this.checksum,
   });
@@ -238,6 +308,7 @@ final class Sample {
   final double? referenceLitersProgress;
   final ConfirmedReading? initialReading;
   final ConfirmedReading? finalReading;
+  final MeterFaceConfiguration? meterFaceConfiguration;
   final SampleResult? result;
   final String? checksum;
 
@@ -275,6 +346,7 @@ final class Sample {
     referenceLitersProgress: referenceLitersProgress,
     initialReading: initialReading,
     finalReading: finalReading,
+    meterFaceConfiguration: meterFaceConfiguration,
     result: result,
     checksum: checksum,
   );

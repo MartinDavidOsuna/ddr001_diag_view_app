@@ -1,5 +1,35 @@
 # CHANGELOG funcional
 
+## Etapa 4.3 — 2026-08-11 — Formato del totalizador
+- Se separan OCR raw, candidatos numéricos y significado mediante `TotalizerConfiguration`; el decimal se aplica solo desde formato explícito confirmado.
+- El formato se congela en START, se recupera y reutiliza en FINAL; caracteres ambiguos y longitudes inconsistentes mantienen confirmación/fallback manual.
+- Drift avanza 3→4 con migración aditiva, Sample contract v5→v6 y canonicalización v3 solo para muestras con formato; datos/checksums históricos permanecen compatibles.
+- Corpus controlado Stage 4.2 reinterpretado: dígitos útiles 10/10 y propuesta exacta 10/10; corrida VISUAL normal adicional ejercitó fallback manual y force-stop sin perder Evidence/configuración.
+- No cambia START→INTERMEDIATE→FINAL, no se productiza calibración y no se implementa Stage 5.
+
+## Etapa 4.2 — 2026-08-11 — Calibración cuantitativa visual
+- Pixel 7 Pro y simulador 10 L/vuelta: 21 fotos BEFORE y 21 AFTER de aguja; MAE circular 0.2675→0.0439 L, RMSE 0.3013→0.0635 L y máximo 0.4278→0.1361 L.
+- Se corrigen crop circular rectangular, refinamiento local del eje y wrap sin usar el valor real para ajustar detección.
+- OCR exacto permanece 0% (21 BEFORE, 10 AFTER): mejora la extracción de dígitos, pero ML Kit omite el decimal; se conserva fallback y se rechazan candidatos ambiguos.
+- Se agrega herramienta solo debug que reutiliza el pipeline productivo. No cambian captura, schema 3, contract v5, checksum v2 ni Stage 5.
+
+## Etapa 4.1 — 2026-08-10 — Endurecimiento de lectura de carátula
+- Se preserva exactamente START → evidencias INTERMEDIATE según plan → FINAL, con una única fotografía completa por Evidence y derivados no destructivos.
+- Se separan `TotalizerRegion`, OCR de crop preprocesado, candidatos circulares de dial, selección por resolución metrológica y mapeo configurable de aguja.
+- La UI muestra crops reales y overlays ajustables; mover/redimensionar/reanalizar conserva el mismo Evidence, mientras REPETIR FOTO mantiene la recaptura mutable existente.
+- La configuración visual confirmada en START se congela, recupera y reutiliza en INTERMEDIATE/FINAL. Fallos de OCR/aguja conservan evidencia válida y activan corrección humana.
+- Drift avanza 2→3 con migración aditiva, Sample contract a v5 y canonicalización de checksum a v2 solo cuando existe configuración visual; checksums históricos permanecen v1.
+- Se acepta ADR-011. No se implementa Stage 5.
+
+## Etapa 4 — 2026-08-10 — Cámara y lectura visual productiva
+- Se agrega cámara trasera real, permiso Android CAMERA, preview/ROI, lifecycle y captura offline en filesystem con SHA-256.
+- La misma Evidence START/FINAL alimenta OCR on-device y detección desacoplada de aguja roja; nunca se crea una lectura automática sin confirmación humana.
+- Se implementan propuesta, corrección manual, recaptura y fallbacks explícitos cuando OCR o aguja fallan.
+- `ConfirmedReading` incorpora `evidenceId`; Drift avanza a schemaVersion 2 con migración aditiva desde v1 y checksum trazable. Sample contract avanza a v4.
+- LECTURA VISUAL deja de usar adaptadores de desarrollo en producción y conserva Vref explícito sin pulsos ficticios; MANUAL mantiene su fórmula.
+- Validación preliminar en Pixel 7 Pro/Android 17 preservó sesión e historial Stage 3. La precisión requiere corpus/calibración adicional por familia de medidor.
+- Se acepta ADR-010 para cámara, visión y trazabilidad.
+
 ## Etapa 3 — 2026-08-10 — Flutter UI offline
 - Correctivo final de identidad: Login solicita Nombre/Correo/Teléfono, persiste `displayName` únicamente en User, conserva nombres existentes y completa en sitio usuarios legados sin nombre; Home y Ajustes muestran la identidad sin duplicarla en SharedPreferences.
 - Validación final en Pixel 7 Pro / Android 17: se corrigen carga de Material Icons, contraste del texto en botones primarios y contexto de medidor visible durante una Sample RUNNING; se agrega regresión de presentación.

@@ -38,6 +38,12 @@ Manual, LED y BLE comparten una interfaz común de eventos de pulso. **LECTURA V
 El modo que en el prototipo web se denominaba **Simulación** debe migrarse a Flutter como **LECTURA VISUAL**, eliminando cualquier semántica de simulación en la app productiva. El simulador web externo permanece sin cambios y se usa para validar esta implementación.
 
 ## 4. Carátula y cámara (`features/camera_dial`)
+- El OCR conserva texto raw y candidatos separados del formato. La posición decimal solo se aplica desde `TotalizerConfiguration` confirmada en START (`digitCount`, `decimalPlaces`, unidad y política de ceros iniciales); nunca se infiere silenciosamente.
+- FINAL reutiliza el formato congelado. Una inconsistencia o carácter ambiguo exige confirmación/corrección humana y no invalida una fotografía íntegra.
+- El procedimiento conserva una Evidence completa por START, cada INTERMEDIATE planificada y FINAL; no existen fotos separadas para totalizador y aguja.
+- `TotalizerRegion` y el dial seleccionado usan geometría normalizada respecto de la imagen orientada. El técnico puede mover/redimensionar ambos y reanalizar la misma Evidence.
+- Se representan múltiples candidatos de dial. Solo se elige automáticamente el de menor volumen por vuelta cuando la escala es inequívoca; de lo contrario el técnico confirma candidato y escala (`×1`, `×0.1`, `×0.01`, `×0.001`).
+- Geometría, escala, cero, sentido y litros/vuelta confirmados en START se recuperan y reutilizan durante la Sample. INTERMEDIATE intenta diagnóstico sin exigir OCR perfecto; START y FINAL mantienen confirmación completa.
 - Vista en vivo y estado de cámara.
 - ROI/ajustes necesarios para lectura de carátula.
 - Detección automática de aguja roja; si falla: mensaje explícito `Aguja no detectada`.

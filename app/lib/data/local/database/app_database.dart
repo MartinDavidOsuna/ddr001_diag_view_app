@@ -102,6 +102,23 @@ class Samples extends Table {
   RealColumn get lpsApprox => real().nullable()();
   RealColumn get litersPerOdometerUnit => real()();
   RealColumn get needleLitersPerRevolution => real()();
+  RealColumn get totalizerLeft => real().nullable()();
+  RealColumn get totalizerTop => real().nullable()();
+  RealColumn get totalizerWidth => real().nullable()();
+  RealColumn get totalizerHeight => real().nullable()();
+  RealColumn get dialCenterX => real().nullable()();
+  RealColumn get dialCenterY => real().nullable()();
+  RealColumn get dialRadius => real().nullable()();
+  RealColumn get dialMultiplier => real().nullable()();
+  RealColumn get dialLitersPerRevolution => real().nullable()();
+  RealColumn get dialZeroAngleDegrees => real().nullable()();
+  BoolColumn get dialClockwise => boolean().nullable()();
+  TextColumn get dialConfigurationSource => text().nullable()();
+  IntColumn get totalizerDigitCount => integer().nullable()();
+  IntColumn get totalizerDecimalPlaces => integer().nullable()();
+  TextColumn get totalizerUnit => text().nullable()();
+  BoolColumn get totalizerLeadingZerosAllowed => boolean().nullable()();
+  TextColumn get totalizerConfigurationSource => text().nullable()();
   IntColumn get createdAtMs => integer()();
   IntColumn get updatedAtMs => integer()();
   IntColumn get startedAtMs => integer().nullable()();
@@ -115,9 +132,15 @@ class Samples extends Table {
   RealColumn get initialOdometerUnits => real().nullable()();
   RealColumn get initialNeedleLiters => real().nullable()();
   TextColumn get initialReadingSource => text().nullable()();
+  @ReferenceName('initialReadingEvidence')
+  TextColumn get initialReadingEvidenceId =>
+      text().nullable().references(EvidenceItems, #id)();
   RealColumn get finalOdometerUnits => real().nullable()();
   RealColumn get finalNeedleLiters => real().nullable()();
   TextColumn get finalReadingSource => text().nullable()();
+  @ReferenceName('finalReadingEvidence')
+  TextColumn get finalReadingEvidenceId =>
+      text().nullable().references(EvidenceItems, #id)();
   RealColumn get referenceLiters => real().nullable()();
   RealColumn get indicatedLiters => real().nullable()();
   RealColumn get errorPct => real().nullable()();
@@ -248,7 +271,7 @@ final class AppDatabase extends _$AppDatabase {
     : super(driftDatabase(name: 'ddr001', native: const DriftNativeOptions()));
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -258,11 +281,62 @@ final class AppDatabase extends _$AppDatabase {
       await _createIndexes();
     },
     onUpgrade: (migrator, from, to) async {
-      // Future versions must add explicit, non-destructive steps here.
       if (from < 1) {
         await migrator.createAll();
         await _createProtectionTriggers();
         await _createIndexes();
+      }
+      if (from < 2) {
+        final existingColumns = (await customSelect(
+          'PRAGMA table_info(samples)',
+        ).get()).map((row) => row.read<String>('name')).toSet();
+        if (!existingColumns.contains('initial_reading_evidence_id')) {
+          await migrator.addColumn(samples, samples.initialReadingEvidenceId);
+        }
+        if (!existingColumns.contains('final_reading_evidence_id')) {
+          await migrator.addColumn(samples, samples.finalReadingEvidenceId);
+        }
+      }
+      if (from < 3) {
+        final visualColumns = <GeneratedColumn<Object>>[
+          samples.totalizerLeft,
+          samples.totalizerTop,
+          samples.totalizerWidth,
+          samples.totalizerHeight,
+          samples.dialCenterX,
+          samples.dialCenterY,
+          samples.dialRadius,
+          samples.dialMultiplier,
+          samples.dialLitersPerRevolution,
+          samples.dialZeroAngleDegrees,
+          samples.dialClockwise,
+          samples.dialConfigurationSource,
+        ];
+        final existingColumns = (await customSelect(
+          'PRAGMA table_info(samples)',
+        ).get()).map((row) => row.read<String>('name')).toSet();
+        for (final column in visualColumns) {
+          if (!existingColumns.contains(column.$name)) {
+            await migrator.addColumn(samples, column);
+          }
+        }
+      }
+      if (from < 4) {
+        final formatColumns = <GeneratedColumn<Object>>[
+          samples.totalizerDigitCount,
+          samples.totalizerDecimalPlaces,
+          samples.totalizerUnit,
+          samples.totalizerLeadingZerosAllowed,
+          samples.totalizerConfigurationSource,
+        ];
+        final existingColumns = (await customSelect(
+          'PRAGMA table_info(samples)',
+        ).get()).map((row) => row.read<String>('name')).toSet();
+        for (final column in formatColumns) {
+          if (!existingColumns.contains(column.$name)) {
+            await migrator.addColumn(samples, column);
+          }
+        }
       }
     },
     beforeOpen: (details) async {

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
@@ -5,6 +6,8 @@ import '../app/app_dependencies.dart';
 import '../core/metrology/metrology.dart';
 import '../domain/expected_evidence_plan.dart';
 import '../domain/models.dart';
+import '../infrastructure/camera/camera_models.dart';
+import '../infrastructure/vision/vision_models.dart';
 
 enum AppPage {
   loading,
@@ -21,7 +24,11 @@ enum AppPage {
   history,
   settings,
   invalidEvidence,
+  camera,
+  debugCalibration,
 }
+
+enum CapturePurpose { start, intermediate, finalEvidence }
 
 enum HardwareState { notConnected, preparing, ready, error, disconnected }
 
@@ -45,6 +52,10 @@ final class AppViewState {
     this.samples = const [],
     this.cases = const [],
     this.errorMessage,
+    this.capturePurpose,
+    this.captureVolumeLiters,
+    this.cameraState = CameraOperationState.idle,
+    this.readingProposal,
   });
 
   final AppPage page;
@@ -65,6 +76,10 @@ final class AppViewState {
   final List<Sample> samples;
   final List<VerificationCase> cases;
   final String? errorMessage;
+  final CapturePurpose? capturePurpose;
+  final double? captureVolumeLiters;
+  final CameraOperationState cameraState;
+  final VisualReadingProposal? readingProposal;
 
   AppViewState copyWith({
     AppPage? page,
@@ -91,6 +106,12 @@ final class AppViewState {
     List<VerificationCase>? cases,
     String? errorMessage,
     bool clearError = false,
+    CapturePurpose? capturePurpose,
+    bool clearCapturePurpose = false,
+    double? captureVolumeLiters,
+    CameraOperationState? cameraState,
+    VisualReadingProposal? readingProposal,
+    bool clearReadingProposal = false,
   }) => AppViewState(
     page: page ?? this.page,
     busy: busy ?? this.busy,
@@ -111,6 +132,14 @@ final class AppViewState {
     samples: samples ?? this.samples,
     cases: cases ?? this.cases,
     errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
+    capturePurpose: clearCapturePurpose
+        ? null
+        : capturePurpose ?? this.capturePurpose,
+    captureVolumeLiters: captureVolumeLiters ?? this.captureVolumeLiters,
+    cameraState: cameraState ?? this.cameraState,
+    readingProposal: clearReadingProposal
+        ? null
+        : readingProposal ?? this.readingProposal,
   );
 }
 
@@ -173,6 +202,11 @@ final class AppController extends StateNotifier<AppViewState> {
   void startIdentification() =>
       state = state.copyWith(page: AppPage.identification, clearError: true);
   void showSettings() => state = state.copyWith(page: AppPage.settings);
+  void showDebugCalibration() {
+    if (kDebugMode) {
+      state = state.copyWith(page: AppPage.debugCalibration);
+    }
+  }
 
   Future<void> showHistory() async {
     await _guard(() async {
@@ -322,6 +356,17 @@ final class AppController extends StateNotifier<AppViewState> {
       );
       await dependencies.samples.createDraft(draft);
       final running = await dependencies.samples.start(draft.id, at: now);
+      if (dependencies.camera != null) {
+        await _refreshSample(running.id);
+        state = state.copyWith(
+          page: AppPage.camera,
+          capturePurpose: CapturePurpose.start,
+          captureVolumeLiters: 0,
+          cameraState: CameraOperationState.idle,
+          clearReadingProposal: true,
+        );
+        return;
+      }
       await dependencies.evidenceCapture.capture(
         caseId: verificationCase.id,
         sample: running,
@@ -370,6 +415,181 @@ final class AppController extends StateNotifier<AppViewState> {
 
   void showReadings() => state = state.copyWith(page: AppPage.readings);
 
+  void requestIntermediateEvidence(double volumeLiters) {
+    state = state.copyWith(
+      page: AppPage.camera,
+      capturePurpose: CapturePurpose.intermediate,
+      captureVolumeLiters: volumeLiters,
+      cameraState: CameraOperationState.idle,
+      clearReadingProposal: true,
+    );
+  }
+
+  void requestFinalEvidence() {
+    final sample = state.sample;
+    if (sample == null) return;
+    final reference =
+        sample.configuration.measurementMethod == MeasurementMethod.visual
+        ? sample.referenceLitersProgress
+        : sample.pulseCount * sample.configuration.litersPerPulse;
+    if (reference == null || reference <= 0) {
+      state = state.copyWith(
+        errorMessage: 'El volumen de referencia debe ser mayor que cero.',
+      );
+      return;
+    }
+    state = state.copyWith(
+      page: AppPage.camera,
+      capturePurpose: CapturePurpose.finalEvidence,
+      captureVolumeLiters: reference,
+      cameraState: CameraOperationState.idle,
+      clearReadingProposal: true,
+    );
+  }
+
+  Future<void> processCapturedPhoto(String sourcePath) async {
+    await _guard(() async {
+      final sample = state.sample;
+      final verificationCase = state.activeCase;
+      final purpose = state.capturePurpose;
+      if (sample == null || verificationCase == null || purpose == null) {
+        throw StateError('No hay una captura activa.');
+      }
+      state = state.copyWith(cameraState: CameraOperationState.processing);
+      final type = switch (purpose) {
+        CapturePurpose.start => EvidenceType.start,
+        CapturePurpose.intermediate => EvidenceType.intermediate,
+        CapturePurpose.finalEvidence => EvidenceType.finalEvidence,
+      };
+      final volume = state.captureVolumeLiters ?? 0;
+      final evidence = await dependencies.evidenceCapture.captureExisting(
+        sourcePath: sourcePath,
+        caseId: verificationCase.id,
+        sample: sample,
+        type: type,
+        volumeRefLiters: volume,
+        pulseCount: sample.configuration.measurementMethod.isPulseEventSource
+            ? (volume / sample.configuration.litersPerPulse).round()
+            : null,
+      );
+      VisualReadingProposal? proposal;
+      try {
+        proposal = await dependencies.visualPipeline?.analyze(
+          evidenceId: evidence.id,
+          evidencePath: evidence.localPath,
+          configuration: sample.meterFaceConfiguration == null
+              ? null
+              : DialVisionConfiguration.fromDomain(
+                  sample.meterFaceConfiguration!,
+                ),
+        );
+      } catch (_) {
+        // A valid decodable photograph remains evidence when automatic vision fails.
+        if (purpose == CapturePurpose.intermediate) {
+          proposal = null;
+        } else {
+          await dependencies.evidence.deleteFromOpenSample(evidence.id);
+          await dependencies.fileStore.deleteTemporary(
+            evidence.localPath,
+            sampleClosed: false,
+          );
+          state = state.copyWith(cameraState: CameraOperationState.error);
+          rethrow;
+        }
+      }
+      await _refreshSample(sample.id);
+      state = state.copyWith(
+        cameraState: proposal == null
+            ? CameraOperationState.confirmed
+            : CameraOperationState.proposalReady,
+        readingProposal: proposal,
+      );
+      if (purpose == CapturePurpose.intermediate) {
+        state = state.copyWith(page: AppPage.run, clearCapturePurpose: true);
+      }
+    });
+  }
+
+  Future<void> confirmCameraReading({
+    required double odometer,
+    required double needle,
+    required bool corrected,
+  }) async {
+    await _guard(() async {
+      final sample = state.sample;
+      final proposal = state.readingProposal;
+      final purpose = state.capturePurpose;
+      if (sample == null || proposal == null || purpose == null) {
+        throw StateError('No existe una propuesta de lectura.');
+      }
+      final confirmed = proposal.confirm(
+        odometerValue: odometer,
+        needleLiters: needle,
+        litersPerOdometerUnit: sample.configuration.litersPerOdometerUnit,
+        needleLitersPerRevolution: proposal.configuration.litersPerRevolution,
+        corrected: corrected,
+      );
+      if (purpose == CapturePurpose.start) {
+        await dependencies.samples.updateMeterFaceConfiguration(
+          sample.id,
+          proposal.configuration.toDomain(),
+        );
+      }
+      await dependencies.samples.updateProgress(
+        id: sample.id,
+        pulseCount: sample.pulseCount,
+        referenceLiters: sample.referenceLitersProgress,
+        initialReading: purpose == CapturePurpose.start ? confirmed : null,
+        finalReading: purpose == CapturePurpose.finalEvidence
+            ? confirmed
+            : null,
+      );
+      await _refreshSample(sample.id);
+      state = state.copyWith(
+        page: purpose == CapturePurpose.start ? AppPage.run : AppPage.readings,
+        cameraState: CameraOperationState.confirmed,
+        clearCapturePurpose: true,
+      );
+    });
+  }
+
+  Future<void> reanalyzeRegions(DialVisionConfiguration configuration) async {
+    await _guard(() async {
+      final proposal = state.readingProposal;
+      if (proposal == null) {
+        throw StateError('No existe una foto para reanalizar.');
+      }
+      state = state.copyWith(cameraState: CameraOperationState.processing);
+      final analyzed = await dependencies.visualPipeline!.analyze(
+        evidenceId: proposal.evidenceId,
+        evidencePath: proposal.evidencePath,
+        configuration: configuration,
+      );
+      state = state.copyWith(
+        readingProposal: analyzed,
+        cameraState: CameraOperationState.proposalReady,
+      );
+    });
+  }
+
+  Future<void> recapturePhoto() async {
+    final proposal = state.readingProposal;
+    if (proposal != null) {
+      await _guard(() async {
+        await dependencies.evidence.deleteFromOpenSample(proposal.evidenceId);
+        await dependencies.fileStore.deleteTemporary(
+          proposal.evidencePath,
+          sampleClosed: false,
+        );
+        if (state.sample != null) await _refreshSample(state.sample!.id);
+      });
+    }
+    state = state.copyWith(
+      cameraState: CameraOperationState.idle,
+      clearReadingProposal: true,
+    );
+  }
+
   Future<void> closeSample({
     required double initialOdometer,
     required double initialNeedle,
@@ -397,23 +617,17 @@ final class AppController extends StateNotifier<AppViewState> {
         id: sample.id,
         pulseCount: sample.pulseCount,
         referenceLiters: reference,
-        initialReading: ConfirmedReading(
-          reading: MeterReading(
-            odometerUnits: initialOdometer,
-            needleLiters: initialNeedle,
-            litersPerOdometerUnit: config.litersPerOdometerUnit,
-            needleLitersPerRevolution: config.needleLitersPerRevolution,
-          ),
-          source: ReadingSource.manual,
+        initialReading: _confirmedFromReview(
+          existing: sample.initialReading,
+          odometer: initialOdometer,
+          needle: initialNeedle,
+          config: config,
         ),
-        finalReading: ConfirmedReading(
-          reading: MeterReading(
-            odometerUnits: finalOdometer,
-            needleLiters: finalNeedle,
-            litersPerOdometerUnit: config.litersPerOdometerUnit,
-            needleLitersPerRevolution: config.needleLitersPerRevolution,
-          ),
-          source: ReadingSource.manual,
+        finalReading: _confirmedFromReview(
+          existing: sample.finalReading,
+          odometer: finalOdometer,
+          needle: finalNeedle,
+          config: config,
         ),
       );
       if (createDevelopmentEvidence) {
@@ -508,7 +722,47 @@ final class AppController extends StateNotifier<AppViewState> {
   Future<void> resumeSample() async {
     final sample = state.sample;
     if (sample != null) {
-      state = state.copyWith(page: AppPage.run);
+      if (sample.initialReading != null && sample.finalReading != null) {
+        state = state.copyWith(page: AppPage.readings);
+        return;
+      }
+      final hasStart = state.evidence.any(
+        (item) => item.type == EvidenceType.start,
+      );
+      if (!hasStart && dependencies.camera != null) {
+        state = state.copyWith(
+          page: AppPage.camera,
+          capturePurpose: CapturePurpose.start,
+          captureVolumeLiters: 0,
+          cameraState: CameraOperationState.idle,
+        );
+      } else if (hasStart &&
+          sample.initialReading == null &&
+          dependencies.camera != null) {
+        final start = state.evidence.lastWhere(
+          (item) => item.type == EvidenceType.start,
+        );
+        final proposal = await dependencies.visualPipeline?.analyze(
+          evidenceId: start.id,
+          evidencePath: start.localPath,
+          configuration: sample.meterFaceConfiguration == null
+              ? null
+              : DialVisionConfiguration.fromDomain(
+                  sample.meterFaceConfiguration!,
+                ),
+        );
+        state = state.copyWith(
+          page: AppPage.camera,
+          capturePurpose: CapturePurpose.start,
+          captureVolumeLiters: 0,
+          cameraState: proposal == null
+              ? CameraOperationState.error
+              : CameraOperationState.proposalReady,
+          readingProposal: proposal,
+        );
+      } else {
+        state = state.copyWith(page: AppPage.run);
+      }
     }
   }
 
@@ -562,4 +816,26 @@ final class AppController extends StateNotifier<AppViewState> {
 
   String _friendly(Object? message) =>
       message?.toString() ?? 'La operación no está permitida.';
+
+  ConfirmedReading _confirmedFromReview({
+    required ConfirmedReading? existing,
+    required double odometer,
+    required double needle,
+    required SampleConfiguration config,
+  }) {
+    final unchanged =
+        existing != null &&
+        existing.reading.odometerUnits == odometer &&
+        existing.reading.needleLiters == needle;
+    return ConfirmedReading(
+      reading: MeterReading(
+        odometerUnits: odometer,
+        needleLiters: needle,
+        litersPerOdometerUnit: config.litersPerOdometerUnit,
+        needleLitersPerRevolution: config.needleLitersPerRevolution,
+      ),
+      source: unchanged ? existing.source : ReadingSource.manual,
+      evidenceId: existing?.evidenceId,
+    );
+  }
 }

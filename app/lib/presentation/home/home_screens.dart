@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme/app_theme.dart';
@@ -208,6 +209,17 @@ final class SettingsScreen extends ConsumerWidget {
               style: TextStyle(color: AppColors.muted),
             ),
             const SizedBox(height: 18),
+            if (kDebugMode) ...[
+              FilledButton.tonalIcon(
+                key: const Key('visual-calibration-debug'),
+                onPressed: ref
+                    .read(appControllerProvider.notifier)
+                    .showDebugCalibration,
+                icon: const Icon(Icons.science_outlined),
+                label: const Text('CALIBRACIÓN VISUAL · DEBUG'),
+              ),
+              const SizedBox(height: 10),
+            ],
             OutlinedButton.icon(
               key: const Key('logout'),
               onPressed: ref.read(appControllerProvider.notifier).logout,

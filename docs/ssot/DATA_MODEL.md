@@ -47,7 +47,8 @@ Los JSON Schemas de `packages/shared-contracts/` son contratos serializables. Pr
 - timestamps inicio/fin.
 - GPS nullable.
 - configuración congelada: K, paso, volumen objetivo/orientativo, incertidumbre y parámetros relevantes.
-- lecturas inicial/final con origen (`AUTO_CONFIRMED | MANUAL`).
+- configuración visual nullable para compatibilidad histórica: ROI relativo y formato del totalizador (`digitCount`, `decimalPlaces`, unidad, ceros iniciales y origen); centro/radio relativo del dial; multiplicador, litros por vuelta, cero, sentido y origen `AUTO_CONFIRMED | MANUAL`. Se confirma en START, se recupera durante RUNNING y forma parte de la canonicalización v3 de muestras nuevas; muestras sin formato conservan v1/v2.
+- lecturas inicial/final con origen (`AUTO_CONFIRMED | MANUAL`) y `evidence_id` nullable; en captura visual productiva enlaza la imagen exacta que originó la propuesta confirmada.
 - resultado: V_ref, V_ind, E, U, MPE, decision_metric(s), verdict.
 - `checksum` al cierre.
 - Una `CLOSED_VALID` es inmutable.

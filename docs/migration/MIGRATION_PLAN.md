@@ -36,14 +36,16 @@ Notas: `STAGE_2_OFFLINE_DOMAIN_NOTES.md`.
 Notas: `STAGE_3_FLUTTER_UI_NOTES.md`.
 
 ## Etapa 4 — Cámara y visión
-- [ ] Lectura aguja.
-- [ ] OCR odómetro.
-- [ ] Confirmación/corrección humana.
-- [ ] Evidencias obligatorias e integridad.
+- [x] Lectura aguja.
+- [x] OCR odómetro.
+- [x] Confirmación/corrección humana.
+- [x] Evidencias obligatorias e integridad.
+
+Notas: `STAGE_4_VISUAL_READING_CAMERA_NOTES.md`.
 
 ## Etapa 5 — ESP32
 - [ ] Interfaz común de pulsos para Manual/BLE/LED y abstracción de adquisición compatible con LECTURA VISUAL.
-- [ ] **LECTURA VISUAL** sobre medidor real mediante cámara/visión.
+- [ ] Validación ampliada y calibración por familia de medidor de **LECTURA VISUAL**.
 - [ ] BLE ESP32.
 - [ ] LED ESP32 por cámara.
 - [ ] Validación de LECTURA VISUAL y motor contra simulador web externo sin modificarlo.
@@ -74,6 +76,22 @@ Notas: `STAGE_3_FLUTTER_UI_NOTES.md`.
 - [ ] Foto corrupta/almacenamiento lleno.
 - [ ] Reintentos/duplicados de sync.
 - [ ] APK/AAB y pruebas de campo.
+
+## Etapa 4.2 — Calibración cuantitativa
+- [x] Corpus físico de aguja BEFORE/AFTER (21 + 21 imágenes) y métricas reales.
+- [x] Corrección demostrada de centro/crop y validación de wrap.
+- [x] Corpus OCR controlado y política conservadora sin inventar decimal.
+- [ ] OCR automático exacto ≥70%; requiere Stage 4.3 antes de Stage 5.
+
+Resultados: `STAGE_4_2_VISUAL_CALIBRATION_RESULTS.md`.
+
+## Etapa 4.3 — Formato del totalizador
+- [x] Separación entre OCR raw, candidatos y formato explícito.
+- [x] Freeze/recovery de `TotalizerConfiguration` y cobertura de checksum/contract.
+- [x] Propuesta exacta 10/10 sobre corpus controlado con decimal configurado.
+- [x] Corrida VISUAL normal y recuperación por force-stop en Pixel.
+
+Resultados: `STAGE_4_3_TOTALIZER_RESULTS.md`.
 
 ## Fuera de alcance inmediato
 - iOS.

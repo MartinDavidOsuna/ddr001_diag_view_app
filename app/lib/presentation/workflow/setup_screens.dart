@@ -217,7 +217,7 @@ final class _MethodPanel extends StatelessWidget {
     if (method == MeasurementMethod.visual) {
       return const StatusBanner(
         text:
-            'LECTURA VISUAL productiva. Stage 3 usa ingreso confirmado de desarrollo; cámara y visión llegan en Stage 4.',
+            'LECTURA VISUAL productiva con cámara real, OCR de odómetro, detección de aguja y confirmación humana.',
         color: AppColors.heading,
         icon: Icons.visibility_outlined,
       );

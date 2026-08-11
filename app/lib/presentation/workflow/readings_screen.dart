@@ -14,10 +14,10 @@ final class ReadingsScreen extends ConsumerStatefulWidget {
 
 final class _ReadingsScreenState extends ConsumerState<ReadingsScreen> {
   final _form = GlobalKey<FormState>();
-  final _initialOdo = TextEditingController(text: '47');
-  final _initialNeedle = TextEditingController(text: '0');
-  final _finalOdo = TextEditingController(text: '47');
-  final _finalNeedle = TextEditingController(text: '25');
+  final _initialOdo = TextEditingController();
+  final _initialNeedle = TextEditingController();
+  final _finalOdo = TextEditingController();
+  final _finalNeedle = TextEditingController();
   final _visualReference = TextEditingController(text: '125');
   bool _completeEvidence = true;
 
@@ -37,6 +37,17 @@ final class _ReadingsScreenState extends ConsumerState<ReadingsScreen> {
     final sample = state.sample!;
     final visual =
         sample.configuration.measurementMethod == MeasurementMethod.visual;
+    final productionCamera = ref.read(appDependenciesProvider).camera != null;
+    if (_initialOdo.text.isEmpty && sample.initialReading != null) {
+      _initialOdo.text = sample.initialReading!.reading.odometerUnits
+          .toString();
+      _initialNeedle.text = sample.initialReading!.reading.needleLiters
+          .toString();
+    }
+    if (_finalOdo.text.isEmpty && sample.finalReading != null) {
+      _finalOdo.text = sample.finalReading!.reading.odometerUnits.toString();
+      _finalNeedle.text = sample.finalReading!.reading.needleLiters.toString();
+    }
     if (sample.referenceLitersProgress != null) {
       _visualReference.text = sample.referenceLitersProgress!.toStringAsFixed(
         1,
@@ -53,11 +64,12 @@ final class _ReadingsScreenState extends ConsumerState<ReadingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const StatusBanner(
-                    text:
-                        'Lectura manual de desarrollo · reemplazable por OCR/visión en Stage 4.',
+                  StatusBanner(
+                    text: productionCamera
+                        ? 'Lectura vinculada a evidencia START real. Revise los valores antes del cierre.'
+                        : 'Adaptador de prueba sin cámara física.',
                     color: AppColors.heading,
-                    icon: Icons.developer_mode,
+                    icon: Icons.verified_outlined,
                   ),
                   const SizedBox(height: 12),
                   _number(
@@ -108,19 +120,21 @@ final class _ReadingsScreenState extends ConsumerState<ReadingsScreen> {
               ),
             ),
             const SizedBox(height: 14),
-            SectionCard(
-              title: 'MODO DE DESARROLLO',
-              child: SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Generar evidencias locales válidas'),
-                subtitle: const Text(
-                  'Desactiva para probar INVALID_EVIDENCE.',
-                  style: TextStyle(color: AppColors.muted),
+            if (!productionCamera)
+              SectionCard(
+                title: 'ADAPTADOR DE TEST',
+                child: SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Generar evidencias locales válidas'),
+                  subtitle: const Text(
+                    'Desactiva para probar INVALID_EVIDENCE.',
+                    style: TextStyle(color: AppColors.muted),
+                  ),
+                  value: _completeEvidence,
+                  onChanged: (value) =>
+                      setState(() => _completeEvidence = value),
                 ),
-                value: _completeEvidence,
-                onChanged: (value) => setState(() => _completeEvidence = value),
               ),
-            ),
             if (state.errorMessage != null)
               Padding(
                 padding: const EdgeInsets.only(top: 10),
@@ -144,7 +158,8 @@ final class _ReadingsScreenState extends ConsumerState<ReadingsScreen> {
                       visualReferenceLiters: visual
                           ? double.parse(_visualReference.text)
                           : null,
-                      createDevelopmentEvidence: _completeEvidence,
+                      createDevelopmentEvidence:
+                          !productionCamera && _completeEvidence,
                     );
               },
               child: const Text('CORRECTA · CALCULAR RESULTADO'),

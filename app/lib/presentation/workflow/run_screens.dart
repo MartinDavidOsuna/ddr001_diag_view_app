@@ -133,9 +133,9 @@ final class _TestRunScreenState extends ConsumerState<TestRunScreen> {
                       children: [
                         const StatusBanner(
                           text:
-                              'MODO DE DESARROLLO · Valor que Stage 4 entregará desde visión confirmada.',
+                              'LECTURA VISUAL · Ingresa el volumen patrón externo alcanzado; la lectura del medidor proviene de fotografías reales.',
                           color: AppColors.heading,
-                          icon: Icons.developer_mode,
+                          icon: Icons.visibility_outlined,
                         ),
                         const SizedBox(height: 10),
                         TextField(
@@ -145,7 +145,7 @@ final class _TestRunScreenState extends ConsumerState<TestRunScreen> {
                             decimal: true,
                           ),
                           decoration: const InputDecoration(
-                            labelText: 'Vref / progreso visual (L)',
+                            labelText: 'Volumen patrón externo / progreso (L)',
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -179,6 +179,9 @@ final class _TestRunScreenState extends ConsumerState<TestRunScreen> {
                 sample: sample,
                 evidence: state.evidence,
                 currentReference: reference,
+                onCaptureIntermediate: dependenciesHaveCamera(ref)
+                    ? controller.requestIntermediateEvidence
+                    : null,
               ),
             ),
             const SizedBox(height: 14),
@@ -189,7 +192,11 @@ final class _TestRunScreenState extends ConsumerState<TestRunScreen> {
             const SizedBox(height: 14),
             FilledButton(
               key: const Key('finish-run'),
-              onPressed: reference > 0 ? controller.showReadings : null,
+              onPressed: reference > 0
+                  ? (dependenciesHaveCamera(ref)
+                        ? controller.requestFinalEvidence
+                        : controller.showReadings)
+                  : null,
               child: const Text('FINALIZAR Y CONFIRMAR LECTURAS'),
             ),
             const SizedBox(height: 8),
@@ -209,11 +216,13 @@ final class EvidencePlanView extends StatelessWidget {
     required this.sample,
     required this.evidence,
     required this.currentReference,
+    this.onCaptureIntermediate,
     super.key,
   });
   final Sample sample;
   final List<Evidence> evidence;
   final double currentReference;
+  final ValueChanged<double>? onCaptureIntermediate;
 
   @override
   Widget build(BuildContext context) {
@@ -248,17 +257,30 @@ final class EvidencePlanView extends StatelessWidget {
           title: Text(
             '${evidenceTypeLabel(requirement.type)} · ${requirement.volumeRefLiters.toStringAsFixed(0)} L',
           ),
-          trailing: Text(
-            captured ? 'Capturada' : 'Pendiente',
-            style: TextStyle(
-              color: captured ? AppColors.success : AppColors.warning,
-            ),
-          ),
+          trailing:
+              !captured &&
+                  requirement.type == EvidenceType.intermediate &&
+                  requirement.volumeRefLiters <= currentReference &&
+                  onCaptureIntermediate != null
+              ? TextButton(
+                  onPressed: () =>
+                      onCaptureIntermediate!(requirement.volumeRefLiters),
+                  child: const Text('CAPTURAR'),
+                )
+              : Text(
+                  captured ? 'Capturada' : 'Pendiente',
+                  style: TextStyle(
+                    color: captured ? AppColors.success : AppColors.warning,
+                  ),
+                ),
         );
       }).toList(),
     );
   }
 }
+
+bool dependenciesHaveCamera(WidgetRef ref) =>
+    ref.read(appDependenciesProvider).camera != null;
 
 final class _Registry extends StatelessWidget {
   const _Registry({required this.sample, required this.evidence});

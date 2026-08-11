@@ -368,6 +368,9 @@ final class LocalSampleRepository implements SampleRepository {
         initialReadingSource: initialReading == null
             ? const Value.absent()
             : Value(initialReading.source.name),
+        initialReadingEvidenceId: initialReading == null
+            ? const Value.absent()
+            : Value(initialReading.evidenceId),
         finalOdometerUnits: finalReading == null
             ? const Value.absent()
             : Value(finalReading.reading.odometerUnits),
@@ -377,6 +380,54 @@ final class LocalSampleRepository implements SampleRepository {
         finalReadingSource: finalReading == null
             ? const Value.absent()
             : Value(finalReading.source.name),
+        finalReadingEvidenceId: finalReading == null
+            ? const Value.absent()
+            : Value(finalReading.evidenceId),
+      ),
+    );
+    return (await getById(id))!;
+  });
+
+  @override
+  Future<domain.Sample> updateMeterFaceConfiguration(
+    String id,
+    domain.MeterFaceConfiguration configuration,
+  ) => database.transaction(() async {
+    final current = await _requiredSample(database, id);
+    if (current.status != domain.SampleStatus.running) {
+      throw StateError('Only a RUNNING sample can be configured.');
+    }
+    await (database.update(
+      database.samples,
+    )..where((t) => t.id.equals(id))).write(
+      db.SamplesCompanion(
+        totalizerLeft: Value(configuration.totalizerLeft),
+        totalizerTop: Value(configuration.totalizerTop),
+        totalizerWidth: Value(configuration.totalizerWidth),
+        totalizerHeight: Value(configuration.totalizerHeight),
+        dialCenterX: Value(configuration.dialCenterX),
+        dialCenterY: Value(configuration.dialCenterY),
+        dialRadius: Value(configuration.dialRadius),
+        dialMultiplier: Value(configuration.multiplier),
+        dialLitersPerRevolution: Value(configuration.litersPerRevolution),
+        dialZeroAngleDegrees: Value(configuration.zeroAngleDegrees),
+        dialClockwise: Value(configuration.clockwise),
+        dialConfigurationSource: Value(configuration.source.name),
+        totalizerDigitCount: Value(
+          configuration.totalizerConfiguration?.digitCount,
+        ),
+        totalizerDecimalPlaces: Value(
+          configuration.totalizerConfiguration?.decimalPlaces,
+        ),
+        totalizerUnit: Value(configuration.totalizerConfiguration?.unit.name),
+        totalizerLeadingZerosAllowed: Value(
+          configuration.totalizerConfiguration?.leadingZerosAllowed,
+        ),
+        totalizerConfigurationSource: Value(
+          configuration.totalizerConfiguration?.source.name,
+        ),
+        needleLitersPerRevolution: Value(configuration.litersPerRevolution),
+        updatedAtMs: Value(DateTime.now().toUtc().millisecondsSinceEpoch),
       ),
     );
     return (await getById(id))!;
@@ -484,6 +535,7 @@ domain.Sample mapSample(db.SampleRow row) {
     double? odometer,
     double? needle,
     String? source,
+    String? evidenceId,
   ) => odometer == null || needle == null || source == null
       ? null
       : domain.ConfirmedReading(
@@ -494,8 +546,38 @@ domain.Sample mapSample(db.SampleRow row) {
             needleLitersPerRevolution: row.needleLitersPerRevolution,
           ),
           source: domain.ReadingSource.values.byName(source),
+          evidenceId: evidenceId,
         );
   final hasResult = row.referenceLiters != null;
+  final meterFace = row.totalizerLeft == null
+      ? null
+      : domain.MeterFaceConfiguration(
+          totalizerLeft: row.totalizerLeft!,
+          totalizerTop: row.totalizerTop!,
+          totalizerWidth: row.totalizerWidth!,
+          totalizerHeight: row.totalizerHeight!,
+          dialCenterX: row.dialCenterX!,
+          dialCenterY: row.dialCenterY!,
+          dialRadius: row.dialRadius!,
+          multiplier: row.dialMultiplier!,
+          litersPerRevolution: row.dialLitersPerRevolution!,
+          zeroAngleDegrees: row.dialZeroAngleDegrees!,
+          clockwise: row.dialClockwise!,
+          source: domain.DialConfigurationSource.values.byName(
+            row.dialConfigurationSource!,
+          ),
+          totalizerConfiguration: row.totalizerDigitCount == null
+              ? null
+              : domain.TotalizerConfiguration(
+                  digitCount: row.totalizerDigitCount!,
+                  decimalPlaces: row.totalizerDecimalPlaces!,
+                  unit: domain.TotalizerUnit.values.byName(row.totalizerUnit!),
+                  leadingZerosAllowed: row.totalizerLeadingZerosAllowed!,
+                  source: domain.DialConfigurationSource.values.byName(
+                    row.totalizerConfigurationSource!,
+                  ),
+                ),
+        );
   return domain.Sample(
     id: row.id,
     flowPointId: row.flowPointId,
@@ -520,12 +602,15 @@ domain.Sample mapSample(db.SampleRow row) {
       row.initialOdometerUnits,
       row.initialNeedleLiters,
       row.initialReadingSource,
+      row.initialReadingEvidenceId,
     ),
     finalReading: reading(
       row.finalOdometerUnits,
       row.finalNeedleLiters,
       row.finalReadingSource,
+      row.finalReadingEvidenceId,
     ),
+    meterFaceConfiguration: meterFace,
     result: !hasResult
         ? null
         : metrology.SampleResult(
@@ -672,6 +757,19 @@ final class LocalEvidenceRepository implements EvidenceRepository {
         evidence.any(
           (e) => e.type == domain.EvidenceType.finalEvidence && valid(e),
         );
+  }
+
+  @override
+  Future<void> deleteFromOpenSample(String evidenceId) async {
+    final item = await getById(evidenceId);
+    if (item == null) return;
+    final sample = await _requiredSample(database, item.sampleId);
+    if (sample.status == domain.SampleStatus.closedValid) {
+      throw StateError('Closed sample evidence is immutable.');
+    }
+    await (database.delete(
+      database.evidenceItems,
+    )..where((table) => table.id.equals(evidenceId))).go();
   }
 }
 

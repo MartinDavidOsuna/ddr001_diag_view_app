@@ -38,6 +38,10 @@ abstract interface class SampleRepository {
     ConfirmedReading? initialReading,
     ConfirmedReading? finalReading,
   });
+  Future<Sample> updateMeterFaceConfiguration(
+    String id,
+    MeterFaceConfiguration configuration,
+  );
   Future<Sample> markInvalidEvidence(String id, {required DateTime at});
   Future<List<Sample>> listByFlow(String flowPointId);
   Future<List<Sample>> listIncomplete();
@@ -54,6 +58,7 @@ abstract interface class EvidenceRepository {
   Future<Evidence?> getById(String id);
   Future<List<Evidence>> listBySample(String sampleId);
   Future<bool> hasCompleteRequiredSet(String sampleId);
+  Future<void> deleteFromOpenSample(String evidenceId);
 }
 
 abstract interface class SyncQueueRepository {

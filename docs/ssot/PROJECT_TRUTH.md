@@ -66,6 +66,9 @@ Jerarquía principal:
 - Todas las fuentes implementan una abstracción común `PulseSource`.
 
 ## 9. Cámara, visión y OCR
+- Cada captura obligatoria sigue siendo una sola fotografía completa de la carátula. Esa Evidence original se conserva sin filtros y produce derivados separados para TOTALIZADOR y DIAL; ajustar derivados no crea otra Evidence.
+- La selección del dial se basa en la menor cantidad de volumen por vuelta/división (mayor resolución metrológica), no en su tamaño físico. Ante escala/candidato ambiguo se exige confirmación visual.
+- La geometría relativa y escala confirmadas en START se congelan para la Sample y se reutilizan en INTERMEDIATE y FINAL.
 - La app intenta reconocer automáticamente la **aguja** y los **dígitos del odómetro**.
 - Si no detecta la aguja, informa explícitamente al técnico y permite continuar hacia captura/confirmación manual cuando proceda.
 - Si OCR falla, solicita lectura manual.

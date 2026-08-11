@@ -33,7 +33,14 @@ String calculateSampleChecksum({
   final evidence = [...requiredEvidence]..sort((a, b) => a.id.compareTo(b.id));
   final c = sample.configuration;
   final fields = <String>[
-    _field('canonicalVersion', 1),
+    _field(
+      'canonicalVersion',
+      sample.meterFaceConfiguration?.totalizerConfiguration != null
+          ? 3
+          : sample.meterFaceConfiguration == null
+          ? 1
+          : 2,
+    ),
     _field('sampleId', sample.id),
     _field('flowPointId', sample.flowPointId),
     _field('sampleNumber', sample.sampleNumber),
@@ -61,9 +68,34 @@ String calculateSampleChecksum({
     ),
     _field('initialNeedleLiters', sample.initialReading?.reading.needleLiters),
     _field('initialReadingSource', sample.initialReading?.source.name),
+    _field('initialReadingEvidenceId', sample.initialReading?.evidenceId),
     _field('finalOdometerUnits', sample.finalReading?.reading.odometerUnits),
     _field('finalNeedleLiters', sample.finalReading?.reading.needleLiters),
     _field('finalReadingSource', sample.finalReading?.source.name),
+    _field('finalReadingEvidenceId', sample.finalReading?.evidenceId),
+    if (sample.meterFaceConfiguration case final face?) ...[
+      _field('meterFaceCanonicalVersion', 1),
+      _field('totalizerLeft', face.totalizerLeft),
+      _field('totalizerTop', face.totalizerTop),
+      _field('totalizerWidth', face.totalizerWidth),
+      _field('totalizerHeight', face.totalizerHeight),
+      _field('dialCenterX', face.dialCenterX),
+      _field('dialCenterY', face.dialCenterY),
+      _field('dialRadius', face.dialRadius),
+      _field('dialMultiplier', face.multiplier),
+      _field('dialLitersPerRevolution', face.litersPerRevolution),
+      _field('dialZeroAngleDegrees', face.zeroAngleDegrees),
+      _field('dialClockwise', face.clockwise),
+      _field('dialConfigurationSource', face.source.name),
+      if (face.totalizerConfiguration case final totalizer?) ...[
+        _field('totalizerFormatCanonicalVersion', 1),
+        _field('totalizerDigitCount', totalizer.digitCount),
+        _field('totalizerDecimalPlaces', totalizer.decimalPlaces),
+        _field('totalizerUnit', totalizer.unit.name),
+        _field('totalizerLeadingZerosAllowed', totalizer.leadingZerosAllowed),
+        _field('totalizerConfigurationSource', totalizer.source.name),
+      ],
+    ],
     _field('referenceLiters', referenceLiters),
     _field('indicatedLiters', indicatedLiters),
     _field('errorPct', errorPct),
