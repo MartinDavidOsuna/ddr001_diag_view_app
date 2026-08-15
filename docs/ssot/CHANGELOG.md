@@ -1,5 +1,17 @@
 # CHANGELOG funcional
 
+## Etapa 5.1 — 2026-08-11 — ESP32-WROOM-32 e integridad persistente
+- Firmware ESP32 en PlatformIO: GPIO27, LED GPIO25, BLE custom y contador acumulativo v1.
+- Flutter incorpora descubrimiento DDR001, parser uint32, baseline, reconciliación, recovery e ImageStream LED por ROI.
+- Drift 4→5, Sample contract v7 y canonical v4 agregan adquisición/integridad sin alterar históricos.
+- BLE validado 20/20, 100/100 y reconexión 12/12; LED físico/flujo Pixel completo siguen pendientes y Stage 5 no se cierra.
+
+## Etapa 5 — 2026-08-11 — Fuentes ESP32 (parcial, no cerrada)
+- Se introduce `PulseSource`/`PulseEvent` y una única operación persistente para MANUAL/LED/BLE; MANUAL conserva comportamiento y fórmula contractual.
+- Se agrega BLE configurable con protocolo mínimo explícito, rechazo de payload inválido y estados de pérdida/reconexión; no se inventan UUID, MAC ni contador.
+- Se agrega detector LED por ROI relativa, baseline, histéresis, flanco y debounce, además de coordinación conservadora de cámara.
+- ADR-012 prohíbe pausar LED para evidencia simulando continuidad. Persistencia/UI hardware y validación física quedan pendientes; Stage 5 no se declara cerrado.
+
 ## Etapa 4.3 — 2026-08-11 — Formato del totalizador
 - Se separan OCR raw, candidatos numéricos y significado mediante `TotalizerConfiguration`; el decimal se aplica solo desde formato explícito confirmado.
 - El formato se congela en START, se recupera y reutiliza en FINAL; caracteres ambiguos y longitudes inconsistentes mantienen confirmación/fallback manual.

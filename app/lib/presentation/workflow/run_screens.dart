@@ -5,6 +5,8 @@ import '../../app/theme/app_theme.dart';
 import '../../core/metrology/metrology.dart';
 import '../../domain/expected_evidence_plan.dart';
 import '../../domain/models.dart';
+import '../../infrastructure/camera/camera_models.dart';
+import '../../infrastructure/pulse/led_pulse_detector.dart';
 import '../app_controller.dart';
 import '../common/app_scaffold.dart';
 import '../home/home_screens.dart';
@@ -163,11 +165,47 @@ final class _TestRunScreenState extends ConsumerState<TestRunScreen> {
                       ],
                     )
                   else
-                    StatusBanner(
-                      text:
-                          '${methodLabel(config.measurementMethod)} · No conectado. Integración de hardware real reservada para Stage 5.',
-                      color: AppColors.warning,
-                      icon: Icons.sensors_off,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        StatusBanner(
+                          text:
+                              '${methodLabel(config.measurementMethod)} · ${state.hardwareState == HardwareState.ready ? 'READY' : state.hardwareState.name.toUpperCase()} · Adquisición: ${sample.acquisitionIntegrity.isCompromised ? 'conteo no verificable' : 'correcta'}',
+                          color: sample.acquisitionIntegrity.isCompromised
+                              ? AppColors.danger
+                              : state.hardwareState == HardwareState.ready
+                              ? AppColors.success
+                              : AppColors.warning,
+                          icon: state.hardwareState == HardwareState.ready
+                              ? Icons.sensors
+                              : Icons.sensors_off,
+                        ),
+                        if (sample
+                                .pulseAcquisitionConfiguration
+                                ?.lastObservedEsp32Counter !=
+                            null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              'Contador ESP32: ${sample.pulseAcquisitionConfiguration!.lastObservedEsp32Counter}',
+                            ),
+                          ),
+                        if (config.measurementMethod == MeasurementMethod.led &&
+                            sample.pulseAcquisitionConfiguration?.ledBaseline ==
+                                null)
+                          _LedPreparationPanel(initialRegion: state.ledRegion),
+                        if (config.measurementMethod == MeasurementMethod.led &&
+                            sample.pulseAcquisitionConfiguration?.ledBaseline !=
+                                null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            'LED live: ${state.ledLivePulses} · reconciliados: ${state.ledReconciledPulses} · falsos: ${state.ledFalsePositives}',
+                          ),
+                          Text(
+                            'Dark ${state.ledDarkBrightness?.toStringAsFixed(1) ?? '—'} · Bright ${state.ledBrightBrightness?.toStringAsFixed(1) ?? '—'} · FPS ${state.ledFps?.toStringAsFixed(1) ?? '—'} · descartados ${state.ledFramesDropped}',
+                          ),
+                        ],
+                      ],
                     ),
                 ],
               ),
@@ -206,6 +244,126 @@ final class _TestRunScreenState extends ConsumerState<TestRunScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+final class _LedPreparationPanel extends ConsumerStatefulWidget {
+  const _LedPreparationPanel({required this.initialRegion});
+  final LedRegion initialRegion;
+
+  @override
+  ConsumerState<_LedPreparationPanel> createState() =>
+      _LedPreparationPanelState();
+}
+
+final class _LedPreparationPanelState
+    extends ConsumerState<_LedPreparationPanel> {
+  late LedRegion _region = widget.initialRegion;
+  bool _ready = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _initialize();
+  }
+
+  Future<void> _initialize() async {
+    final camera = ref.read(appDependenciesProvider).camera;
+    if (camera == null) return;
+    try {
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+      final permission = await camera.requestPermission();
+      if (permission != CameraPermissionState.granted) {
+        throw StateError('Permiso de cámara requerido para LED.');
+      }
+      await camera.initialize();
+      if (mounted) setState(() => _ready = true);
+    } catch (error) {
+      if (mounted) setState(() => _error = '$error');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final appState = ref.watch(appControllerProvider);
+    final camera = ref.read(appDependenciesProvider).camera;
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text('Apunte al LED integrado y coloque el recuadro sobre él.'),
+          const SizedBox(height: 8),
+          AspectRatio(
+            aspectRatio: 3 / 4,
+            child: LayoutBuilder(
+              builder: (context, box) => Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (_ready && camera != null)
+                    camera.buildPreview()
+                  else
+                    const ColoredBox(color: Colors.black),
+                  Positioned(
+                    left: _region.left * box.maxWidth,
+                    top: _region.top * box.maxHeight,
+                    width: _region.width * box.maxWidth,
+                    height: _region.height * box.maxHeight,
+                    child: GestureDetector(
+                      onPanUpdate: (details) {
+                        setState(() {
+                          _region = LedRegion(
+                            left:
+                                (_region.left + details.delta.dx / box.maxWidth)
+                                    .clamp(0, 1 - _region.width),
+                            top:
+                                (_region.top + details.delta.dy / box.maxHeight)
+                                    .clamp(0, 1 - _region.height),
+                            width: _region.width,
+                            height: _region.height,
+                          );
+                        });
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.amber, width: 3),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const Text('Tamaño ROI LED'),
+          Slider(
+            value: _region.width,
+            min: .08,
+            max: .45,
+            onChanged: (size) => setState(() {
+              _region = LedRegion(
+                left: _region.left.clamp(0, 1 - size),
+                top: _region.top.clamp(0, 1 - size),
+                width: size,
+                height: size,
+              );
+            }),
+          ),
+          if (_error != null)
+            Text(_error!, style: const TextStyle(color: AppColors.danger)),
+          FilledButton(
+            key: const Key('confirm-led-region'),
+            onPressed: !_ready || appState.busy
+                ? null
+                : () => ref
+                      .read(appControllerProvider.notifier)
+                      .prepareLedDetector(_region),
+            child: const Text('CONFIRMAR ROI Y PREPARAR LED'),
+          ),
+        ],
       ),
     );
   }

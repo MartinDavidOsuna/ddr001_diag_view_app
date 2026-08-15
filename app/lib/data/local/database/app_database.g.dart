@@ -4057,6 +4057,226 @@ class $SamplesTable extends Samples with TableInfo<$SamplesTable, SampleRow> {
         type: DriftSqlType.string,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _bleDeviceIdMeta = const VerificationMeta(
+    'bleDeviceId',
+  );
+  @override
+  late final GeneratedColumn<String> bleDeviceId = GeneratedColumn<String>(
+    'ble_device_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _bleDeviceNameMeta = const VerificationMeta(
+    'bleDeviceName',
+  );
+  @override
+  late final GeneratedColumn<String> bleDeviceName = GeneratedColumn<String>(
+    'ble_device_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _bleServiceUuidMeta = const VerificationMeta(
+    'bleServiceUuid',
+  );
+  @override
+  late final GeneratedColumn<String> bleServiceUuid = GeneratedColumn<String>(
+    'ble_service_uuid',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _bleCounterCharacteristicUuidMeta =
+      const VerificationMeta('bleCounterCharacteristicUuid');
+  @override
+  late final GeneratedColumn<String> bleCounterCharacteristicUuid =
+      GeneratedColumn<String>(
+        'ble_counter_characteristic_uuid',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _bleProtocolVersionMeta =
+      const VerificationMeta('bleProtocolVersion');
+  @override
+  late final GeneratedColumn<int> bleProtocolVersion = GeneratedColumn<int>(
+    'ble_protocol_version',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _esp32CounterAtStartMeta =
+      const VerificationMeta('esp32CounterAtStart');
+  @override
+  late final GeneratedColumn<int> esp32CounterAtStart = GeneratedColumn<int>(
+    'esp32_counter_at_start',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastObservedEsp32CounterMeta =
+      const VerificationMeta('lastObservedEsp32Counter');
+  @override
+  late final GeneratedColumn<int> lastObservedEsp32Counter =
+      GeneratedColumn<int>(
+        'last_observed_esp32_counter',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _ledRoiLeftMeta = const VerificationMeta(
+    'ledRoiLeft',
+  );
+  @override
+  late final GeneratedColumn<double> ledRoiLeft = GeneratedColumn<double>(
+    'led_roi_left',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _ledRoiTopMeta = const VerificationMeta(
+    'ledRoiTop',
+  );
+  @override
+  late final GeneratedColumn<double> ledRoiTop = GeneratedColumn<double>(
+    'led_roi_top',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _ledRoiWidthMeta = const VerificationMeta(
+    'ledRoiWidth',
+  );
+  @override
+  late final GeneratedColumn<double> ledRoiWidth = GeneratedColumn<double>(
+    'led_roi_width',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _ledRoiHeightMeta = const VerificationMeta(
+    'ledRoiHeight',
+  );
+  @override
+  late final GeneratedColumn<double> ledRoiHeight = GeneratedColumn<double>(
+    'led_roi_height',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _ledRisingDeltaMeta = const VerificationMeta(
+    'ledRisingDelta',
+  );
+  @override
+  late final GeneratedColumn<double> ledRisingDelta = GeneratedColumn<double>(
+    'led_rising_delta',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _ledFallingDeltaMeta = const VerificationMeta(
+    'ledFallingDelta',
+  );
+  @override
+  late final GeneratedColumn<double> ledFallingDelta = GeneratedColumn<double>(
+    'led_falling_delta',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _ledMinPulseIntervalMsMeta =
+      const VerificationMeta('ledMinPulseIntervalMs');
+  @override
+  late final GeneratedColumn<int> ledMinPulseIntervalMs = GeneratedColumn<int>(
+    'led_min_pulse_interval_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _ledBaselineMeta = const VerificationMeta(
+    'ledBaseline',
+  );
+  @override
+  late final GeneratedColumn<double> ledBaseline = GeneratedColumn<double>(
+    'led_baseline',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _ledUsesBleReconciliationMeta =
+      const VerificationMeta('ledUsesBleReconciliation');
+  @override
+  late final GeneratedColumn<bool> ledUsesBleReconciliation =
+      GeneratedColumn<bool>(
+        'led_uses_ble_reconciliation',
+        aliasedName,
+        true,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("led_uses_ble_reconciliation" IN (0, 1))',
+        ),
+      );
+  static const VerificationMeta _acquisitionIntegrityStatusMeta =
+      const VerificationMeta('acquisitionIntegrityStatus');
+  @override
+  late final GeneratedColumn<String> acquisitionIntegrityStatus =
+      GeneratedColumn<String>(
+        'acquisition_integrity_status',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _acquisitionIntegrityReasonMeta =
+      const VerificationMeta('acquisitionIntegrityReason');
+  @override
+  late final GeneratedColumn<String> acquisitionIntegrityReason =
+      GeneratedColumn<String>(
+        'acquisition_integrity_reason',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _acquisitionIntegrityAtMsMeta =
+      const VerificationMeta('acquisitionIntegrityAtMs');
+  @override
+  late final GeneratedColumn<int> acquisitionIntegrityAtMs =
+      GeneratedColumn<int>(
+        'acquisition_integrity_at_ms',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _acquisitionIntegritySourceMeta =
+      const VerificationMeta('acquisitionIntegritySource');
+  @override
+  late final GeneratedColumn<String> acquisitionIntegritySource =
+      GeneratedColumn<String>(
+        'acquisition_integrity_source',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _createdAtMsMeta = const VerificationMeta(
     'createdAtMs',
   );
@@ -4395,6 +4615,26 @@ class $SamplesTable extends Samples with TableInfo<$SamplesTable, SampleRow> {
     totalizerUnit,
     totalizerLeadingZerosAllowed,
     totalizerConfigurationSource,
+    bleDeviceId,
+    bleDeviceName,
+    bleServiceUuid,
+    bleCounterCharacteristicUuid,
+    bleProtocolVersion,
+    esp32CounterAtStart,
+    lastObservedEsp32Counter,
+    ledRoiLeft,
+    ledRoiTop,
+    ledRoiWidth,
+    ledRoiHeight,
+    ledRisingDelta,
+    ledFallingDelta,
+    ledMinPulseIntervalMs,
+    ledBaseline,
+    ledUsesBleReconciliation,
+    acquisitionIntegrityStatus,
+    acquisitionIntegrityReason,
+    acquisitionIntegrityAtMs,
+    acquisitionIntegritySource,
     createdAtMs,
     updatedAtMs,
     startedAtMs,
@@ -4708,6 +4948,183 @@ class $SamplesTable extends Samples with TableInfo<$SamplesTable, SampleRow> {
         totalizerConfigurationSource.isAcceptableOrUnknown(
           data['totalizer_configuration_source']!,
           _totalizerConfigurationSourceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('ble_device_id')) {
+      context.handle(
+        _bleDeviceIdMeta,
+        bleDeviceId.isAcceptableOrUnknown(
+          data['ble_device_id']!,
+          _bleDeviceIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('ble_device_name')) {
+      context.handle(
+        _bleDeviceNameMeta,
+        bleDeviceName.isAcceptableOrUnknown(
+          data['ble_device_name']!,
+          _bleDeviceNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('ble_service_uuid')) {
+      context.handle(
+        _bleServiceUuidMeta,
+        bleServiceUuid.isAcceptableOrUnknown(
+          data['ble_service_uuid']!,
+          _bleServiceUuidMeta,
+        ),
+      );
+    }
+    if (data.containsKey('ble_counter_characteristic_uuid')) {
+      context.handle(
+        _bleCounterCharacteristicUuidMeta,
+        bleCounterCharacteristicUuid.isAcceptableOrUnknown(
+          data['ble_counter_characteristic_uuid']!,
+          _bleCounterCharacteristicUuidMeta,
+        ),
+      );
+    }
+    if (data.containsKey('ble_protocol_version')) {
+      context.handle(
+        _bleProtocolVersionMeta,
+        bleProtocolVersion.isAcceptableOrUnknown(
+          data['ble_protocol_version']!,
+          _bleProtocolVersionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('esp32_counter_at_start')) {
+      context.handle(
+        _esp32CounterAtStartMeta,
+        esp32CounterAtStart.isAcceptableOrUnknown(
+          data['esp32_counter_at_start']!,
+          _esp32CounterAtStartMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_observed_esp32_counter')) {
+      context.handle(
+        _lastObservedEsp32CounterMeta,
+        lastObservedEsp32Counter.isAcceptableOrUnknown(
+          data['last_observed_esp32_counter']!,
+          _lastObservedEsp32CounterMeta,
+        ),
+      );
+    }
+    if (data.containsKey('led_roi_left')) {
+      context.handle(
+        _ledRoiLeftMeta,
+        ledRoiLeft.isAcceptableOrUnknown(
+          data['led_roi_left']!,
+          _ledRoiLeftMeta,
+        ),
+      );
+    }
+    if (data.containsKey('led_roi_top')) {
+      context.handle(
+        _ledRoiTopMeta,
+        ledRoiTop.isAcceptableOrUnknown(data['led_roi_top']!, _ledRoiTopMeta),
+      );
+    }
+    if (data.containsKey('led_roi_width')) {
+      context.handle(
+        _ledRoiWidthMeta,
+        ledRoiWidth.isAcceptableOrUnknown(
+          data['led_roi_width']!,
+          _ledRoiWidthMeta,
+        ),
+      );
+    }
+    if (data.containsKey('led_roi_height')) {
+      context.handle(
+        _ledRoiHeightMeta,
+        ledRoiHeight.isAcceptableOrUnknown(
+          data['led_roi_height']!,
+          _ledRoiHeightMeta,
+        ),
+      );
+    }
+    if (data.containsKey('led_rising_delta')) {
+      context.handle(
+        _ledRisingDeltaMeta,
+        ledRisingDelta.isAcceptableOrUnknown(
+          data['led_rising_delta']!,
+          _ledRisingDeltaMeta,
+        ),
+      );
+    }
+    if (data.containsKey('led_falling_delta')) {
+      context.handle(
+        _ledFallingDeltaMeta,
+        ledFallingDelta.isAcceptableOrUnknown(
+          data['led_falling_delta']!,
+          _ledFallingDeltaMeta,
+        ),
+      );
+    }
+    if (data.containsKey('led_min_pulse_interval_ms')) {
+      context.handle(
+        _ledMinPulseIntervalMsMeta,
+        ledMinPulseIntervalMs.isAcceptableOrUnknown(
+          data['led_min_pulse_interval_ms']!,
+          _ledMinPulseIntervalMsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('led_baseline')) {
+      context.handle(
+        _ledBaselineMeta,
+        ledBaseline.isAcceptableOrUnknown(
+          data['led_baseline']!,
+          _ledBaselineMeta,
+        ),
+      );
+    }
+    if (data.containsKey('led_uses_ble_reconciliation')) {
+      context.handle(
+        _ledUsesBleReconciliationMeta,
+        ledUsesBleReconciliation.isAcceptableOrUnknown(
+          data['led_uses_ble_reconciliation']!,
+          _ledUsesBleReconciliationMeta,
+        ),
+      );
+    }
+    if (data.containsKey('acquisition_integrity_status')) {
+      context.handle(
+        _acquisitionIntegrityStatusMeta,
+        acquisitionIntegrityStatus.isAcceptableOrUnknown(
+          data['acquisition_integrity_status']!,
+          _acquisitionIntegrityStatusMeta,
+        ),
+      );
+    }
+    if (data.containsKey('acquisition_integrity_reason')) {
+      context.handle(
+        _acquisitionIntegrityReasonMeta,
+        acquisitionIntegrityReason.isAcceptableOrUnknown(
+          data['acquisition_integrity_reason']!,
+          _acquisitionIntegrityReasonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('acquisition_integrity_at_ms')) {
+      context.handle(
+        _acquisitionIntegrityAtMsMeta,
+        acquisitionIntegrityAtMs.isAcceptableOrUnknown(
+          data['acquisition_integrity_at_ms']!,
+          _acquisitionIntegrityAtMsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('acquisition_integrity_source')) {
+      context.handle(
+        _acquisitionIntegritySourceMeta,
+        acquisitionIntegritySource.isAcceptableOrUnknown(
+          data['acquisition_integrity_source']!,
+          _acquisitionIntegritySourceMeta,
         ),
       );
     }
@@ -5076,6 +5493,86 @@ class $SamplesTable extends Samples with TableInfo<$SamplesTable, SampleRow> {
         DriftSqlType.string,
         data['${effectivePrefix}totalizer_configuration_source'],
       ),
+      bleDeviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}ble_device_id'],
+      ),
+      bleDeviceName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}ble_device_name'],
+      ),
+      bleServiceUuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}ble_service_uuid'],
+      ),
+      bleCounterCharacteristicUuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}ble_counter_characteristic_uuid'],
+      ),
+      bleProtocolVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}ble_protocol_version'],
+      ),
+      esp32CounterAtStart: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}esp32_counter_at_start'],
+      ),
+      lastObservedEsp32Counter: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_observed_esp32_counter'],
+      ),
+      ledRoiLeft: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}led_roi_left'],
+      ),
+      ledRoiTop: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}led_roi_top'],
+      ),
+      ledRoiWidth: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}led_roi_width'],
+      ),
+      ledRoiHeight: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}led_roi_height'],
+      ),
+      ledRisingDelta: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}led_rising_delta'],
+      ),
+      ledFallingDelta: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}led_falling_delta'],
+      ),
+      ledMinPulseIntervalMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}led_min_pulse_interval_ms'],
+      ),
+      ledBaseline: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}led_baseline'],
+      ),
+      ledUsesBleReconciliation: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}led_uses_ble_reconciliation'],
+      ),
+      acquisitionIntegrityStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}acquisition_integrity_status'],
+      ),
+      acquisitionIntegrityReason: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}acquisition_integrity_reason'],
+      ),
+      acquisitionIntegrityAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}acquisition_integrity_at_ms'],
+      ),
+      acquisitionIntegritySource: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}acquisition_integrity_source'],
+      ),
       createdAtMs: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}created_at_ms'],
@@ -5224,6 +5721,26 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
   final String? totalizerUnit;
   final bool? totalizerLeadingZerosAllowed;
   final String? totalizerConfigurationSource;
+  final String? bleDeviceId;
+  final String? bleDeviceName;
+  final String? bleServiceUuid;
+  final String? bleCounterCharacteristicUuid;
+  final int? bleProtocolVersion;
+  final int? esp32CounterAtStart;
+  final int? lastObservedEsp32Counter;
+  final double? ledRoiLeft;
+  final double? ledRoiTop;
+  final double? ledRoiWidth;
+  final double? ledRoiHeight;
+  final double? ledRisingDelta;
+  final double? ledFallingDelta;
+  final int? ledMinPulseIntervalMs;
+  final double? ledBaseline;
+  final bool? ledUsesBleReconciliation;
+  final String? acquisitionIntegrityStatus;
+  final String? acquisitionIntegrityReason;
+  final int? acquisitionIntegrityAtMs;
+  final String? acquisitionIntegritySource;
   final int createdAtMs;
   final int updatedAtMs;
   final int? startedAtMs;
@@ -5282,6 +5799,26 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
     this.totalizerUnit,
     this.totalizerLeadingZerosAllowed,
     this.totalizerConfigurationSource,
+    this.bleDeviceId,
+    this.bleDeviceName,
+    this.bleServiceUuid,
+    this.bleCounterCharacteristicUuid,
+    this.bleProtocolVersion,
+    this.esp32CounterAtStart,
+    this.lastObservedEsp32Counter,
+    this.ledRoiLeft,
+    this.ledRoiTop,
+    this.ledRoiWidth,
+    this.ledRoiHeight,
+    this.ledRisingDelta,
+    this.ledFallingDelta,
+    this.ledMinPulseIntervalMs,
+    this.ledBaseline,
+    this.ledUsesBleReconciliation,
+    this.acquisitionIntegrityStatus,
+    this.acquisitionIntegrityReason,
+    this.acquisitionIntegrityAtMs,
+    this.acquisitionIntegritySource,
     required this.createdAtMs,
     required this.updatedAtMs,
     this.startedAtMs,
@@ -5389,6 +5926,80 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
     if (!nullToAbsent || totalizerConfigurationSource != null) {
       map['totalizer_configuration_source'] = Variable<String>(
         totalizerConfigurationSource,
+      );
+    }
+    if (!nullToAbsent || bleDeviceId != null) {
+      map['ble_device_id'] = Variable<String>(bleDeviceId);
+    }
+    if (!nullToAbsent || bleDeviceName != null) {
+      map['ble_device_name'] = Variable<String>(bleDeviceName);
+    }
+    if (!nullToAbsent || bleServiceUuid != null) {
+      map['ble_service_uuid'] = Variable<String>(bleServiceUuid);
+    }
+    if (!nullToAbsent || bleCounterCharacteristicUuid != null) {
+      map['ble_counter_characteristic_uuid'] = Variable<String>(
+        bleCounterCharacteristicUuid,
+      );
+    }
+    if (!nullToAbsent || bleProtocolVersion != null) {
+      map['ble_protocol_version'] = Variable<int>(bleProtocolVersion);
+    }
+    if (!nullToAbsent || esp32CounterAtStart != null) {
+      map['esp32_counter_at_start'] = Variable<int>(esp32CounterAtStart);
+    }
+    if (!nullToAbsent || lastObservedEsp32Counter != null) {
+      map['last_observed_esp32_counter'] = Variable<int>(
+        lastObservedEsp32Counter,
+      );
+    }
+    if (!nullToAbsent || ledRoiLeft != null) {
+      map['led_roi_left'] = Variable<double>(ledRoiLeft);
+    }
+    if (!nullToAbsent || ledRoiTop != null) {
+      map['led_roi_top'] = Variable<double>(ledRoiTop);
+    }
+    if (!nullToAbsent || ledRoiWidth != null) {
+      map['led_roi_width'] = Variable<double>(ledRoiWidth);
+    }
+    if (!nullToAbsent || ledRoiHeight != null) {
+      map['led_roi_height'] = Variable<double>(ledRoiHeight);
+    }
+    if (!nullToAbsent || ledRisingDelta != null) {
+      map['led_rising_delta'] = Variable<double>(ledRisingDelta);
+    }
+    if (!nullToAbsent || ledFallingDelta != null) {
+      map['led_falling_delta'] = Variable<double>(ledFallingDelta);
+    }
+    if (!nullToAbsent || ledMinPulseIntervalMs != null) {
+      map['led_min_pulse_interval_ms'] = Variable<int>(ledMinPulseIntervalMs);
+    }
+    if (!nullToAbsent || ledBaseline != null) {
+      map['led_baseline'] = Variable<double>(ledBaseline);
+    }
+    if (!nullToAbsent || ledUsesBleReconciliation != null) {
+      map['led_uses_ble_reconciliation'] = Variable<bool>(
+        ledUsesBleReconciliation,
+      );
+    }
+    if (!nullToAbsent || acquisitionIntegrityStatus != null) {
+      map['acquisition_integrity_status'] = Variable<String>(
+        acquisitionIntegrityStatus,
+      );
+    }
+    if (!nullToAbsent || acquisitionIntegrityReason != null) {
+      map['acquisition_integrity_reason'] = Variable<String>(
+        acquisitionIntegrityReason,
+      );
+    }
+    if (!nullToAbsent || acquisitionIntegrityAtMs != null) {
+      map['acquisition_integrity_at_ms'] = Variable<int>(
+        acquisitionIntegrityAtMs,
+      );
+    }
+    if (!nullToAbsent || acquisitionIntegritySource != null) {
+      map['acquisition_integrity_source'] = Variable<String>(
+        acquisitionIntegritySource,
       );
     }
     map['created_at_ms'] = Variable<int>(createdAtMs);
@@ -5545,6 +6156,70 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
           totalizerConfigurationSource == null && nullToAbsent
           ? const Value.absent()
           : Value(totalizerConfigurationSource),
+      bleDeviceId: bleDeviceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(bleDeviceId),
+      bleDeviceName: bleDeviceName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(bleDeviceName),
+      bleServiceUuid: bleServiceUuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(bleServiceUuid),
+      bleCounterCharacteristicUuid:
+          bleCounterCharacteristicUuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(bleCounterCharacteristicUuid),
+      bleProtocolVersion: bleProtocolVersion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(bleProtocolVersion),
+      esp32CounterAtStart: esp32CounterAtStart == null && nullToAbsent
+          ? const Value.absent()
+          : Value(esp32CounterAtStart),
+      lastObservedEsp32Counter: lastObservedEsp32Counter == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastObservedEsp32Counter),
+      ledRoiLeft: ledRoiLeft == null && nullToAbsent
+          ? const Value.absent()
+          : Value(ledRoiLeft),
+      ledRoiTop: ledRoiTop == null && nullToAbsent
+          ? const Value.absent()
+          : Value(ledRoiTop),
+      ledRoiWidth: ledRoiWidth == null && nullToAbsent
+          ? const Value.absent()
+          : Value(ledRoiWidth),
+      ledRoiHeight: ledRoiHeight == null && nullToAbsent
+          ? const Value.absent()
+          : Value(ledRoiHeight),
+      ledRisingDelta: ledRisingDelta == null && nullToAbsent
+          ? const Value.absent()
+          : Value(ledRisingDelta),
+      ledFallingDelta: ledFallingDelta == null && nullToAbsent
+          ? const Value.absent()
+          : Value(ledFallingDelta),
+      ledMinPulseIntervalMs: ledMinPulseIntervalMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(ledMinPulseIntervalMs),
+      ledBaseline: ledBaseline == null && nullToAbsent
+          ? const Value.absent()
+          : Value(ledBaseline),
+      ledUsesBleReconciliation: ledUsesBleReconciliation == null && nullToAbsent
+          ? const Value.absent()
+          : Value(ledUsesBleReconciliation),
+      acquisitionIntegrityStatus:
+          acquisitionIntegrityStatus == null && nullToAbsent
+          ? const Value.absent()
+          : Value(acquisitionIntegrityStatus),
+      acquisitionIntegrityReason:
+          acquisitionIntegrityReason == null && nullToAbsent
+          ? const Value.absent()
+          : Value(acquisitionIntegrityReason),
+      acquisitionIntegrityAtMs: acquisitionIntegrityAtMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(acquisitionIntegrityAtMs),
+      acquisitionIntegritySource:
+          acquisitionIntegritySource == null && nullToAbsent
+          ? const Value.absent()
+          : Value(acquisitionIntegritySource),
       createdAtMs: Value(createdAtMs),
       updatedAtMs: Value(updatedAtMs),
       startedAtMs: startedAtMs == null && nullToAbsent
@@ -5681,6 +6356,44 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
       totalizerConfigurationSource: serializer.fromJson<String?>(
         json['totalizerConfigurationSource'],
       ),
+      bleDeviceId: serializer.fromJson<String?>(json['bleDeviceId']),
+      bleDeviceName: serializer.fromJson<String?>(json['bleDeviceName']),
+      bleServiceUuid: serializer.fromJson<String?>(json['bleServiceUuid']),
+      bleCounterCharacteristicUuid: serializer.fromJson<String?>(
+        json['bleCounterCharacteristicUuid'],
+      ),
+      bleProtocolVersion: serializer.fromJson<int?>(json['bleProtocolVersion']),
+      esp32CounterAtStart: serializer.fromJson<int?>(
+        json['esp32CounterAtStart'],
+      ),
+      lastObservedEsp32Counter: serializer.fromJson<int?>(
+        json['lastObservedEsp32Counter'],
+      ),
+      ledRoiLeft: serializer.fromJson<double?>(json['ledRoiLeft']),
+      ledRoiTop: serializer.fromJson<double?>(json['ledRoiTop']),
+      ledRoiWidth: serializer.fromJson<double?>(json['ledRoiWidth']),
+      ledRoiHeight: serializer.fromJson<double?>(json['ledRoiHeight']),
+      ledRisingDelta: serializer.fromJson<double?>(json['ledRisingDelta']),
+      ledFallingDelta: serializer.fromJson<double?>(json['ledFallingDelta']),
+      ledMinPulseIntervalMs: serializer.fromJson<int?>(
+        json['ledMinPulseIntervalMs'],
+      ),
+      ledBaseline: serializer.fromJson<double?>(json['ledBaseline']),
+      ledUsesBleReconciliation: serializer.fromJson<bool?>(
+        json['ledUsesBleReconciliation'],
+      ),
+      acquisitionIntegrityStatus: serializer.fromJson<String?>(
+        json['acquisitionIntegrityStatus'],
+      ),
+      acquisitionIntegrityReason: serializer.fromJson<String?>(
+        json['acquisitionIntegrityReason'],
+      ),
+      acquisitionIntegrityAtMs: serializer.fromJson<int?>(
+        json['acquisitionIntegrityAtMs'],
+      ),
+      acquisitionIntegritySource: serializer.fromJson<String?>(
+        json['acquisitionIntegritySource'],
+      ),
       createdAtMs: serializer.fromJson<int>(json['createdAtMs']),
       updatedAtMs: serializer.fromJson<int>(json['updatedAtMs']),
       startedAtMs: serializer.fromJson<int?>(json['startedAtMs']),
@@ -5780,6 +6493,40 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
       'totalizerConfigurationSource': serializer.toJson<String?>(
         totalizerConfigurationSource,
       ),
+      'bleDeviceId': serializer.toJson<String?>(bleDeviceId),
+      'bleDeviceName': serializer.toJson<String?>(bleDeviceName),
+      'bleServiceUuid': serializer.toJson<String?>(bleServiceUuid),
+      'bleCounterCharacteristicUuid': serializer.toJson<String?>(
+        bleCounterCharacteristicUuid,
+      ),
+      'bleProtocolVersion': serializer.toJson<int?>(bleProtocolVersion),
+      'esp32CounterAtStart': serializer.toJson<int?>(esp32CounterAtStart),
+      'lastObservedEsp32Counter': serializer.toJson<int?>(
+        lastObservedEsp32Counter,
+      ),
+      'ledRoiLeft': serializer.toJson<double?>(ledRoiLeft),
+      'ledRoiTop': serializer.toJson<double?>(ledRoiTop),
+      'ledRoiWidth': serializer.toJson<double?>(ledRoiWidth),
+      'ledRoiHeight': serializer.toJson<double?>(ledRoiHeight),
+      'ledRisingDelta': serializer.toJson<double?>(ledRisingDelta),
+      'ledFallingDelta': serializer.toJson<double?>(ledFallingDelta),
+      'ledMinPulseIntervalMs': serializer.toJson<int?>(ledMinPulseIntervalMs),
+      'ledBaseline': serializer.toJson<double?>(ledBaseline),
+      'ledUsesBleReconciliation': serializer.toJson<bool?>(
+        ledUsesBleReconciliation,
+      ),
+      'acquisitionIntegrityStatus': serializer.toJson<String?>(
+        acquisitionIntegrityStatus,
+      ),
+      'acquisitionIntegrityReason': serializer.toJson<String?>(
+        acquisitionIntegrityReason,
+      ),
+      'acquisitionIntegrityAtMs': serializer.toJson<int?>(
+        acquisitionIntegrityAtMs,
+      ),
+      'acquisitionIntegritySource': serializer.toJson<String?>(
+        acquisitionIntegritySource,
+      ),
       'createdAtMs': serializer.toJson<int>(createdAtMs),
       'updatedAtMs': serializer.toJson<int>(updatedAtMs),
       'startedAtMs': serializer.toJson<int?>(startedAtMs),
@@ -5847,6 +6594,26 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
     Value<String?> totalizerUnit = const Value.absent(),
     Value<bool?> totalizerLeadingZerosAllowed = const Value.absent(),
     Value<String?> totalizerConfigurationSource = const Value.absent(),
+    Value<String?> bleDeviceId = const Value.absent(),
+    Value<String?> bleDeviceName = const Value.absent(),
+    Value<String?> bleServiceUuid = const Value.absent(),
+    Value<String?> bleCounterCharacteristicUuid = const Value.absent(),
+    Value<int?> bleProtocolVersion = const Value.absent(),
+    Value<int?> esp32CounterAtStart = const Value.absent(),
+    Value<int?> lastObservedEsp32Counter = const Value.absent(),
+    Value<double?> ledRoiLeft = const Value.absent(),
+    Value<double?> ledRoiTop = const Value.absent(),
+    Value<double?> ledRoiWidth = const Value.absent(),
+    Value<double?> ledRoiHeight = const Value.absent(),
+    Value<double?> ledRisingDelta = const Value.absent(),
+    Value<double?> ledFallingDelta = const Value.absent(),
+    Value<int?> ledMinPulseIntervalMs = const Value.absent(),
+    Value<double?> ledBaseline = const Value.absent(),
+    Value<bool?> ledUsesBleReconciliation = const Value.absent(),
+    Value<String?> acquisitionIntegrityStatus = const Value.absent(),
+    Value<String?> acquisitionIntegrityReason = const Value.absent(),
+    Value<int?> acquisitionIntegrityAtMs = const Value.absent(),
+    Value<String?> acquisitionIntegritySource = const Value.absent(),
     int? createdAtMs,
     int? updatedAtMs,
     Value<int?> startedAtMs = const Value.absent(),
@@ -5933,6 +6700,54 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
     totalizerConfigurationSource: totalizerConfigurationSource.present
         ? totalizerConfigurationSource.value
         : this.totalizerConfigurationSource,
+    bleDeviceId: bleDeviceId.present ? bleDeviceId.value : this.bleDeviceId,
+    bleDeviceName: bleDeviceName.present
+        ? bleDeviceName.value
+        : this.bleDeviceName,
+    bleServiceUuid: bleServiceUuid.present
+        ? bleServiceUuid.value
+        : this.bleServiceUuid,
+    bleCounterCharacteristicUuid: bleCounterCharacteristicUuid.present
+        ? bleCounterCharacteristicUuid.value
+        : this.bleCounterCharacteristicUuid,
+    bleProtocolVersion: bleProtocolVersion.present
+        ? bleProtocolVersion.value
+        : this.bleProtocolVersion,
+    esp32CounterAtStart: esp32CounterAtStart.present
+        ? esp32CounterAtStart.value
+        : this.esp32CounterAtStart,
+    lastObservedEsp32Counter: lastObservedEsp32Counter.present
+        ? lastObservedEsp32Counter.value
+        : this.lastObservedEsp32Counter,
+    ledRoiLeft: ledRoiLeft.present ? ledRoiLeft.value : this.ledRoiLeft,
+    ledRoiTop: ledRoiTop.present ? ledRoiTop.value : this.ledRoiTop,
+    ledRoiWidth: ledRoiWidth.present ? ledRoiWidth.value : this.ledRoiWidth,
+    ledRoiHeight: ledRoiHeight.present ? ledRoiHeight.value : this.ledRoiHeight,
+    ledRisingDelta: ledRisingDelta.present
+        ? ledRisingDelta.value
+        : this.ledRisingDelta,
+    ledFallingDelta: ledFallingDelta.present
+        ? ledFallingDelta.value
+        : this.ledFallingDelta,
+    ledMinPulseIntervalMs: ledMinPulseIntervalMs.present
+        ? ledMinPulseIntervalMs.value
+        : this.ledMinPulseIntervalMs,
+    ledBaseline: ledBaseline.present ? ledBaseline.value : this.ledBaseline,
+    ledUsesBleReconciliation: ledUsesBleReconciliation.present
+        ? ledUsesBleReconciliation.value
+        : this.ledUsesBleReconciliation,
+    acquisitionIntegrityStatus: acquisitionIntegrityStatus.present
+        ? acquisitionIntegrityStatus.value
+        : this.acquisitionIntegrityStatus,
+    acquisitionIntegrityReason: acquisitionIntegrityReason.present
+        ? acquisitionIntegrityReason.value
+        : this.acquisitionIntegrityReason,
+    acquisitionIntegrityAtMs: acquisitionIntegrityAtMs.present
+        ? acquisitionIntegrityAtMs.value
+        : this.acquisitionIntegrityAtMs,
+    acquisitionIntegritySource: acquisitionIntegritySource.present
+        ? acquisitionIntegritySource.value
+        : this.acquisitionIntegritySource,
     createdAtMs: createdAtMs ?? this.createdAtMs,
     updatedAtMs: updatedAtMs ?? this.updatedAtMs,
     startedAtMs: startedAtMs.present ? startedAtMs.value : this.startedAtMs,
@@ -6077,6 +6892,64 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
       totalizerConfigurationSource: data.totalizerConfigurationSource.present
           ? data.totalizerConfigurationSource.value
           : this.totalizerConfigurationSource,
+      bleDeviceId: data.bleDeviceId.present
+          ? data.bleDeviceId.value
+          : this.bleDeviceId,
+      bleDeviceName: data.bleDeviceName.present
+          ? data.bleDeviceName.value
+          : this.bleDeviceName,
+      bleServiceUuid: data.bleServiceUuid.present
+          ? data.bleServiceUuid.value
+          : this.bleServiceUuid,
+      bleCounterCharacteristicUuid: data.bleCounterCharacteristicUuid.present
+          ? data.bleCounterCharacteristicUuid.value
+          : this.bleCounterCharacteristicUuid,
+      bleProtocolVersion: data.bleProtocolVersion.present
+          ? data.bleProtocolVersion.value
+          : this.bleProtocolVersion,
+      esp32CounterAtStart: data.esp32CounterAtStart.present
+          ? data.esp32CounterAtStart.value
+          : this.esp32CounterAtStart,
+      lastObservedEsp32Counter: data.lastObservedEsp32Counter.present
+          ? data.lastObservedEsp32Counter.value
+          : this.lastObservedEsp32Counter,
+      ledRoiLeft: data.ledRoiLeft.present
+          ? data.ledRoiLeft.value
+          : this.ledRoiLeft,
+      ledRoiTop: data.ledRoiTop.present ? data.ledRoiTop.value : this.ledRoiTop,
+      ledRoiWidth: data.ledRoiWidth.present
+          ? data.ledRoiWidth.value
+          : this.ledRoiWidth,
+      ledRoiHeight: data.ledRoiHeight.present
+          ? data.ledRoiHeight.value
+          : this.ledRoiHeight,
+      ledRisingDelta: data.ledRisingDelta.present
+          ? data.ledRisingDelta.value
+          : this.ledRisingDelta,
+      ledFallingDelta: data.ledFallingDelta.present
+          ? data.ledFallingDelta.value
+          : this.ledFallingDelta,
+      ledMinPulseIntervalMs: data.ledMinPulseIntervalMs.present
+          ? data.ledMinPulseIntervalMs.value
+          : this.ledMinPulseIntervalMs,
+      ledBaseline: data.ledBaseline.present
+          ? data.ledBaseline.value
+          : this.ledBaseline,
+      ledUsesBleReconciliation: data.ledUsesBleReconciliation.present
+          ? data.ledUsesBleReconciliation.value
+          : this.ledUsesBleReconciliation,
+      acquisitionIntegrityStatus: data.acquisitionIntegrityStatus.present
+          ? data.acquisitionIntegrityStatus.value
+          : this.acquisitionIntegrityStatus,
+      acquisitionIntegrityReason: data.acquisitionIntegrityReason.present
+          ? data.acquisitionIntegrityReason.value
+          : this.acquisitionIntegrityReason,
+      acquisitionIntegrityAtMs: data.acquisitionIntegrityAtMs.present
+          ? data.acquisitionIntegrityAtMs.value
+          : this.acquisitionIntegrityAtMs,
+      acquisitionIntegritySource: data.acquisitionIntegritySource.present
+          ? data.acquisitionIntegritySource.value
+          : this.acquisitionIntegritySource,
       createdAtMs: data.createdAtMs.present
           ? data.createdAtMs.value
           : this.createdAtMs,
@@ -6190,6 +7063,28 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
           ..write(
             'totalizerConfigurationSource: $totalizerConfigurationSource, ',
           )
+          ..write('bleDeviceId: $bleDeviceId, ')
+          ..write('bleDeviceName: $bleDeviceName, ')
+          ..write('bleServiceUuid: $bleServiceUuid, ')
+          ..write(
+            'bleCounterCharacteristicUuid: $bleCounterCharacteristicUuid, ',
+          )
+          ..write('bleProtocolVersion: $bleProtocolVersion, ')
+          ..write('esp32CounterAtStart: $esp32CounterAtStart, ')
+          ..write('lastObservedEsp32Counter: $lastObservedEsp32Counter, ')
+          ..write('ledRoiLeft: $ledRoiLeft, ')
+          ..write('ledRoiTop: $ledRoiTop, ')
+          ..write('ledRoiWidth: $ledRoiWidth, ')
+          ..write('ledRoiHeight: $ledRoiHeight, ')
+          ..write('ledRisingDelta: $ledRisingDelta, ')
+          ..write('ledFallingDelta: $ledFallingDelta, ')
+          ..write('ledMinPulseIntervalMs: $ledMinPulseIntervalMs, ')
+          ..write('ledBaseline: $ledBaseline, ')
+          ..write('ledUsesBleReconciliation: $ledUsesBleReconciliation, ')
+          ..write('acquisitionIntegrityStatus: $acquisitionIntegrityStatus, ')
+          ..write('acquisitionIntegrityReason: $acquisitionIntegrityReason, ')
+          ..write('acquisitionIntegrityAtMs: $acquisitionIntegrityAtMs, ')
+          ..write('acquisitionIntegritySource: $acquisitionIntegritySource, ')
           ..write('createdAtMs: $createdAtMs, ')
           ..write('updatedAtMs: $updatedAtMs, ')
           ..write('startedAtMs: $startedAtMs, ')
@@ -6253,6 +7148,26 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
     totalizerUnit,
     totalizerLeadingZerosAllowed,
     totalizerConfigurationSource,
+    bleDeviceId,
+    bleDeviceName,
+    bleServiceUuid,
+    bleCounterCharacteristicUuid,
+    bleProtocolVersion,
+    esp32CounterAtStart,
+    lastObservedEsp32Counter,
+    ledRoiLeft,
+    ledRoiTop,
+    ledRoiWidth,
+    ledRoiHeight,
+    ledRisingDelta,
+    ledFallingDelta,
+    ledMinPulseIntervalMs,
+    ledBaseline,
+    ledUsesBleReconciliation,
+    acquisitionIntegrityStatus,
+    acquisitionIntegrityReason,
+    acquisitionIntegrityAtMs,
+    acquisitionIntegritySource,
     createdAtMs,
     updatedAtMs,
     startedAtMs,
@@ -6317,6 +7232,27 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
               this.totalizerLeadingZerosAllowed &&
           other.totalizerConfigurationSource ==
               this.totalizerConfigurationSource &&
+          other.bleDeviceId == this.bleDeviceId &&
+          other.bleDeviceName == this.bleDeviceName &&
+          other.bleServiceUuid == this.bleServiceUuid &&
+          other.bleCounterCharacteristicUuid ==
+              this.bleCounterCharacteristicUuid &&
+          other.bleProtocolVersion == this.bleProtocolVersion &&
+          other.esp32CounterAtStart == this.esp32CounterAtStart &&
+          other.lastObservedEsp32Counter == this.lastObservedEsp32Counter &&
+          other.ledRoiLeft == this.ledRoiLeft &&
+          other.ledRoiTop == this.ledRoiTop &&
+          other.ledRoiWidth == this.ledRoiWidth &&
+          other.ledRoiHeight == this.ledRoiHeight &&
+          other.ledRisingDelta == this.ledRisingDelta &&
+          other.ledFallingDelta == this.ledFallingDelta &&
+          other.ledMinPulseIntervalMs == this.ledMinPulseIntervalMs &&
+          other.ledBaseline == this.ledBaseline &&
+          other.ledUsesBleReconciliation == this.ledUsesBleReconciliation &&
+          other.acquisitionIntegrityStatus == this.acquisitionIntegrityStatus &&
+          other.acquisitionIntegrityReason == this.acquisitionIntegrityReason &&
+          other.acquisitionIntegrityAtMs == this.acquisitionIntegrityAtMs &&
+          other.acquisitionIntegritySource == this.acquisitionIntegritySource &&
           other.createdAtMs == this.createdAtMs &&
           other.updatedAtMs == this.updatedAtMs &&
           other.startedAtMs == this.startedAtMs &&
@@ -6377,6 +7313,26 @@ class SamplesCompanion extends UpdateCompanion<SampleRow> {
   final Value<String?> totalizerUnit;
   final Value<bool?> totalizerLeadingZerosAllowed;
   final Value<String?> totalizerConfigurationSource;
+  final Value<String?> bleDeviceId;
+  final Value<String?> bleDeviceName;
+  final Value<String?> bleServiceUuid;
+  final Value<String?> bleCounterCharacteristicUuid;
+  final Value<int?> bleProtocolVersion;
+  final Value<int?> esp32CounterAtStart;
+  final Value<int?> lastObservedEsp32Counter;
+  final Value<double?> ledRoiLeft;
+  final Value<double?> ledRoiTop;
+  final Value<double?> ledRoiWidth;
+  final Value<double?> ledRoiHeight;
+  final Value<double?> ledRisingDelta;
+  final Value<double?> ledFallingDelta;
+  final Value<int?> ledMinPulseIntervalMs;
+  final Value<double?> ledBaseline;
+  final Value<bool?> ledUsesBleReconciliation;
+  final Value<String?> acquisitionIntegrityStatus;
+  final Value<String?> acquisitionIntegrityReason;
+  final Value<int?> acquisitionIntegrityAtMs;
+  final Value<String?> acquisitionIntegritySource;
   final Value<int> createdAtMs;
   final Value<int> updatedAtMs;
   final Value<int?> startedAtMs;
@@ -6436,6 +7392,26 @@ class SamplesCompanion extends UpdateCompanion<SampleRow> {
     this.totalizerUnit = const Value.absent(),
     this.totalizerLeadingZerosAllowed = const Value.absent(),
     this.totalizerConfigurationSource = const Value.absent(),
+    this.bleDeviceId = const Value.absent(),
+    this.bleDeviceName = const Value.absent(),
+    this.bleServiceUuid = const Value.absent(),
+    this.bleCounterCharacteristicUuid = const Value.absent(),
+    this.bleProtocolVersion = const Value.absent(),
+    this.esp32CounterAtStart = const Value.absent(),
+    this.lastObservedEsp32Counter = const Value.absent(),
+    this.ledRoiLeft = const Value.absent(),
+    this.ledRoiTop = const Value.absent(),
+    this.ledRoiWidth = const Value.absent(),
+    this.ledRoiHeight = const Value.absent(),
+    this.ledRisingDelta = const Value.absent(),
+    this.ledFallingDelta = const Value.absent(),
+    this.ledMinPulseIntervalMs = const Value.absent(),
+    this.ledBaseline = const Value.absent(),
+    this.ledUsesBleReconciliation = const Value.absent(),
+    this.acquisitionIntegrityStatus = const Value.absent(),
+    this.acquisitionIntegrityReason = const Value.absent(),
+    this.acquisitionIntegrityAtMs = const Value.absent(),
+    this.acquisitionIntegritySource = const Value.absent(),
     this.createdAtMs = const Value.absent(),
     this.updatedAtMs = const Value.absent(),
     this.startedAtMs = const Value.absent(),
@@ -6496,6 +7472,26 @@ class SamplesCompanion extends UpdateCompanion<SampleRow> {
     this.totalizerUnit = const Value.absent(),
     this.totalizerLeadingZerosAllowed = const Value.absent(),
     this.totalizerConfigurationSource = const Value.absent(),
+    this.bleDeviceId = const Value.absent(),
+    this.bleDeviceName = const Value.absent(),
+    this.bleServiceUuid = const Value.absent(),
+    this.bleCounterCharacteristicUuid = const Value.absent(),
+    this.bleProtocolVersion = const Value.absent(),
+    this.esp32CounterAtStart = const Value.absent(),
+    this.lastObservedEsp32Counter = const Value.absent(),
+    this.ledRoiLeft = const Value.absent(),
+    this.ledRoiTop = const Value.absent(),
+    this.ledRoiWidth = const Value.absent(),
+    this.ledRoiHeight = const Value.absent(),
+    this.ledRisingDelta = const Value.absent(),
+    this.ledFallingDelta = const Value.absent(),
+    this.ledMinPulseIntervalMs = const Value.absent(),
+    this.ledBaseline = const Value.absent(),
+    this.ledUsesBleReconciliation = const Value.absent(),
+    this.acquisitionIntegrityStatus = const Value.absent(),
+    this.acquisitionIntegrityReason = const Value.absent(),
+    this.acquisitionIntegrityAtMs = const Value.absent(),
+    this.acquisitionIntegritySource = const Value.absent(),
     required int createdAtMs,
     required int updatedAtMs,
     this.startedAtMs = const Value.absent(),
@@ -6569,6 +7565,26 @@ class SamplesCompanion extends UpdateCompanion<SampleRow> {
     Expression<String>? totalizerUnit,
     Expression<bool>? totalizerLeadingZerosAllowed,
     Expression<String>? totalizerConfigurationSource,
+    Expression<String>? bleDeviceId,
+    Expression<String>? bleDeviceName,
+    Expression<String>? bleServiceUuid,
+    Expression<String>? bleCounterCharacteristicUuid,
+    Expression<int>? bleProtocolVersion,
+    Expression<int>? esp32CounterAtStart,
+    Expression<int>? lastObservedEsp32Counter,
+    Expression<double>? ledRoiLeft,
+    Expression<double>? ledRoiTop,
+    Expression<double>? ledRoiWidth,
+    Expression<double>? ledRoiHeight,
+    Expression<double>? ledRisingDelta,
+    Expression<double>? ledFallingDelta,
+    Expression<int>? ledMinPulseIntervalMs,
+    Expression<double>? ledBaseline,
+    Expression<bool>? ledUsesBleReconciliation,
+    Expression<String>? acquisitionIntegrityStatus,
+    Expression<String>? acquisitionIntegrityReason,
+    Expression<int>? acquisitionIntegrityAtMs,
+    Expression<String>? acquisitionIntegritySource,
     Expression<int>? createdAtMs,
     Expression<int>? updatedAtMs,
     Expression<int>? startedAtMs,
@@ -6640,6 +7656,36 @@ class SamplesCompanion extends UpdateCompanion<SampleRow> {
         'totalizer_leading_zeros_allowed': totalizerLeadingZerosAllowed,
       if (totalizerConfigurationSource != null)
         'totalizer_configuration_source': totalizerConfigurationSource,
+      if (bleDeviceId != null) 'ble_device_id': bleDeviceId,
+      if (bleDeviceName != null) 'ble_device_name': bleDeviceName,
+      if (bleServiceUuid != null) 'ble_service_uuid': bleServiceUuid,
+      if (bleCounterCharacteristicUuid != null)
+        'ble_counter_characteristic_uuid': bleCounterCharacteristicUuid,
+      if (bleProtocolVersion != null)
+        'ble_protocol_version': bleProtocolVersion,
+      if (esp32CounterAtStart != null)
+        'esp32_counter_at_start': esp32CounterAtStart,
+      if (lastObservedEsp32Counter != null)
+        'last_observed_esp32_counter': lastObservedEsp32Counter,
+      if (ledRoiLeft != null) 'led_roi_left': ledRoiLeft,
+      if (ledRoiTop != null) 'led_roi_top': ledRoiTop,
+      if (ledRoiWidth != null) 'led_roi_width': ledRoiWidth,
+      if (ledRoiHeight != null) 'led_roi_height': ledRoiHeight,
+      if (ledRisingDelta != null) 'led_rising_delta': ledRisingDelta,
+      if (ledFallingDelta != null) 'led_falling_delta': ledFallingDelta,
+      if (ledMinPulseIntervalMs != null)
+        'led_min_pulse_interval_ms': ledMinPulseIntervalMs,
+      if (ledBaseline != null) 'led_baseline': ledBaseline,
+      if (ledUsesBleReconciliation != null)
+        'led_uses_ble_reconciliation': ledUsesBleReconciliation,
+      if (acquisitionIntegrityStatus != null)
+        'acquisition_integrity_status': acquisitionIntegrityStatus,
+      if (acquisitionIntegrityReason != null)
+        'acquisition_integrity_reason': acquisitionIntegrityReason,
+      if (acquisitionIntegrityAtMs != null)
+        'acquisition_integrity_at_ms': acquisitionIntegrityAtMs,
+      if (acquisitionIntegritySource != null)
+        'acquisition_integrity_source': acquisitionIntegritySource,
       if (createdAtMs != null) 'created_at_ms': createdAtMs,
       if (updatedAtMs != null) 'updated_at_ms': updatedAtMs,
       if (startedAtMs != null) 'started_at_ms': startedAtMs,
@@ -6712,6 +7758,26 @@ class SamplesCompanion extends UpdateCompanion<SampleRow> {
     Value<String?>? totalizerUnit,
     Value<bool?>? totalizerLeadingZerosAllowed,
     Value<String?>? totalizerConfigurationSource,
+    Value<String?>? bleDeviceId,
+    Value<String?>? bleDeviceName,
+    Value<String?>? bleServiceUuid,
+    Value<String?>? bleCounterCharacteristicUuid,
+    Value<int?>? bleProtocolVersion,
+    Value<int?>? esp32CounterAtStart,
+    Value<int?>? lastObservedEsp32Counter,
+    Value<double?>? ledRoiLeft,
+    Value<double?>? ledRoiTop,
+    Value<double?>? ledRoiWidth,
+    Value<double?>? ledRoiHeight,
+    Value<double?>? ledRisingDelta,
+    Value<double?>? ledFallingDelta,
+    Value<int?>? ledMinPulseIntervalMs,
+    Value<double?>? ledBaseline,
+    Value<bool?>? ledUsesBleReconciliation,
+    Value<String?>? acquisitionIntegrityStatus,
+    Value<String?>? acquisitionIntegrityReason,
+    Value<int?>? acquisitionIntegrityAtMs,
+    Value<String?>? acquisitionIntegritySource,
     Value<int>? createdAtMs,
     Value<int>? updatedAtMs,
     Value<int?>? startedAtMs,
@@ -6780,6 +7846,34 @@ class SamplesCompanion extends UpdateCompanion<SampleRow> {
           totalizerLeadingZerosAllowed ?? this.totalizerLeadingZerosAllowed,
       totalizerConfigurationSource:
           totalizerConfigurationSource ?? this.totalizerConfigurationSource,
+      bleDeviceId: bleDeviceId ?? this.bleDeviceId,
+      bleDeviceName: bleDeviceName ?? this.bleDeviceName,
+      bleServiceUuid: bleServiceUuid ?? this.bleServiceUuid,
+      bleCounterCharacteristicUuid:
+          bleCounterCharacteristicUuid ?? this.bleCounterCharacteristicUuid,
+      bleProtocolVersion: bleProtocolVersion ?? this.bleProtocolVersion,
+      esp32CounterAtStart: esp32CounterAtStart ?? this.esp32CounterAtStart,
+      lastObservedEsp32Counter:
+          lastObservedEsp32Counter ?? this.lastObservedEsp32Counter,
+      ledRoiLeft: ledRoiLeft ?? this.ledRoiLeft,
+      ledRoiTop: ledRoiTop ?? this.ledRoiTop,
+      ledRoiWidth: ledRoiWidth ?? this.ledRoiWidth,
+      ledRoiHeight: ledRoiHeight ?? this.ledRoiHeight,
+      ledRisingDelta: ledRisingDelta ?? this.ledRisingDelta,
+      ledFallingDelta: ledFallingDelta ?? this.ledFallingDelta,
+      ledMinPulseIntervalMs:
+          ledMinPulseIntervalMs ?? this.ledMinPulseIntervalMs,
+      ledBaseline: ledBaseline ?? this.ledBaseline,
+      ledUsesBleReconciliation:
+          ledUsesBleReconciliation ?? this.ledUsesBleReconciliation,
+      acquisitionIntegrityStatus:
+          acquisitionIntegrityStatus ?? this.acquisitionIntegrityStatus,
+      acquisitionIntegrityReason:
+          acquisitionIntegrityReason ?? this.acquisitionIntegrityReason,
+      acquisitionIntegrityAtMs:
+          acquisitionIntegrityAtMs ?? this.acquisitionIntegrityAtMs,
+      acquisitionIntegritySource:
+          acquisitionIntegritySource ?? this.acquisitionIntegritySource,
       createdAtMs: createdAtMs ?? this.createdAtMs,
       updatedAtMs: updatedAtMs ?? this.updatedAtMs,
       startedAtMs: startedAtMs ?? this.startedAtMs,
@@ -6925,6 +8019,82 @@ class SamplesCompanion extends UpdateCompanion<SampleRow> {
         totalizerConfigurationSource.value,
       );
     }
+    if (bleDeviceId.present) {
+      map['ble_device_id'] = Variable<String>(bleDeviceId.value);
+    }
+    if (bleDeviceName.present) {
+      map['ble_device_name'] = Variable<String>(bleDeviceName.value);
+    }
+    if (bleServiceUuid.present) {
+      map['ble_service_uuid'] = Variable<String>(bleServiceUuid.value);
+    }
+    if (bleCounterCharacteristicUuid.present) {
+      map['ble_counter_characteristic_uuid'] = Variable<String>(
+        bleCounterCharacteristicUuid.value,
+      );
+    }
+    if (bleProtocolVersion.present) {
+      map['ble_protocol_version'] = Variable<int>(bleProtocolVersion.value);
+    }
+    if (esp32CounterAtStart.present) {
+      map['esp32_counter_at_start'] = Variable<int>(esp32CounterAtStart.value);
+    }
+    if (lastObservedEsp32Counter.present) {
+      map['last_observed_esp32_counter'] = Variable<int>(
+        lastObservedEsp32Counter.value,
+      );
+    }
+    if (ledRoiLeft.present) {
+      map['led_roi_left'] = Variable<double>(ledRoiLeft.value);
+    }
+    if (ledRoiTop.present) {
+      map['led_roi_top'] = Variable<double>(ledRoiTop.value);
+    }
+    if (ledRoiWidth.present) {
+      map['led_roi_width'] = Variable<double>(ledRoiWidth.value);
+    }
+    if (ledRoiHeight.present) {
+      map['led_roi_height'] = Variable<double>(ledRoiHeight.value);
+    }
+    if (ledRisingDelta.present) {
+      map['led_rising_delta'] = Variable<double>(ledRisingDelta.value);
+    }
+    if (ledFallingDelta.present) {
+      map['led_falling_delta'] = Variable<double>(ledFallingDelta.value);
+    }
+    if (ledMinPulseIntervalMs.present) {
+      map['led_min_pulse_interval_ms'] = Variable<int>(
+        ledMinPulseIntervalMs.value,
+      );
+    }
+    if (ledBaseline.present) {
+      map['led_baseline'] = Variable<double>(ledBaseline.value);
+    }
+    if (ledUsesBleReconciliation.present) {
+      map['led_uses_ble_reconciliation'] = Variable<bool>(
+        ledUsesBleReconciliation.value,
+      );
+    }
+    if (acquisitionIntegrityStatus.present) {
+      map['acquisition_integrity_status'] = Variable<String>(
+        acquisitionIntegrityStatus.value,
+      );
+    }
+    if (acquisitionIntegrityReason.present) {
+      map['acquisition_integrity_reason'] = Variable<String>(
+        acquisitionIntegrityReason.value,
+      );
+    }
+    if (acquisitionIntegrityAtMs.present) {
+      map['acquisition_integrity_at_ms'] = Variable<int>(
+        acquisitionIntegrityAtMs.value,
+      );
+    }
+    if (acquisitionIntegritySource.present) {
+      map['acquisition_integrity_source'] = Variable<String>(
+        acquisitionIntegritySource.value,
+      );
+    }
     if (createdAtMs.present) {
       map['created_at_ms'] = Variable<int>(createdAtMs.value);
     }
@@ -7063,6 +8233,28 @@ class SamplesCompanion extends UpdateCompanion<SampleRow> {
           ..write(
             'totalizerConfigurationSource: $totalizerConfigurationSource, ',
           )
+          ..write('bleDeviceId: $bleDeviceId, ')
+          ..write('bleDeviceName: $bleDeviceName, ')
+          ..write('bleServiceUuid: $bleServiceUuid, ')
+          ..write(
+            'bleCounterCharacteristicUuid: $bleCounterCharacteristicUuid, ',
+          )
+          ..write('bleProtocolVersion: $bleProtocolVersion, ')
+          ..write('esp32CounterAtStart: $esp32CounterAtStart, ')
+          ..write('lastObservedEsp32Counter: $lastObservedEsp32Counter, ')
+          ..write('ledRoiLeft: $ledRoiLeft, ')
+          ..write('ledRoiTop: $ledRoiTop, ')
+          ..write('ledRoiWidth: $ledRoiWidth, ')
+          ..write('ledRoiHeight: $ledRoiHeight, ')
+          ..write('ledRisingDelta: $ledRisingDelta, ')
+          ..write('ledFallingDelta: $ledFallingDelta, ')
+          ..write('ledMinPulseIntervalMs: $ledMinPulseIntervalMs, ')
+          ..write('ledBaseline: $ledBaseline, ')
+          ..write('ledUsesBleReconciliation: $ledUsesBleReconciliation, ')
+          ..write('acquisitionIntegrityStatus: $acquisitionIntegrityStatus, ')
+          ..write('acquisitionIntegrityReason: $acquisitionIntegrityReason, ')
+          ..write('acquisitionIntegrityAtMs: $acquisitionIntegrityAtMs, ')
+          ..write('acquisitionIntegritySource: $acquisitionIntegritySource, ')
           ..write('createdAtMs: $createdAtMs, ')
           ..write('updatedAtMs: $updatedAtMs, ')
           ..write('startedAtMs: $startedAtMs, ')
@@ -10919,6 +12111,26 @@ typedef $$SamplesTableCreateCompanionBuilder =
       Value<String?> totalizerUnit,
       Value<bool?> totalizerLeadingZerosAllowed,
       Value<String?> totalizerConfigurationSource,
+      Value<String?> bleDeviceId,
+      Value<String?> bleDeviceName,
+      Value<String?> bleServiceUuid,
+      Value<String?> bleCounterCharacteristicUuid,
+      Value<int?> bleProtocolVersion,
+      Value<int?> esp32CounterAtStart,
+      Value<int?> lastObservedEsp32Counter,
+      Value<double?> ledRoiLeft,
+      Value<double?> ledRoiTop,
+      Value<double?> ledRoiWidth,
+      Value<double?> ledRoiHeight,
+      Value<double?> ledRisingDelta,
+      Value<double?> ledFallingDelta,
+      Value<int?> ledMinPulseIntervalMs,
+      Value<double?> ledBaseline,
+      Value<bool?> ledUsesBleReconciliation,
+      Value<String?> acquisitionIntegrityStatus,
+      Value<String?> acquisitionIntegrityReason,
+      Value<int?> acquisitionIntegrityAtMs,
+      Value<String?> acquisitionIntegritySource,
       required int createdAtMs,
       required int updatedAtMs,
       Value<int?> startedAtMs,
@@ -10980,6 +12192,26 @@ typedef $$SamplesTableUpdateCompanionBuilder =
       Value<String?> totalizerUnit,
       Value<bool?> totalizerLeadingZerosAllowed,
       Value<String?> totalizerConfigurationSource,
+      Value<String?> bleDeviceId,
+      Value<String?> bleDeviceName,
+      Value<String?> bleServiceUuid,
+      Value<String?> bleCounterCharacteristicUuid,
+      Value<int?> bleProtocolVersion,
+      Value<int?> esp32CounterAtStart,
+      Value<int?> lastObservedEsp32Counter,
+      Value<double?> ledRoiLeft,
+      Value<double?> ledRoiTop,
+      Value<double?> ledRoiWidth,
+      Value<double?> ledRoiHeight,
+      Value<double?> ledRisingDelta,
+      Value<double?> ledFallingDelta,
+      Value<int?> ledMinPulseIntervalMs,
+      Value<double?> ledBaseline,
+      Value<bool?> ledUsesBleReconciliation,
+      Value<String?> acquisitionIntegrityStatus,
+      Value<String?> acquisitionIntegrityReason,
+      Value<int?> acquisitionIntegrityAtMs,
+      Value<String?> acquisitionIntegritySource,
       Value<int> createdAtMs,
       Value<int> updatedAtMs,
       Value<int?> startedAtMs,
@@ -11261,6 +12493,106 @@ class $$SamplesTableFilterComposer
 
   ColumnFilters<String> get totalizerConfigurationSource => $composableBuilder(
     column: $table.totalizerConfigurationSource,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get bleDeviceId => $composableBuilder(
+    column: $table.bleDeviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get bleDeviceName => $composableBuilder(
+    column: $table.bleDeviceName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get bleServiceUuid => $composableBuilder(
+    column: $table.bleServiceUuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get bleCounterCharacteristicUuid => $composableBuilder(
+    column: $table.bleCounterCharacteristicUuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get bleProtocolVersion => $composableBuilder(
+    column: $table.bleProtocolVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get esp32CounterAtStart => $composableBuilder(
+    column: $table.esp32CounterAtStart,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastObservedEsp32Counter => $composableBuilder(
+    column: $table.lastObservedEsp32Counter,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get ledRoiLeft => $composableBuilder(
+    column: $table.ledRoiLeft,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get ledRoiTop => $composableBuilder(
+    column: $table.ledRoiTop,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get ledRoiWidth => $composableBuilder(
+    column: $table.ledRoiWidth,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get ledRoiHeight => $composableBuilder(
+    column: $table.ledRoiHeight,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get ledRisingDelta => $composableBuilder(
+    column: $table.ledRisingDelta,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get ledFallingDelta => $composableBuilder(
+    column: $table.ledFallingDelta,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get ledMinPulseIntervalMs => $composableBuilder(
+    column: $table.ledMinPulseIntervalMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get ledBaseline => $composableBuilder(
+    column: $table.ledBaseline,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get ledUsesBleReconciliation => $composableBuilder(
+    column: $table.ledUsesBleReconciliation,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get acquisitionIntegrityStatus => $composableBuilder(
+    column: $table.acquisitionIntegrityStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get acquisitionIntegrityReason => $composableBuilder(
+    column: $table.acquisitionIntegrityReason,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get acquisitionIntegrityAtMs => $composableBuilder(
+    column: $table.acquisitionIntegrityAtMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get acquisitionIntegritySource => $composableBuilder(
+    column: $table.acquisitionIntegritySource,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -11664,6 +12996,107 @@ class $$SamplesTableOrderingComposer
         builder: (column) => ColumnOrderings(column),
       );
 
+  ColumnOrderings<String> get bleDeviceId => $composableBuilder(
+    column: $table.bleDeviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get bleDeviceName => $composableBuilder(
+    column: $table.bleDeviceName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get bleServiceUuid => $composableBuilder(
+    column: $table.bleServiceUuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get bleCounterCharacteristicUuid =>
+      $composableBuilder(
+        column: $table.bleCounterCharacteristicUuid,
+        builder: (column) => ColumnOrderings(column),
+      );
+
+  ColumnOrderings<int> get bleProtocolVersion => $composableBuilder(
+    column: $table.bleProtocolVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get esp32CounterAtStart => $composableBuilder(
+    column: $table.esp32CounterAtStart,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastObservedEsp32Counter => $composableBuilder(
+    column: $table.lastObservedEsp32Counter,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get ledRoiLeft => $composableBuilder(
+    column: $table.ledRoiLeft,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get ledRoiTop => $composableBuilder(
+    column: $table.ledRoiTop,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get ledRoiWidth => $composableBuilder(
+    column: $table.ledRoiWidth,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get ledRoiHeight => $composableBuilder(
+    column: $table.ledRoiHeight,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get ledRisingDelta => $composableBuilder(
+    column: $table.ledRisingDelta,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get ledFallingDelta => $composableBuilder(
+    column: $table.ledFallingDelta,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get ledMinPulseIntervalMs => $composableBuilder(
+    column: $table.ledMinPulseIntervalMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get ledBaseline => $composableBuilder(
+    column: $table.ledBaseline,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get ledUsesBleReconciliation => $composableBuilder(
+    column: $table.ledUsesBleReconciliation,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get acquisitionIntegrityStatus => $composableBuilder(
+    column: $table.acquisitionIntegrityStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get acquisitionIntegrityReason => $composableBuilder(
+    column: $table.acquisitionIntegrityReason,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get acquisitionIntegrityAtMs => $composableBuilder(
+    column: $table.acquisitionIntegrityAtMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get acquisitionIntegritySource => $composableBuilder(
+    column: $table.acquisitionIntegritySource,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get createdAtMs => $composableBuilder(
     column: $table.createdAtMs,
     builder: (column) => ColumnOrderings(column),
@@ -12006,6 +13439,105 @@ class $$SamplesTableAnnotationComposer
         builder: (column) => column,
       );
 
+  GeneratedColumn<String> get bleDeviceId => $composableBuilder(
+    column: $table.bleDeviceId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get bleDeviceName => $composableBuilder(
+    column: $table.bleDeviceName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get bleServiceUuid => $composableBuilder(
+    column: $table.bleServiceUuid,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get bleCounterCharacteristicUuid =>
+      $composableBuilder(
+        column: $table.bleCounterCharacteristicUuid,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<int> get bleProtocolVersion => $composableBuilder(
+    column: $table.bleProtocolVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get esp32CounterAtStart => $composableBuilder(
+    column: $table.esp32CounterAtStart,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get lastObservedEsp32Counter => $composableBuilder(
+    column: $table.lastObservedEsp32Counter,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get ledRoiLeft => $composableBuilder(
+    column: $table.ledRoiLeft,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get ledRoiTop =>
+      $composableBuilder(column: $table.ledRoiTop, builder: (column) => column);
+
+  GeneratedColumn<double> get ledRoiWidth => $composableBuilder(
+    column: $table.ledRoiWidth,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get ledRoiHeight => $composableBuilder(
+    column: $table.ledRoiHeight,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get ledRisingDelta => $composableBuilder(
+    column: $table.ledRisingDelta,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get ledFallingDelta => $composableBuilder(
+    column: $table.ledFallingDelta,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get ledMinPulseIntervalMs => $composableBuilder(
+    column: $table.ledMinPulseIntervalMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get ledBaseline => $composableBuilder(
+    column: $table.ledBaseline,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get ledUsesBleReconciliation => $composableBuilder(
+    column: $table.ledUsesBleReconciliation,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get acquisitionIntegrityStatus => $composableBuilder(
+    column: $table.acquisitionIntegrityStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get acquisitionIntegrityReason => $composableBuilder(
+    column: $table.acquisitionIntegrityReason,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get acquisitionIntegrityAtMs => $composableBuilder(
+    column: $table.acquisitionIntegrityAtMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get acquisitionIntegritySource => $composableBuilder(
+    column: $table.acquisitionIntegritySource,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get createdAtMs => $composableBuilder(
     column: $table.createdAtMs,
     builder: (column) => column,
@@ -12309,6 +13841,30 @@ class $$SamplesTableTableManager
                     const Value.absent(),
                 Value<String?> totalizerConfigurationSource =
                     const Value.absent(),
+                Value<String?> bleDeviceId = const Value.absent(),
+                Value<String?> bleDeviceName = const Value.absent(),
+                Value<String?> bleServiceUuid = const Value.absent(),
+                Value<String?> bleCounterCharacteristicUuid =
+                    const Value.absent(),
+                Value<int?> bleProtocolVersion = const Value.absent(),
+                Value<int?> esp32CounterAtStart = const Value.absent(),
+                Value<int?> lastObservedEsp32Counter = const Value.absent(),
+                Value<double?> ledRoiLeft = const Value.absent(),
+                Value<double?> ledRoiTop = const Value.absent(),
+                Value<double?> ledRoiWidth = const Value.absent(),
+                Value<double?> ledRoiHeight = const Value.absent(),
+                Value<double?> ledRisingDelta = const Value.absent(),
+                Value<double?> ledFallingDelta = const Value.absent(),
+                Value<int?> ledMinPulseIntervalMs = const Value.absent(),
+                Value<double?> ledBaseline = const Value.absent(),
+                Value<bool?> ledUsesBleReconciliation = const Value.absent(),
+                Value<String?> acquisitionIntegrityStatus =
+                    const Value.absent(),
+                Value<String?> acquisitionIntegrityReason =
+                    const Value.absent(),
+                Value<int?> acquisitionIntegrityAtMs = const Value.absent(),
+                Value<String?> acquisitionIntegritySource =
+                    const Value.absent(),
                 Value<int> createdAtMs = const Value.absent(),
                 Value<int> updatedAtMs = const Value.absent(),
                 Value<int?> startedAtMs = const Value.absent(),
@@ -12368,6 +13924,26 @@ class $$SamplesTableTableManager
                 totalizerUnit: totalizerUnit,
                 totalizerLeadingZerosAllowed: totalizerLeadingZerosAllowed,
                 totalizerConfigurationSource: totalizerConfigurationSource,
+                bleDeviceId: bleDeviceId,
+                bleDeviceName: bleDeviceName,
+                bleServiceUuid: bleServiceUuid,
+                bleCounterCharacteristicUuid: bleCounterCharacteristicUuid,
+                bleProtocolVersion: bleProtocolVersion,
+                esp32CounterAtStart: esp32CounterAtStart,
+                lastObservedEsp32Counter: lastObservedEsp32Counter,
+                ledRoiLeft: ledRoiLeft,
+                ledRoiTop: ledRoiTop,
+                ledRoiWidth: ledRoiWidth,
+                ledRoiHeight: ledRoiHeight,
+                ledRisingDelta: ledRisingDelta,
+                ledFallingDelta: ledFallingDelta,
+                ledMinPulseIntervalMs: ledMinPulseIntervalMs,
+                ledBaseline: ledBaseline,
+                ledUsesBleReconciliation: ledUsesBleReconciliation,
+                acquisitionIntegrityStatus: acquisitionIntegrityStatus,
+                acquisitionIntegrityReason: acquisitionIntegrityReason,
+                acquisitionIntegrityAtMs: acquisitionIntegrityAtMs,
+                acquisitionIntegritySource: acquisitionIntegritySource,
                 createdAtMs: createdAtMs,
                 updatedAtMs: updatedAtMs,
                 startedAtMs: startedAtMs,
@@ -12431,6 +14007,30 @@ class $$SamplesTableTableManager
                     const Value.absent(),
                 Value<String?> totalizerConfigurationSource =
                     const Value.absent(),
+                Value<String?> bleDeviceId = const Value.absent(),
+                Value<String?> bleDeviceName = const Value.absent(),
+                Value<String?> bleServiceUuid = const Value.absent(),
+                Value<String?> bleCounterCharacteristicUuid =
+                    const Value.absent(),
+                Value<int?> bleProtocolVersion = const Value.absent(),
+                Value<int?> esp32CounterAtStart = const Value.absent(),
+                Value<int?> lastObservedEsp32Counter = const Value.absent(),
+                Value<double?> ledRoiLeft = const Value.absent(),
+                Value<double?> ledRoiTop = const Value.absent(),
+                Value<double?> ledRoiWidth = const Value.absent(),
+                Value<double?> ledRoiHeight = const Value.absent(),
+                Value<double?> ledRisingDelta = const Value.absent(),
+                Value<double?> ledFallingDelta = const Value.absent(),
+                Value<int?> ledMinPulseIntervalMs = const Value.absent(),
+                Value<double?> ledBaseline = const Value.absent(),
+                Value<bool?> ledUsesBleReconciliation = const Value.absent(),
+                Value<String?> acquisitionIntegrityStatus =
+                    const Value.absent(),
+                Value<String?> acquisitionIntegrityReason =
+                    const Value.absent(),
+                Value<int?> acquisitionIntegrityAtMs = const Value.absent(),
+                Value<String?> acquisitionIntegritySource =
+                    const Value.absent(),
                 required int createdAtMs,
                 required int updatedAtMs,
                 Value<int?> startedAtMs = const Value.absent(),
@@ -12490,6 +14090,26 @@ class $$SamplesTableTableManager
                 totalizerUnit: totalizerUnit,
                 totalizerLeadingZerosAllowed: totalizerLeadingZerosAllowed,
                 totalizerConfigurationSource: totalizerConfigurationSource,
+                bleDeviceId: bleDeviceId,
+                bleDeviceName: bleDeviceName,
+                bleServiceUuid: bleServiceUuid,
+                bleCounterCharacteristicUuid: bleCounterCharacteristicUuid,
+                bleProtocolVersion: bleProtocolVersion,
+                esp32CounterAtStart: esp32CounterAtStart,
+                lastObservedEsp32Counter: lastObservedEsp32Counter,
+                ledRoiLeft: ledRoiLeft,
+                ledRoiTop: ledRoiTop,
+                ledRoiWidth: ledRoiWidth,
+                ledRoiHeight: ledRoiHeight,
+                ledRisingDelta: ledRisingDelta,
+                ledFallingDelta: ledFallingDelta,
+                ledMinPulseIntervalMs: ledMinPulseIntervalMs,
+                ledBaseline: ledBaseline,
+                ledUsesBleReconciliation: ledUsesBleReconciliation,
+                acquisitionIntegrityStatus: acquisitionIntegrityStatus,
+                acquisitionIntegrityReason: acquisitionIntegrityReason,
+                acquisitionIntegrityAtMs: acquisitionIntegrityAtMs,
+                acquisitionIntegritySource: acquisitionIntegritySource,
                 createdAtMs: createdAtMs,
                 updatedAtMs: updatedAtMs,
                 startedAtMs: startedAtMs,

@@ -1,5 +1,8 @@
 # DDR001 Verificador de Medidores
 
+Stage 5 incorporó el pipeline común de pulsos y los núcleos BLE/LED. Su cierre productivo permanece condicionado por integración UI/persistencia, contrato del firmware y validación física; consulta `docs/migration/STAGE_5_ESP32_PULSE_SOURCES_NOTES.md`.
+Stage 5.1 agrega firmware ESP32 real, contador BLE reconciliable, persistencia schema 5 e ImageStream LED. BLE quedó validado físicamente; LED/flujo Pixel completo sigue pendiente de la conexión externa documentada en `STAGE_5_1_ESP32_RESULTS.md`.
+
 La Etapa 4 ofrece una aplicación Flutter Android portrait funcional y offline en `app/`: flujo Stage 3 completo más cámara real, evidencia hasheada, OCR on-device, detección de aguja y confirmación humana trazable.
 
 ```powershell

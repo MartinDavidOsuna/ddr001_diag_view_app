@@ -35,7 +35,9 @@ String calculateSampleChecksum({
   final fields = <String>[
     _field(
       'canonicalVersion',
-      sample.meterFaceConfiguration?.totalizerConfiguration != null
+      sample.pulseAcquisitionConfiguration != null
+          ? 4
+          : sample.meterFaceConfiguration?.totalizerConfiguration != null
           ? 3
           : sample.meterFaceConfiguration == null
           ? 1
@@ -95,6 +97,38 @@ String calculateSampleChecksum({
         _field('totalizerLeadingZerosAllowed', totalizer.leadingZerosAllowed),
         _field('totalizerConfigurationSource', totalizer.source.name),
       ],
+    ],
+    if (sample.pulseAcquisitionConfiguration case final acquisition?) ...[
+      _field('pulseAcquisitionCanonicalVersion', 1),
+      _field('bleDeviceId', acquisition.bleDeviceId),
+      _field('bleDeviceName', acquisition.bleDeviceName),
+      _field('bleServiceUuid', acquisition.bleServiceUuid),
+      _field(
+        'bleCounterCharacteristicUuid',
+        acquisition.bleCounterCharacteristicUuid,
+      ),
+      _field('bleProtocolVersion', acquisition.bleProtocolVersion),
+      _field('esp32CounterAtStart', acquisition.esp32CounterAtStart),
+      _field('lastObservedEsp32Counter', acquisition.lastObservedEsp32Counter),
+      _field('ledRoiLeft', acquisition.ledRoiLeft),
+      _field('ledRoiTop', acquisition.ledRoiTop),
+      _field('ledRoiWidth', acquisition.ledRoiWidth),
+      _field('ledRoiHeight', acquisition.ledRoiHeight),
+      _field('ledRisingDelta', acquisition.ledRisingDelta),
+      _field('ledFallingDelta', acquisition.ledFallingDelta),
+      _field('ledMinPulseIntervalMs', acquisition.ledMinPulseIntervalMs),
+      _field('ledBaseline', acquisition.ledBaseline),
+      _field('ledUsesBleReconciliation', acquisition.ledUsesBleReconciliation),
+      _field(
+        'acquisitionIntegrityStatus',
+        sample.acquisitionIntegrity.status.name,
+      ),
+      _field('acquisitionIntegrityReason', sample.acquisitionIntegrity.reason),
+      _field('acquisitionIntegrityAt', sample.acquisitionIntegrity.occurredAt),
+      _field(
+        'acquisitionIntegritySource',
+        sample.acquisitionIntegrity.source?.name,
+      ),
     ],
     _field('referenceLiters', referenceLiters),
     _field('indicatedLiters', indicatedLiters),

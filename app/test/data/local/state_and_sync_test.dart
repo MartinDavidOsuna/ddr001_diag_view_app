@@ -93,6 +93,19 @@ void main() {
     );
   });
 
+  test('incomplete recovery prefers the most recently updated sample', () async {
+    await fixture.samples.createDraft(fixture.draft(id: 'older', number: 1));
+    await fixture.samples.start('older', at: fixedTime);
+    await fixture.samples.createDraft(fixture.draft(id: 'newer', number: 2));
+    await fixture.samples.start(
+      'newer',
+      at: fixedTime.add(const Duration(seconds: 1)),
+    );
+    await fixture.samples.updateProgress(id: 'newer', pulseCount: 1);
+    final incomplete = await fixture.samples.listIncomplete();
+    expect(incomplete.map((sample) => sample.id), ['newer', 'older']);
+  });
+
   test('sample number must be unique within a flow point', () async {
     await fixture.samples.createDraft(fixture.draft(id: 'one'));
     expect(

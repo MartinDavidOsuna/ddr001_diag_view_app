@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
@@ -6,8 +8,15 @@ import '../app/app_dependencies.dart';
 import '../core/metrology/metrology.dart';
 import '../domain/expected_evidence_plan.dart';
 import '../domain/models.dart';
+import '../domain/pulse/pulse_source.dart';
 import '../infrastructure/camera/camera_models.dart';
 import '../infrastructure/vision/vision_models.dart';
+import '../infrastructure/pulse/ble_discovery.dart';
+import '../infrastructure/pulse/ble_pulse_source.dart';
+import '../domain/pulse/esp32_counter_protocol.dart';
+import '../infrastructure/pulse/camera_resource_coordinator.dart';
+import '../infrastructure/pulse/led_pulse_detector.dart';
+import '../infrastructure/camera/flutter_camera_adapter.dart';
 
 enum AppPage {
   loading,
@@ -56,6 +65,21 @@ final class AppViewState {
     this.captureVolumeLiters,
     this.cameraState = CameraOperationState.idle,
     this.readingProposal,
+    this.bleDevices = const [],
+    this.selectedBleDevice,
+    this.ledDarkBrightness,
+    this.ledBrightBrightness,
+    this.ledFps,
+    this.ledRegion = const LedRegion(
+      left: .35,
+      top: .35,
+      width: .30,
+      height: .30,
+    ),
+    this.ledLivePulses = 0,
+    this.ledReconciledPulses = 0,
+    this.ledFalsePositives = 0,
+    this.ledFramesDropped = 0,
   });
 
   final AppPage page;
@@ -80,6 +104,16 @@ final class AppViewState {
   final double? captureVolumeLiters;
   final CameraOperationState cameraState;
   final VisualReadingProposal? readingProposal;
+  final List<BleDeviceCandidate> bleDevices;
+  final BleDeviceCandidate? selectedBleDevice;
+  final LedRegion ledRegion;
+  final double? ledDarkBrightness;
+  final double? ledBrightBrightness;
+  final double? ledFps;
+  final int ledLivePulses;
+  final int ledReconciledPulses;
+  final int ledFalsePositives;
+  final int ledFramesDropped;
 
   AppViewState copyWith({
     AppPage? page,
@@ -112,6 +146,17 @@ final class AppViewState {
     CameraOperationState? cameraState,
     VisualReadingProposal? readingProposal,
     bool clearReadingProposal = false,
+    List<BleDeviceCandidate>? bleDevices,
+    BleDeviceCandidate? selectedBleDevice,
+    bool clearSelectedBleDevice = false,
+    LedRegion? ledRegion,
+    double? ledDarkBrightness,
+    double? ledBrightBrightness,
+    double? ledFps,
+    int? ledLivePulses,
+    int? ledReconciledPulses,
+    int? ledFalsePositives,
+    int? ledFramesDropped,
   }) => AppViewState(
     page: page ?? this.page,
     busy: busy ?? this.busy,
@@ -140,6 +185,18 @@ final class AppViewState {
     readingProposal: clearReadingProposal
         ? null
         : readingProposal ?? this.readingProposal,
+    bleDevices: bleDevices ?? this.bleDevices,
+    selectedBleDevice: clearSelectedBleDevice
+        ? null
+        : selectedBleDevice ?? this.selectedBleDevice,
+    ledRegion: ledRegion ?? this.ledRegion,
+    ledDarkBrightness: ledDarkBrightness ?? this.ledDarkBrightness,
+    ledBrightBrightness: ledBrightBrightness ?? this.ledBrightBrightness,
+    ledFps: ledFps ?? this.ledFps,
+    ledLivePulses: ledLivePulses ?? this.ledLivePulses,
+    ledReconciledPulses: ledReconciledPulses ?? this.ledReconciledPulses,
+    ledFalsePositives: ledFalsePositives ?? this.ledFalsePositives,
+    ledFramesDropped: ledFramesDropped ?? this.ledFramesDropped,
   );
 }
 
@@ -159,6 +216,19 @@ final class AppController extends StateNotifier<AppViewState> {
   final AppDependencies dependencies;
   final Uuid _uuid;
   static const _mpe = Class2WaterMpePolicy();
+  BlePulseSource? _bleSource;
+  LedPulseSource? _ledSource;
+  StreamSubscription<PulseEvent>? _pulseSubscription;
+  StreamSubscription<PulseSourceState>? _pulseStateSubscription;
+  StreamSubscription<int>? _counterSubscription;
+  StreamSubscription<PulseEvent>? _ledSubscription;
+  final CameraResourceCoordinator _cameraCoordinator =
+      CameraResourceCoordinator();
+  Timer? _ledReconciliationTimer;
+  Timer? _ledMetricsTimer;
+  int? _latestEsp32Counter;
+  int _pendingOpticalPulses = 0;
+  Future<void> _pulseQueue = Future.value();
 
   Future<void> initialize() async {
     await _guard(() async {
@@ -242,6 +312,28 @@ final class AppController extends StateNotifier<AppViewState> {
       state = state.copyWith(selectedMethod: value);
   void setHardwareState(HardwareState value) =>
       state = state.copyWith(hardwareState: value);
+
+  Future<void> scanBleDevices() async {
+    final discovery = dependencies.bleDiscovery;
+    if (discovery == null) return;
+    await _guard(() async {
+      state = state.copyWith(hardwareState: HardwareState.preparing);
+      final devices = await discovery.scan();
+      state = state.copyWith(
+        bleDevices: devices,
+        hardwareState: devices.isEmpty
+            ? HardwareState.notConnected
+            : HardwareState.ready,
+      );
+    });
+  }
+
+  void selectBleDevice(BleDeviceCandidate device) {
+    state = state.copyWith(
+      selectedBleDevice: device,
+      hardwareState: HardwareState.ready,
+    );
+  }
 
   Future<void> identifyMeter({
     required String meterId,
@@ -327,6 +419,13 @@ final class AppController extends StateNotifier<AppViewState> {
 
   Future<void> startSample() async {
     await _guard(() async {
+      if ((state.selectedMethod == MeasurementMethod.ble ||
+              state.selectedMethod == MeasurementMethod.led) &&
+          state.selectedBleDevice == null) {
+        throw StateError(
+          'Busque y seleccione un ESP32 DDR001 para establecer el contador de integridad.',
+        );
+      }
       final flow = state.flow;
       final verificationCase = state.activeCase;
       if (flow == null || verificationCase == null) {
@@ -387,11 +486,15 @@ final class AppController extends StateNotifier<AppViewState> {
       return;
     }
     await _guard(() async {
-      final count = sample.pulseCount + 1;
-      await dependencies.samples.updateProgress(
-        id: sample.id,
-        pulseCount: count,
-        referenceLiters: count * sample.configuration.litersPerPulse,
+      final now = DateTime.now().toUtc();
+      await dependencies.pulseProgress.acceptPulse(
+        sample.id,
+        PulseEvent(
+          id: _uuid.v4(),
+          source: PulseSourceType.manual,
+          occurredAt: now,
+          receivedAt: now,
+        ),
       );
       await _refreshSample(sample.id);
     });
@@ -415,7 +518,8 @@ final class AppController extends StateNotifier<AppViewState> {
 
   void showReadings() => state = state.copyWith(page: AppPage.readings);
 
-  void requestIntermediateEvidence(double volumeLiters) {
+  Future<void> requestIntermediateEvidence(double volumeLiters) async {
+    await _pauseLedForEvidence();
     state = state.copyWith(
       page: AppPage.camera,
       capturePurpose: CapturePurpose.intermediate,
@@ -425,7 +529,7 @@ final class AppController extends StateNotifier<AppViewState> {
     );
   }
 
-  void requestFinalEvidence() {
+  Future<void> requestFinalEvidence() async {
     final sample = state.sample;
     if (sample == null) return;
     final reference =
@@ -438,6 +542,7 @@ final class AppController extends StateNotifier<AppViewState> {
       );
       return;
     }
+    await _pauseLedForEvidence();
     state = state.copyWith(
       page: AppPage.camera,
       capturePurpose: CapturePurpose.finalEvidence,
@@ -449,7 +554,7 @@ final class AppController extends StateNotifier<AppViewState> {
 
   Future<void> processCapturedPhoto(String sourcePath) async {
     await _guard(() async {
-      final sample = state.sample;
+      var sample = state.sample;
       final verificationCase = state.activeCase;
       final purpose = state.capturePurpose;
       if (sample == null || verificationCase == null || purpose == null) {
@@ -461,7 +566,16 @@ final class AppController extends StateNotifier<AppViewState> {
         CapturePurpose.intermediate => EvidenceType.intermediate,
         CapturePurpose.finalEvidence => EvidenceType.finalEvidence,
       };
-      final volume = state.captureVolumeLiters ?? 0;
+      if (sample.configuration.measurementMethod == MeasurementMethod.led) {
+        if (purpose == CapturePurpose.finalEvidence) {
+          await _stopBleCounterSource();
+        }
+        await _flushLedReconciliation(sample.id);
+        sample = await dependencies.samples.getById(sample.id) ?? sample;
+      }
+      final volume = sample.configuration.measurementMethod.isPulseEventSource
+          ? sample.pulseCount * sample.configuration.litersPerPulse
+          : state.captureVolumeLiters ?? 0;
       final evidence = await dependencies.evidenceCapture.captureExisting(
         sourcePath: sourcePath,
         caseId: verificationCase.id,
@@ -498,6 +612,9 @@ final class AppController extends StateNotifier<AppViewState> {
         }
       }
       await _refreshSample(sample.id);
+      if (purpose == CapturePurpose.start) {
+        await _startBleForCurrentSample();
+      }
       state = state.copyWith(
         cameraState: proposal == null
             ? CameraOperationState.confirmed
@@ -506,6 +623,7 @@ final class AppController extends StateNotifier<AppViewState> {
       );
       if (purpose == CapturePurpose.intermediate) {
         state = state.copyWith(page: AppPage.run, clearCapturePurpose: true);
+        await _resumeLedAfterEvidence(sample);
       }
     });
   }
@@ -665,6 +783,7 @@ final class AppController extends StateNotifier<AppViewState> {
         at: DateTime.now().toUtc(),
       );
       await _refreshSample(closed.id);
+      await _stopPulseSources();
       state = state.copyWith(
         page: closed.status == SampleStatus.invalidEvidence
             ? AppPage.invalidEvidence
@@ -761,6 +880,7 @@ final class AppController extends StateNotifier<AppViewState> {
           readingProposal: proposal,
         );
       } else {
+        await _startBleForCurrentSample();
         state = state.copyWith(page: AppPage.run);
       }
     }
@@ -797,6 +917,433 @@ final class AppController extends StateNotifier<AppViewState> {
     await _loadSampleContext(sample);
   }
 
+  Future<void> _startBleForCurrentSample() async {
+    final sample = state.sample;
+    if (sample == null ||
+        (sample.configuration.measurementMethod != MeasurementMethod.ble &&
+            sample.configuration.measurementMethod != MeasurementMethod.led)) {
+      return;
+    }
+    final persisted = sample.pulseAcquisitionConfiguration;
+    final selected = state.selectedBleDevice;
+    final deviceId = persisted?.bleDeviceId ?? selected?.id;
+    if (deviceId == null) {
+      throw StateError('Seleccione un ESP32 DDR001 antes de iniciar BLE.');
+    }
+    await _bleSource?.dispose();
+    await _pulseSubscription?.cancel();
+    await _pulseStateSubscription?.cancel();
+    await _counterSubscription?.cancel();
+    final source = BlePulseSource(
+      BlePulseConfiguration(
+        deviceId: deviceId,
+        deviceName: persisted?.bleDeviceName ?? selected?.name,
+        serviceUuid: Ddr001BleContract.serviceUuid,
+        characteristicUuid: Ddr001BleContract.counterCharacteristicUuid,
+        lastObservedCounter: persisted?.lastObservedEsp32Counter,
+      ),
+    );
+    _bleSource = source;
+    if (sample.configuration.measurementMethod == MeasurementMethod.ble) {
+      _pulseSubscription = source.events.listen((event) async {
+        await dependencies.pulseProgress.acceptPulse(sample.id, event);
+        await _refreshSample(sample.id);
+      });
+    }
+    _pulseStateSubscription = source.states.listen((pulseState) {
+      state = state.copyWith(
+        hardwareState: switch (pulseState.status) {
+          PulseSourceStatus.ready => HardwareState.ready,
+          PulseSourceStatus.connecting ||
+          PulseSourceStatus.reconnecting => HardwareState.preparing,
+          PulseSourceStatus.error => HardwareState.error,
+          _ => HardwareState.disconnected,
+        },
+        errorMessage: pulseState.message,
+      );
+      if (pulseState.compromised) {
+        unawaited(_markAcquisitionCompromised(sample.id, pulseState.message));
+      }
+    });
+    _counterSubscription = source.counters.listen((counter) async {
+      final current = await dependencies.samples.getById(sample.id);
+      if (current == null || current.status != SampleStatus.running) return;
+      final old = current.pulseAcquisitionConfiguration;
+      final configuration = PulseAcquisitionConfiguration(
+        bleDeviceId: deviceId,
+        bleDeviceName: persisted?.bleDeviceName ?? selected?.name,
+        bleServiceUuid: Ddr001BleContract.serviceUuid,
+        bleCounterCharacteristicUuid:
+            Ddr001BleContract.counterCharacteristicUuid,
+        bleProtocolVersion: Ddr001BleContract.protocolVersion,
+        esp32CounterAtStart: old?.esp32CounterAtStart ?? counter,
+        lastObservedEsp32Counter: counter,
+        ledRoiLeft: old?.ledRoiLeft,
+        ledRoiTop: old?.ledRoiTop,
+        ledRoiWidth: old?.ledRoiWidth,
+        ledRoiHeight: old?.ledRoiHeight,
+        ledRisingDelta: old?.ledRisingDelta,
+        ledFallingDelta: old?.ledFallingDelta,
+        ledMinPulseIntervalMs: old?.ledMinPulseIntervalMs,
+        ledBaseline: old?.ledBaseline,
+        ledUsesBleReconciliation:
+            old?.ledUsesBleReconciliation ??
+            sample.configuration.measurementMethod == MeasurementMethod.led,
+      );
+      await dependencies.samples.updatePulseAcquisition(
+        id: sample.id,
+        configuration: configuration,
+        integrity: current.acquisitionIntegrity,
+      );
+      _latestEsp32Counter = counter;
+      if (sample.configuration.measurementMethod == MeasurementMethod.led) {
+        _scheduleLedReconciliation(sample.id);
+        if (old?.ledBaseline != null &&
+            _ledSource == null &&
+            state.page == AppPage.run) {
+          unawaited(_restorePersistedLedDetector(current, old!));
+        }
+      }
+    });
+    await source.start();
+  }
+
+  Future<void> prepareLedDetector(LedRegion region) async {
+    final sample = state.sample;
+    final camera = dependencies.camera;
+    if (sample == null ||
+        sample.configuration.measurementMethod != MeasurementMethod.led ||
+        camera is! LedBrightnessPort) {
+      throw StateError('Detector LED no disponible para esta Sample.');
+    }
+    if (_bleSource?.currentState.status != PulseSourceStatus.ready) {
+      throw StateError('El contador BLE auxiliar debe estar READY.');
+    }
+    final frames = camera as LedBrightnessPort;
+    await _guard(() async {
+      final decision = _cameraCoordinator.acquire(CameraConsumer.ledDetector);
+      if (!decision.allowed) {
+        throw StateError(decision.message ?? 'Cámara LED no disponible.');
+      }
+      state = state.copyWith(
+        hardwareState: HardwareState.preparing,
+        ledRegion: region,
+      );
+      await frames.start(region);
+      final samples = await frames.samples
+          .map((sample) => sample.brightness)
+          .take(45)
+          .timeout(const Duration(seconds: 4))
+          .toList();
+      await frames.stop();
+      if (samples.length < 10) {
+        throw StateError('No se recibieron suficientes frames LED.');
+      }
+      final sorted = [...samples]..sort();
+      final darkCount = (sorted.length * .60).floor().clamp(1, sorted.length);
+      final darkSamples = sorted.take(darkCount).toList();
+      final dark = darkSamples.reduce((a, b) => a + b) / darkSamples.length;
+      final bright = sorted.last;
+      final contrast = bright - dark;
+      final risingDelta = contrast >= 12 ? contrast * .45 : 35.0;
+      final fallingDelta = contrast >= 12 ? contrast * .20 : 20.0;
+      final detector = LedPulseDetector(
+        LedDetectorConfiguration(
+          region: region,
+          risingDelta: risingDelta,
+          fallingDelta: fallingDelta,
+          minPulseInterval: const Duration(milliseconds: 150),
+        ),
+      )..calibrate(darkSamples);
+      await _ledSubscription?.cancel();
+      await _ledSource?.dispose();
+      final source = LedPulseSource(frames, detector);
+      _ledSource = source;
+      _ledSubscription = source.events.listen((event) {
+        _pendingOpticalPulses++;
+        state = state.copyWith(ledLivePulses: state.ledLivePulses + 1);
+        _scheduleLedReconciliation(sample.id);
+      });
+      await dependencies.samples.updatePulseAcquisition(
+        id: sample.id,
+        configuration: _ledConfiguration(
+          sample,
+          region: region,
+          baseline: dark,
+          risingDelta: risingDelta,
+          fallingDelta: fallingDelta,
+        ),
+        integrity: sample.acquisitionIntegrity,
+      );
+      await source.start();
+      final adapter = dependencies.camera is FlutterCameraAdapter
+          ? dependencies.camera! as FlutterCameraAdapter
+          : null;
+      _startLedMetrics(adapter);
+      state = state.copyWith(
+        hardwareState: HardwareState.ready,
+        ledDarkBrightness: dark,
+        ledBrightBrightness: bright,
+        ledFps: adapter?.effectiveFps,
+        ledFramesDropped: adapter?.framesDropped,
+      );
+      await _refreshSample(sample.id);
+    });
+  }
+
+  Future<void> _restorePersistedLedDetector(
+    Sample sample,
+    PulseAcquisitionConfiguration configuration,
+  ) async {
+    final camera = dependencies.camera;
+    if (camera is! LedBrightnessPort ||
+        configuration.ledBaseline == null ||
+        configuration.ledRoiLeft == null ||
+        configuration.ledRoiTop == null ||
+        configuration.ledRoiWidth == null ||
+        configuration.ledRoiHeight == null) {
+      return;
+    }
+    final region = LedRegion(
+      left: configuration.ledRoiLeft!,
+      top: configuration.ledRoiTop!,
+      width: configuration.ledRoiWidth!,
+      height: configuration.ledRoiHeight!,
+    );
+    final detector = LedPulseDetector(
+      LedDetectorConfiguration(
+        region: region,
+        risingDelta: configuration.ledRisingDelta ?? 35,
+        fallingDelta: configuration.ledFallingDelta ?? 20,
+        minPulseInterval: Duration(
+          milliseconds: configuration.ledMinPulseIntervalMs ?? 150,
+        ),
+      ),
+    )..calibrate([configuration.ledBaseline!]);
+    final decision = _cameraCoordinator.acquire(CameraConsumer.ledDetector);
+    if (!decision.allowed) return;
+    final frames = camera as LedBrightnessPort;
+    final source = LedPulseSource(frames, detector);
+    _ledSource = source;
+    await _ledSubscription?.cancel();
+    _ledSubscription = source.events.listen((event) {
+      _pendingOpticalPulses++;
+      state = state.copyWith(ledLivePulses: state.ledLivePulses + 1);
+      _scheduleLedReconciliation(sample.id);
+    });
+    try {
+      await source.start();
+      _startLedMetrics(
+        dependencies.camera is FlutterCameraAdapter
+            ? dependencies.camera! as FlutterCameraAdapter
+            : null,
+      );
+      state = state.copyWith(
+        hardwareState: HardwareState.ready,
+        ledRegion: region,
+        ledDarkBrightness: configuration.ledBaseline,
+      );
+    } catch (error) {
+      await _markAcquisitionCompromised(
+        sample.id,
+        'No fue posible recuperar detector LED: $error',
+      );
+    }
+  }
+
+  PulseAcquisitionConfiguration _ledConfiguration(
+    Sample sample, {
+    required LedRegion region,
+    required double baseline,
+    required double risingDelta,
+    required double fallingDelta,
+  }) {
+    final old = sample.pulseAcquisitionConfiguration;
+    return PulseAcquisitionConfiguration(
+      bleDeviceId: old?.bleDeviceId ?? state.selectedBleDevice?.id,
+      bleDeviceName: old?.bleDeviceName ?? state.selectedBleDevice?.name,
+      bleServiceUuid: Ddr001BleContract.serviceUuid,
+      bleCounterCharacteristicUuid: Ddr001BleContract.counterCharacteristicUuid,
+      bleProtocolVersion: Ddr001BleContract.protocolVersion,
+      esp32CounterAtStart: old?.esp32CounterAtStart,
+      lastObservedEsp32Counter:
+          _latestEsp32Counter ?? old?.lastObservedEsp32Counter,
+      ledRoiLeft: region.left,
+      ledRoiTop: region.top,
+      ledRoiWidth: region.width,
+      ledRoiHeight: region.height,
+      ledRisingDelta: risingDelta,
+      ledFallingDelta: fallingDelta,
+      ledMinPulseIntervalMs: 150,
+      ledBaseline: baseline,
+      ledUsesBleReconciliation: true,
+    );
+  }
+
+  void _scheduleLedReconciliation(String sampleId) {
+    _ledReconciliationTimer?.cancel();
+    _ledReconciliationTimer = Timer(
+      const Duration(milliseconds: 750),
+      () => _pulseQueue = _pulseQueue.then(
+        (_) => _flushLedReconciliation(sampleId),
+      ),
+    );
+  }
+
+  Future<void> _flushLedReconciliation(String sampleId) async {
+    final sample = await dependencies.samples.getById(sampleId);
+    final counter = _latestEsp32Counter;
+    final baseline = sample?.pulseAcquisitionConfiguration?.esp32CounterAtStart;
+    if (sample == null ||
+        sample.status != SampleStatus.running ||
+        counter == null ||
+        baseline == null) {
+      return;
+    }
+    int truth;
+    try {
+      truth = esp32CounterDelta(baseline: baseline, current: counter);
+    } on StateError catch (error) {
+      await _markAcquisitionCompromised(sampleId, error.message);
+      return;
+    }
+    var missing = truth - sample.pulseCount;
+    if (missing < 0) {
+      final excess = -missing;
+      state = state.copyWith(
+        ledFalsePositives: state.ledFalsePositives + excess,
+      );
+      await _markAcquisitionCompromised(
+        sampleId,
+        'El detector LED excedió el contador acumulativo ESP32.',
+      );
+      return;
+    }
+    final matchedLive = _pendingOpticalPulses.clamp(0, missing);
+    final unmatchedOptical = _pendingOpticalPulses - matchedLive;
+    _pendingOpticalPulses = 0;
+    if (unmatchedOptical > 0) {
+      state = state.copyWith(
+        ledFalsePositives: state.ledFalsePositives + unmatchedOptical,
+      );
+    }
+    for (var i = 0; i < matchedLive; i++) {
+      await _acceptLedPulse(sampleId, 'optical-confirmed-$counter-$i');
+    }
+    missing -= matchedLive;
+    for (var i = 0; i < missing; i++) {
+      await _acceptLedPulse(sampleId, 'ble-reconciled-$counter-$i');
+    }
+    if (missing > 0) {
+      state = state.copyWith(
+        ledReconciledPulses: state.ledReconciledPulses + missing,
+      );
+    }
+    await _refreshSample(sampleId);
+  }
+
+  Future<void> _acceptLedPulse(String sampleId, String id) async {
+    final now = DateTime.now().toUtc();
+    await dependencies.pulseProgress.acceptPulse(
+      sampleId,
+      PulseEvent(
+        id: id,
+        source: PulseSourceType.led,
+        occurredAt: now,
+        receivedAt: now,
+      ),
+    );
+  }
+
+  Future<void> _pauseLedForEvidence() async {
+    final sample = state.sample;
+    if (sample?.configuration.measurementMethod != MeasurementMethod.led) {
+      return;
+    }
+    await _ledSource?.stop();
+    _cameraCoordinator.release(CameraConsumer.ledDetector);
+    final decision = _cameraCoordinator.acquire(CameraConsumer.evidence);
+    if (!decision.allowed) {
+      await _markAcquisitionCompromised(sample!.id, decision.message);
+      throw StateError(decision.message ?? 'Cámara no disponible.');
+    }
+  }
+
+  Future<void> _resumeLedAfterEvidence(Sample sample) async {
+    if (sample.configuration.measurementMethod != MeasurementMethod.led) return;
+    _cameraCoordinator.release(CameraConsumer.evidence);
+    final decision = _cameraCoordinator.acquire(CameraConsumer.ledDetector);
+    if (!decision.allowed || _ledSource == null) {
+      await _markAcquisitionCompromised(
+        sample.id,
+        decision.message ?? 'No fue posible restablecer detector LED.',
+      );
+      return;
+    }
+    try {
+      await _ledSource!.start();
+      await _flushLedReconciliation(sample.id);
+      state = state.copyWith(hardwareState: HardwareState.ready);
+    } catch (error) {
+      await _markAcquisitionCompromised(
+        sample.id,
+        'No fue posible restablecer detector LED: $error',
+      );
+    }
+  }
+
+  Future<void> _stopBleCounterSource() async {
+    _ledReconciliationTimer?.cancel();
+    await _counterSubscription?.cancel();
+    _counterSubscription = null;
+    await _bleSource?.stop();
+  }
+
+  void _startLedMetrics(FlutterCameraAdapter? adapter) {
+    _ledMetricsTimer?.cancel();
+    if (adapter == null) return;
+    _ledMetricsTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      state = state.copyWith(
+        ledFps: adapter.effectiveFps,
+        ledFramesDropped: adapter.framesDropped,
+      );
+    });
+  }
+
+  Future<void> _stopPulseSources() async {
+    _ledMetricsTimer?.cancel();
+    _ledReconciliationTimer?.cancel();
+    await _ledSubscription?.cancel();
+    await _ledSource?.dispose();
+    _ledSource = null;
+    await _pulseSubscription?.cancel();
+    await _pulseStateSubscription?.cancel();
+    await _counterSubscription?.cancel();
+    await _bleSource?.dispose();
+    _bleSource = null;
+  }
+
+  Future<void> _markAcquisitionCompromised(
+    String sampleId,
+    String? reason,
+  ) async {
+    final current = await dependencies.samples.getById(sampleId);
+    if (current == null || current.status != SampleStatus.running) return;
+    await dependencies.samples.updatePulseAcquisition(
+      id: sampleId,
+      configuration:
+          current.pulseAcquisitionConfiguration ??
+          const PulseAcquisitionConfiguration(),
+      integrity: AcquisitionIntegrity(
+        status: AcquisitionIntegrityStatus.compromised,
+        reason: reason ?? 'Conteo de pulsos no verificable.',
+        occurredAt: DateTime.now().toUtc(),
+        source: current.configuration.measurementMethod,
+      ),
+    );
+    await _refreshSample(sampleId);
+  }
+
   Future<void> _guard(Future<void> Function() operation) async {
     state = state.copyWith(busy: true, clearError: true);
     try {
@@ -816,6 +1363,12 @@ final class AppController extends StateNotifier<AppViewState> {
 
   String _friendly(Object? message) =>
       message?.toString() ?? 'La operación no está permitida.';
+
+  @override
+  void dispose() {
+    unawaited(_stopPulseSources());
+    super.dispose();
+  }
 
   ConfirmedReading _confirmedFromReview({
     required ConfirmedReading? existing,

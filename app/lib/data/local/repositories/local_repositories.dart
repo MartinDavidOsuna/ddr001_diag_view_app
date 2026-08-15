@@ -434,6 +434,50 @@ final class LocalSampleRepository implements SampleRepository {
   });
 
   @override
+  Future<domain.Sample> updatePulseAcquisition({
+    required String id,
+    required domain.PulseAcquisitionConfiguration configuration,
+    required domain.AcquisitionIntegrity integrity,
+  }) => database.transaction(() async {
+    final current = await _requiredSample(database, id);
+    if (current.status != domain.SampleStatus.running) {
+      throw StateError('Only a RUNNING sample can update acquisition.');
+    }
+    await (database.update(
+      database.samples,
+    )..where((t) => t.id.equals(id))).write(
+      db.SamplesCompanion(
+        bleDeviceId: Value(configuration.bleDeviceId),
+        bleDeviceName: Value(configuration.bleDeviceName),
+        bleServiceUuid: Value(configuration.bleServiceUuid),
+        bleCounterCharacteristicUuid: Value(
+          configuration.bleCounterCharacteristicUuid,
+        ),
+        bleProtocolVersion: Value(configuration.bleProtocolVersion),
+        esp32CounterAtStart: Value(configuration.esp32CounterAtStart),
+        lastObservedEsp32Counter: Value(configuration.lastObservedEsp32Counter),
+        ledRoiLeft: Value(configuration.ledRoiLeft),
+        ledRoiTop: Value(configuration.ledRoiTop),
+        ledRoiWidth: Value(configuration.ledRoiWidth),
+        ledRoiHeight: Value(configuration.ledRoiHeight),
+        ledRisingDelta: Value(configuration.ledRisingDelta),
+        ledFallingDelta: Value(configuration.ledFallingDelta),
+        ledMinPulseIntervalMs: Value(configuration.ledMinPulseIntervalMs),
+        ledBaseline: Value(configuration.ledBaseline),
+        ledUsesBleReconciliation: Value(configuration.ledUsesBleReconciliation),
+        acquisitionIntegrityStatus: Value(integrity.status.name),
+        acquisitionIntegrityReason: Value(integrity.reason),
+        acquisitionIntegrityAtMs: Value(
+          integrity.occurredAt?.millisecondsSinceEpoch,
+        ),
+        acquisitionIntegritySource: Value(integrity.source?.name),
+        updatedAtMs: Value(DateTime.now().toUtc().millisecondsSinceEpoch),
+      ),
+    );
+    return (await getById(id))!;
+  });
+
+  @override
   Future<domain.Sample> markInvalidEvidence(
     String id, {
     required DateTime at,
@@ -465,13 +509,15 @@ final class LocalSampleRepository implements SampleRepository {
 
   @override
   Future<List<domain.Sample>> listIncomplete() async =>
-      (await (database.select(database.samples)..where(
-                (t) => t.status.isIn([
-                  domain.SampleStatus.draft.name,
-                  domain.SampleStatus.running.name,
-                  domain.SampleStatus.invalidEvidence.name,
-                ]),
-              ))
+      (await (database.select(database.samples)
+            ..where(
+              (t) => t.status.isIn([
+                domain.SampleStatus.draft.name,
+                domain.SampleStatus.running.name,
+                domain.SampleStatus.invalidEvidence.name,
+              ]),
+            )
+            ..orderBy([(t) => OrderingTerm.desc(t.updatedAtMs)]))
               .get())
           .map(mapSample)
           .toList(growable: false);
@@ -514,6 +560,27 @@ db.SamplesCompanion _sampleCompanion(domain.Sample sample) {
     updatedAtMs: _ms(sample.updatedAt),
     pulseCount: Value(sample.pulseCount),
     progressReferenceLiters: Value(sample.referenceLitersProgress),
+    bleDeviceId: Value(sample.pulseAcquisitionConfiguration?.bleDeviceId),
+    bleDeviceName: Value(sample.pulseAcquisitionConfiguration?.bleDeviceName),
+    bleServiceUuid: Value(sample.pulseAcquisitionConfiguration?.bleServiceUuid),
+    bleCounterCharacteristicUuid: Value(
+      sample.pulseAcquisitionConfiguration?.bleCounterCharacteristicUuid,
+    ),
+    bleProtocolVersion: Value(
+      sample.pulseAcquisitionConfiguration?.bleProtocolVersion,
+    ),
+    esp32CounterAtStart: Value(
+      sample.pulseAcquisitionConfiguration?.esp32CounterAtStart,
+    ),
+    lastObservedEsp32Counter: Value(
+      sample.pulseAcquisitionConfiguration?.lastObservedEsp32Counter,
+    ),
+    acquisitionIntegrityStatus: Value(sample.acquisitionIntegrity.status.name),
+    acquisitionIntegrityReason: Value(sample.acquisitionIntegrity.reason),
+    acquisitionIntegrityAtMs: Value(
+      sample.acquisitionIntegrity.occurredAt?.millisecondsSinceEpoch,
+    ),
+    acquisitionIntegritySource: Value(sample.acquisitionIntegrity.source?.name),
   );
 }
 
@@ -578,6 +645,27 @@ domain.Sample mapSample(db.SampleRow row) {
                   ),
                 ),
         );
+  final acquisitionConfiguration =
+      row.bleDeviceId == null && row.ledRoiLeft == null
+      ? null
+      : domain.PulseAcquisitionConfiguration(
+          bleDeviceId: row.bleDeviceId,
+          bleDeviceName: row.bleDeviceName,
+          bleServiceUuid: row.bleServiceUuid,
+          bleCounterCharacteristicUuid: row.bleCounterCharacteristicUuid,
+          bleProtocolVersion: row.bleProtocolVersion,
+          esp32CounterAtStart: row.esp32CounterAtStart,
+          lastObservedEsp32Counter: row.lastObservedEsp32Counter,
+          ledRoiLeft: row.ledRoiLeft,
+          ledRoiTop: row.ledRoiTop,
+          ledRoiWidth: row.ledRoiWidth,
+          ledRoiHeight: row.ledRoiHeight,
+          ledRisingDelta: row.ledRisingDelta,
+          ledFallingDelta: row.ledFallingDelta,
+          ledMinPulseIntervalMs: row.ledMinPulseIntervalMs,
+          ledBaseline: row.ledBaseline,
+          ledUsesBleReconciliation: row.ledUsesBleReconciliation ?? false,
+        );
   return domain.Sample(
     id: row.id,
     flowPointId: row.flowPointId,
@@ -611,6 +699,23 @@ domain.Sample mapSample(db.SampleRow row) {
       row.finalReadingEvidenceId,
     ),
     meterFaceConfiguration: meterFace,
+    pulseAcquisitionConfiguration: acquisitionConfiguration,
+    acquisitionIntegrity: domain.AcquisitionIntegrity(
+      status: row.acquisitionIntegrityStatus == null
+          ? domain.AcquisitionIntegrityStatus.ok
+          : domain.AcquisitionIntegrityStatus.values.byName(
+              row.acquisitionIntegrityStatus!,
+            ),
+      reason: row.acquisitionIntegrityReason,
+      occurredAt: row.acquisitionIntegrityAtMs == null
+          ? null
+          : _date(row.acquisitionIntegrityAtMs!),
+      source: row.acquisitionIntegritySource == null
+          ? null
+          : metrology.MeasurementMethod.values.byName(
+              row.acquisitionIntegritySource!,
+            ),
+    ),
     result: !hasResult
         ? null
         : metrology.SampleResult(

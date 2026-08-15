@@ -27,8 +27,8 @@ void main() {
     await directory.delete(recursive: true);
   });
 
-  test('schema version 4 creates all eight domain tables', () async {
-    expect(database.schemaVersion, 4);
+  test('schema version 5 creates all eight domain tables', () async {
+    expect(database.schemaVersion, 5);
     final rows = await database
         .customSelect(
           "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
@@ -287,6 +287,38 @@ void main() {
     expect(await checksum(1), isNot(await checksum(2)));
   });
 
+  test('canonical v4 checksum includes frozen ESP32 counters', () async {
+    await fixture.seed();
+    await fixture.running(method: MeasurementMethod.ble);
+    Future<String> checksum(int lastCounter) async {
+      final sample = await fixture.samples.updatePulseAcquisition(
+        id: 'sample-1',
+        configuration: PulseAcquisitionConfiguration(
+          bleDeviceId: 'device',
+          bleProtocolVersion: 1,
+          esp32CounterAtStart: 10,
+          lastObservedEsp32Counter: lastCounter,
+        ),
+        integrity: const AcquisitionIntegrity(),
+      );
+      return calculateSampleChecksum(
+        sample: sample,
+        referenceLiters: 10,
+        indicatedLiters: 10,
+        errorPct: 0,
+        uncertaintyPct: 0,
+        mpePct: 2,
+        acceptanceMetricPct: 0,
+        rejectionMetricPct: 0,
+        verdict: 'pass',
+        endedAt: DateTime.utc(2026, 8, 11),
+        requiredEvidence: const [],
+      );
+    }
+
+    expect(await checksum(11), isNot(await checksum(12)));
+  });
+
   test('v3 to v4 migration is additive and preserves Stage 4 rows', () async {
     await database.close();
     final path =
@@ -321,6 +353,64 @@ void main() {
     await diskDb.close();
     database = memoryDatabase();
   });
+
+  test(
+    'v4 to v5 migration preserves rows and adds acquisition fields',
+    () async {
+      await database.close();
+      final path =
+          '${directory.path}${Platform.pathSeparator}migration-v5.sqlite';
+      var diskDb = AppDatabase(NativeDatabase(File(path)));
+      final diskFixture = OfflineFixture(diskDb, directory);
+      await diskFixture.seed();
+      await diskFixture.running();
+      for (final column in [
+        'ble_device_id',
+        'ble_device_name',
+        'ble_service_uuid',
+        'ble_counter_characteristic_uuid',
+        'ble_protocol_version',
+        'esp32_counter_at_start',
+        'last_observed_esp32_counter',
+        'led_roi_left',
+        'led_roi_top',
+        'led_roi_width',
+        'led_roi_height',
+        'led_rising_delta',
+        'led_falling_delta',
+        'led_min_pulse_interval_ms',
+        'led_baseline',
+        'led_uses_ble_reconciliation',
+        'acquisition_integrity_status',
+        'acquisition_integrity_reason',
+        'acquisition_integrity_at_ms',
+        'acquisition_integrity_source',
+      ]) {
+        await diskDb.customStatement('ALTER TABLE samples DROP COLUMN $column');
+      }
+      await diskDb.customStatement('PRAGMA user_version = 4');
+      await diskDb.close();
+      diskDb = AppDatabase(NativeDatabase(File(path)));
+      expect(
+        (await LocalSampleRepository(diskDb).getById('sample-1'))?.id,
+        'sample-1',
+      );
+      final names =
+          (await diskDb.customSelect('PRAGMA table_info(samples)').get()).map(
+            (row) => row.read<String>('name'),
+          );
+      expect(
+        names,
+        containsAll([
+          'ble_device_id',
+          'last_observed_esp32_counter',
+          'acquisition_integrity_status',
+        ]),
+      );
+      await diskDb.close();
+      database = memoryDatabase();
+    },
+  );
 
   test('v2 to v3 migration is additive and preserves Stage 4 rows', () async {
     await database.close();

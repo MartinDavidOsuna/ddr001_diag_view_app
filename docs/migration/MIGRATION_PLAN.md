@@ -94,6 +94,21 @@ Resultados: `STAGE_4_2_VISUAL_CALIBRATION_RESULTS.md`.
 Resultados: `STAGE_4_3_TOTALIZER_RESULTS.md`.
 
 ## Fuera de alcance inmediato
+
+## Etapa 5 — Fuentes ESP32 de pulso
+- [x] Pipeline común MANUAL/LED/BLE con persistencia inmediata de N × K.
+- [x] Parser/fuente BLE configurable y detector LED con ROI, baseline, histéresis y debounce.
+- [x] Política conservadora de coordinación de cámara sin pérdida silenciosa.
+- [ ] UI/persistencia BLE, adaptador real de frames LED e integridad comprometida persistida.
+- [ ] Validación física cuantitativa con hardware ESP32 y coordinación de evidencia.
+
+Estado: correctivo imprescindible antes de cerrar Stage 5; ver `STAGE_5_ESP32_PULSE_SOURCES_NOTES.md`.
+
+### Stage 5.1
+- [x] Firmware ESP32 y BLE counter v1 flasheados/validados.
+- [x] Descubrimiento UI, baseline/reconciliación, schema 5, integrity y cámara LED real.
+- [ ] Validación LED física y corrida completa BLE/LED en Pixel sin descartar la Sample previa.
+
 - iOS.
 - Landscape/tablet dedicado.
 - Panel web UI.

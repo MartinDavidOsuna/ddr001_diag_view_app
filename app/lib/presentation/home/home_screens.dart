@@ -120,6 +120,11 @@ final class RecoveryScreen extends ConsumerWidget {
               onPressed: ref.read(appControllerProvider.notifier).resumeSample,
               child: const Text('REANUDAR PRUEBA'),
             ),
+            OutlinedButton(
+              key: const Key('leave-recovery'),
+              onPressed: ref.read(appControllerProvider.notifier).showHome,
+              child: const Text('IR AL INICIO SIN DESCARTAR'),
+            ),
             const SizedBox(height: 8),
             const Text(
               'La prueba no puede descartarse silenciosamente. Salir de esta pantalla no modifica su estado.',

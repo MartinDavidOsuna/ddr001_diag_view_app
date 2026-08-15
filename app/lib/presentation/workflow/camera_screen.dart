@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -99,7 +100,10 @@ final class _CameraCaptureScreenState extends ConsumerState<CameraCaptureScreen>
     WidgetsBinding.instance.removeObserver(this);
     _odometer.dispose();
     _needle.dispose();
-    ref.read(appDependenciesProvider).camera?.dispose();
+    // AppDependencies owns the shared camera. Evidence releases it so the LED
+    // ImageStream can reuse the same physical camera without closing its
+    // brightness stream for the rest of the process lifetime.
+    unawaited(ref.read(appDependenciesProvider).camera?.pause());
     super.dispose();
   }
 

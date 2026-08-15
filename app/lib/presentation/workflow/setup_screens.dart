@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/theme/app_theme.dart';
 import '../../core/metrology/metrology.dart';
 import '../../domain/models.dart';
+import '../../infrastructure/pulse/ble_discovery.dart';
 import '../app_controller.dart';
 import '../common/app_scaffold.dart';
 import '../home/home_screens.dart';
@@ -188,6 +189,10 @@ final class MethodScreen extends ConsumerWidget {
               method: state.selectedMethod,
               hardwareState: state.hardwareState,
               onHardwareState: controller.setHardwareState,
+              bleDevices: state.bleDevices,
+              selectedBleDevice: state.selectedBleDevice,
+              onScanBle: controller.scanBleDevices,
+              onSelectBle: controller.selectBleDevice,
             ),
             const SizedBox(height: 18),
             FilledButton(
@@ -207,10 +212,18 @@ final class _MethodPanel extends StatelessWidget {
     required this.method,
     required this.hardwareState,
     required this.onHardwareState,
+    required this.bleDevices,
+    required this.selectedBleDevice,
+    required this.onScanBle,
+    required this.onSelectBle,
   });
   final MeasurementMethod method;
   final HardwareState hardwareState;
   final ValueChanged<HardwareState> onHardwareState;
+  final List<BleDeviceCandidate> bleDevices;
+  final BleDeviceCandidate? selectedBleDevice;
+  final Future<void> Function() onScanBle;
+  final ValueChanged<BleDeviceCandidate> onSelectBle;
 
   @override
   Widget build(BuildContext context) {
@@ -241,7 +254,9 @@ final class _MethodPanel extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         StatusBanner(
-          text: '$label · Hardware real reservado para Stage 5.',
+          text: method == MeasurementMethod.ble
+              ? '$label · ${selectedBleDevice?.name ?? 'Seleccione DDR001 ESP32'}'
+              : '$label · Configure ROI LED y reconciliación BLE.',
           color: hardwareState == HardwareState.ready
               ? AppColors.success
               : AppColors.warning,
@@ -250,10 +265,34 @@ final class _MethodPanel extends StatelessWidget {
               : Icons.highlight_outlined,
         ),
         const SizedBox(height: 10),
-        OutlinedButton(
-          onPressed: () => onHardwareState(HardwareState.preparing),
-          child: const Text('PREPARAR (ESTADO VISUAL)'),
-        ),
+        if (method == MeasurementMethod.ble ||
+            method == MeasurementMethod.led) ...[
+          OutlinedButton.icon(
+            key: const Key('ble-scan'),
+            onPressed: onScanBle,
+            icon: const Icon(Icons.bluetooth_searching),
+            label: const Text('BUSCAR ESP32 DDR001'),
+          ),
+          for (final device in bleDevices)
+            ListTile(
+              selected: selectedBleDevice?.id == device.id,
+              onTap: () => onSelectBle(device),
+              leading: Icon(
+                selectedBleDevice?.id == device.id
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_off,
+              ),
+              title: Text(device.name),
+              subtitle: Text('${device.id} · RSSI ${device.rssi} dBm'),
+            ),
+          if (method == MeasurementMethod.led)
+            const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: Text(
+                'BLE se usa únicamente como contador auxiliar de integridad; el método permanece LED.',
+              ),
+            ),
+        ],
       ],
     );
   }

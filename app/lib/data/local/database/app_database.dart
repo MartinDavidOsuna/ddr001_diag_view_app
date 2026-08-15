@@ -119,6 +119,26 @@ class Samples extends Table {
   TextColumn get totalizerUnit => text().nullable()();
   BoolColumn get totalizerLeadingZerosAllowed => boolean().nullable()();
   TextColumn get totalizerConfigurationSource => text().nullable()();
+  TextColumn get bleDeviceId => text().nullable()();
+  TextColumn get bleDeviceName => text().nullable()();
+  TextColumn get bleServiceUuid => text().nullable()();
+  TextColumn get bleCounterCharacteristicUuid => text().nullable()();
+  IntColumn get bleProtocolVersion => integer().nullable()();
+  IntColumn get esp32CounterAtStart => integer().nullable()();
+  IntColumn get lastObservedEsp32Counter => integer().nullable()();
+  RealColumn get ledRoiLeft => real().nullable()();
+  RealColumn get ledRoiTop => real().nullable()();
+  RealColumn get ledRoiWidth => real().nullable()();
+  RealColumn get ledRoiHeight => real().nullable()();
+  RealColumn get ledRisingDelta => real().nullable()();
+  RealColumn get ledFallingDelta => real().nullable()();
+  IntColumn get ledMinPulseIntervalMs => integer().nullable()();
+  RealColumn get ledBaseline => real().nullable()();
+  BoolColumn get ledUsesBleReconciliation => boolean().nullable()();
+  TextColumn get acquisitionIntegrityStatus => text().nullable()();
+  TextColumn get acquisitionIntegrityReason => text().nullable()();
+  IntColumn get acquisitionIntegrityAtMs => integer().nullable()();
+  TextColumn get acquisitionIntegritySource => text().nullable()();
   IntColumn get createdAtMs => integer()();
   IntColumn get updatedAtMs => integer()();
   IntColumn get startedAtMs => integer().nullable()();
@@ -271,7 +291,7 @@ final class AppDatabase extends _$AppDatabase {
     : super(driftDatabase(name: 'ddr001', native: const DriftNativeOptions()));
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -333,6 +353,38 @@ final class AppDatabase extends _$AppDatabase {
           'PRAGMA table_info(samples)',
         ).get()).map((row) => row.read<String>('name')).toSet();
         for (final column in formatColumns) {
+          if (!existingColumns.contains(column.$name)) {
+            await migrator.addColumn(samples, column);
+          }
+        }
+      }
+      if (from < 5) {
+        final acquisitionColumns = <GeneratedColumn<Object>>[
+          samples.bleDeviceId,
+          samples.bleDeviceName,
+          samples.bleServiceUuid,
+          samples.bleCounterCharacteristicUuid,
+          samples.bleProtocolVersion,
+          samples.esp32CounterAtStart,
+          samples.lastObservedEsp32Counter,
+          samples.ledRoiLeft,
+          samples.ledRoiTop,
+          samples.ledRoiWidth,
+          samples.ledRoiHeight,
+          samples.ledRisingDelta,
+          samples.ledFallingDelta,
+          samples.ledMinPulseIntervalMs,
+          samples.ledBaseline,
+          samples.ledUsesBleReconciliation,
+          samples.acquisitionIntegrityStatus,
+          samples.acquisitionIntegrityReason,
+          samples.acquisitionIntegrityAtMs,
+          samples.acquisitionIntegritySource,
+        ];
+        final existingColumns = (await customSelect(
+          'PRAGMA table_info(samples)',
+        ).get()).map((row) => row.read<String>('name')).toSet();
+        for (final column in acquisitionColumns) {
           if (!existingColumns.contains(column.$name)) {
             await migrator.addColumn(samples, column);
           }

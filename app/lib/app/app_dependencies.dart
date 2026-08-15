@@ -8,12 +8,15 @@ import '../data/local/filesystem/evidence_file_store.dart';
 import '../data/local/repositories/local_closure_services.dart';
 import '../data/local/repositories/local_repositories.dart';
 import '../domain/models.dart';
+import '../domain/pulse/pulse_progress_service.dart';
+import '../domain/pulse/pulse_source.dart';
 import '../domain/repositories.dart';
 import '../infrastructure/camera/camera_port.dart';
 import '../infrastructure/camera/flutter_camera_adapter.dart';
 import '../infrastructure/vision/needle_detector.dart';
 import '../infrastructure/vision/odometer_reader.dart';
 import '../infrastructure/vision/vision_pipeline.dart';
+import '../infrastructure/pulse/ble_discovery.dart';
 
 abstract interface class SessionStore {
   Future<String?> readActiveUserId();
@@ -245,6 +248,8 @@ final class AppDependencies {
     required this.caseClosure,
     required this.auth,
     required this.evidenceCapture,
+    required this.pulseProgress,
+    this.bleDiscovery,
     this.camera,
     this.visualPipeline,
   });
@@ -264,6 +269,7 @@ final class AppDependencies {
         odometer: MlKitOdometerRecognitionAdapter(),
         needle: const RedNeedleDetector(),
       ),
+      bleDiscovery: BleDiscoveryService(),
     );
   }
 
@@ -295,6 +301,7 @@ final class AppDependencies {
       caseClosure: LocalVerificationCaseClosureService(database),
       auth: LocalAuthService(users, sessionStore),
       evidenceCapture: DevelopmentEvidenceCaptureAdapter(fileStore, evidence),
+      pulseProgress: PulseProgressService(samples),
     );
   }
 
@@ -312,6 +319,8 @@ final class AppDependencies {
   final VerificationCaseClosureService caseClosure;
   final AuthService auth;
   final EvidenceCapturePort evidenceCapture;
+  final PulseProgressPort pulseProgress;
+  final BleDiscoveryService? bleDiscovery;
   final CameraPort? camera;
   final VisualReadingPipeline? visualPipeline;
 
@@ -319,6 +328,8 @@ final class AppDependencies {
     EvidenceCapturePort? evidenceCapture,
     CameraPort? camera,
     VisualReadingPipeline? visualPipeline,
+    PulseProgressPort? pulseProgress,
+    BleDiscoveryService? bleDiscovery,
   }) => AppDependencies(
     database: database,
     fileStore: fileStore,
@@ -334,6 +345,8 @@ final class AppDependencies {
     caseClosure: caseClosure,
     auth: auth,
     evidenceCapture: evidenceCapture ?? this.evidenceCapture,
+    pulseProgress: pulseProgress ?? this.pulseProgress,
+    bleDiscovery: bleDiscovery ?? this.bleDiscovery,
     camera: camera ?? this.camera,
     visualPipeline: visualPipeline ?? this.visualPipeline,
   );

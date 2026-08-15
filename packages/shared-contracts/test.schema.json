@@ -18,7 +18,7 @@
   ],
   "properties": {
     "schema": {
-      "const": "ddr001.verification.sample/v6"
+      "const": "ddr001.verification.sample/v7"
     },
     "sample_id": {
       "type": "string"
@@ -115,6 +115,9 @@
         },
         "meter_face": {
           "$ref": "#/$defs/meter_face"
+        },
+        "pulse_acquisition": {
+          "$ref": "#/$defs/pulse_acquisition"
         }
       }
     },
@@ -188,6 +191,24 @@
     }
   },
   "$defs": {
+    "pulse_acquisition": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["integrity", "ble_protocol_version", "baseline_counter", "last_counter"],
+      "properties": {
+        "device_id": {"type": ["string", "null"]},
+        "device_name": {"type": ["string", "null"]},
+        "service_uuid": {"type": ["string", "null"]},
+        "counter_characteristic_uuid": {"type": ["string", "null"]},
+        "ble_protocol_version": {"type": ["integer", "null"]},
+        "baseline_counter": {"type": ["integer", "null"], "minimum": 0, "maximum": 4294967295},
+        "last_counter": {"type": ["integer", "null"], "minimum": 0, "maximum": 4294967295},
+        "led_roi": {"type": ["array", "null"], "minItems": 4, "maxItems": 4, "items": {"type": "number", "minimum": 0, "maximum": 1}},
+        "integrity": {"type": "string", "enum": ["OK", "COMPROMISED"]},
+        "integrity_reason": {"type": ["string", "null"]},
+        "integrity_at": {"type": ["string", "null"], "format": "date-time"}
+      }
+    },
     "meter_face": {
       "type": ["object", "null"],
       "additionalProperties": false,

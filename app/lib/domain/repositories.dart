@@ -42,6 +42,11 @@ abstract interface class SampleRepository {
     String id,
     MeterFaceConfiguration configuration,
   );
+  Future<Sample> updatePulseAcquisition({
+    required String id,
+    required PulseAcquisitionConfiguration configuration,
+    required AcquisitionIntegrity integrity,
+  });
   Future<Sample> markInvalidEvidence(String id, {required DateTime at});
   Future<List<Sample>> listByFlow(String flowPointId);
   Future<List<Sample>> listIncomplete();

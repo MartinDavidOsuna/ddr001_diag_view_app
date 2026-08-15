@@ -44,6 +44,11 @@ final class LocalSampleClosureService implements SampleClosureService {
     if (sample.status != domain.SampleStatus.running) {
       throw StateError('Only a RUNNING sample can close.');
     }
+    if (sample.acquisitionIntegrity.isCompromised) {
+      throw StateError(
+        'Conteo de pulsos no verificable. La prueba debe repetirse.',
+      );
+    }
     if (sample.initialReading == null || sample.finalReading == null) {
       throw StateError('Both confirmed readings are required.');
     }

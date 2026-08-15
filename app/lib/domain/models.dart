@@ -273,6 +273,61 @@ final class ConfirmedReading {
   final String? evidenceId;
 }
 
+enum AcquisitionIntegrityStatus { ok, compromised }
+
+final class AcquisitionIntegrity {
+  const AcquisitionIntegrity({
+    this.status = AcquisitionIntegrityStatus.ok,
+    this.reason,
+    this.occurredAt,
+    this.source,
+  });
+
+  final AcquisitionIntegrityStatus status;
+  final String? reason;
+  final DateTime? occurredAt;
+  final MeasurementMethod? source;
+  bool get isCompromised => status == AcquisitionIntegrityStatus.compromised;
+}
+
+final class PulseAcquisitionConfiguration {
+  const PulseAcquisitionConfiguration({
+    this.bleDeviceId,
+    this.bleDeviceName,
+    this.bleServiceUuid,
+    this.bleCounterCharacteristicUuid,
+    this.bleProtocolVersion,
+    this.esp32CounterAtStart,
+    this.lastObservedEsp32Counter,
+    this.ledRoiLeft,
+    this.ledRoiTop,
+    this.ledRoiWidth,
+    this.ledRoiHeight,
+    this.ledRisingDelta,
+    this.ledFallingDelta,
+    this.ledMinPulseIntervalMs,
+    this.ledBaseline,
+    this.ledUsesBleReconciliation = false,
+  });
+
+  final String? bleDeviceId;
+  final String? bleDeviceName;
+  final String? bleServiceUuid;
+  final String? bleCounterCharacteristicUuid;
+  final int? bleProtocolVersion;
+  final int? esp32CounterAtStart;
+  final int? lastObservedEsp32Counter;
+  final double? ledRoiLeft;
+  final double? ledRoiTop;
+  final double? ledRoiWidth;
+  final double? ledRoiHeight;
+  final double? ledRisingDelta;
+  final double? ledFallingDelta;
+  final int? ledMinPulseIntervalMs;
+  final double? ledBaseline;
+  final bool ledUsesBleReconciliation;
+}
+
 final class Sample {
   const Sample({
     required this.id,
@@ -290,6 +345,8 @@ final class Sample {
     this.initialReading,
     this.finalReading,
     this.meterFaceConfiguration,
+    this.pulseAcquisitionConfiguration,
+    this.acquisitionIntegrity = const AcquisitionIntegrity(),
     this.result,
     this.checksum,
   });
@@ -309,6 +366,8 @@ final class Sample {
   final ConfirmedReading? initialReading;
   final ConfirmedReading? finalReading;
   final MeterFaceConfiguration? meterFaceConfiguration;
+  final PulseAcquisitionConfiguration? pulseAcquisitionConfiguration;
+  final AcquisitionIntegrity acquisitionIntegrity;
   final SampleResult? result;
   final String? checksum;
 
@@ -347,6 +406,8 @@ final class Sample {
     initialReading: initialReading,
     finalReading: finalReading,
     meterFaceConfiguration: meterFaceConfiguration,
+    pulseAcquisitionConfiguration: pulseAcquisitionConfiguration,
+    acquisitionIntegrity: acquisitionIntegrity,
     result: result,
     checksum: checksum,
   );
