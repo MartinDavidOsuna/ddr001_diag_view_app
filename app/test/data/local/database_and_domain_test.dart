@@ -27,41 +27,45 @@ void main() {
     await directory.delete(recursive: true);
   });
 
-  test('schema version 5 creates all eight domain tables', () async {
-    expect(database.schemaVersion, 5);
-    final rows = await database
-        .customSelect(
-          "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
-        )
-        .get();
-    expect(
-      rows.map((r) => r.read<String>('name')).toSet(),
-      containsAll({
-        'users',
-        'meters',
-        'verification_cases',
-        'flow_points',
-        'samples',
-        'test_points',
-        'evidence_items',
-        'sync_items',
-      }),
-    );
-    final sampleColumns = await database
-        .customSelect('PRAGMA table_info(samples)')
-        .get();
-    expect(
-      sampleColumns.map((row) => row.read<String>('name')),
-      containsAll({
-        'initial_reading_evidence_id',
-        'final_reading_evidence_id',
-        'totalizer_left',
-        'dial_center_x',
-        'dial_multiplier',
-        'dial_configuration_source',
-      }),
-    );
-  });
+  test(
+    'schema version 6 creates domain and operational settings tables',
+    () async {
+      expect(database.schemaVersion, 7);
+      final rows = await database
+          .customSelect(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
+          )
+          .get();
+      expect(
+        rows.map((r) => r.read<String>('name')).toSet(),
+        containsAll({
+          'users',
+          'meters',
+          'verification_cases',
+          'flow_points',
+          'samples',
+          'test_points',
+          'evidence_items',
+          'sync_items',
+          'sample_operational_settings',
+        }),
+      );
+      final sampleColumns = await database
+          .customSelect('PRAGMA table_info(samples)')
+          .get();
+      expect(
+        sampleColumns.map((row) => row.read<String>('name')),
+        containsAll({
+          'initial_reading_evidence_id',
+          'final_reading_evidence_id',
+          'totalizer_left',
+          'dial_center_x',
+          'dial_multiplier',
+          'dial_configuration_source',
+        }),
+      );
+    },
+  );
 
   test('user normalizes email and phone and supports lookup', () async {
     final user = User(

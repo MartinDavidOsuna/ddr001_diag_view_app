@@ -20,7 +20,7 @@ Las pruebas usaron hardware y GATT reales mediante Bleak en Windows. Los pulsos 
 
 ## LED y Pixel
 
-Pendiente de cableado/encuadre del LED externo GPIO25. No se reportan FPS, missed pulses ni duración mínima sin medición. `LED_ON_MS=120` permanece valor inicial, no validación final.
+Corrección V1 (2026-08-15): no se requiere cableado de LED externo; el objetivo vigente es el LED integrado GPIO2. Queda pendiente su encuadre/validación física. No se reportan FPS, missed pulses ni duración mínima sin medición. `LED_ON_MS=120` permanece valor inicial, no validación final.
 
 El APK schema 5 se instaló in-place en Pixel 7 Pro. La app abrió y recuperó una Sample VISUAL RUNNING previa con su sesión/datos; por conservación no se descartó para fabricar una corrida BLE/LED.
 

@@ -146,23 +146,27 @@ final class _ReadingsScreenState extends ConsumerState<ReadingsScreen> {
             const SizedBox(height: 14),
             FilledButton(
               key: const Key('confirm-readings'),
-              onPressed: () {
-                if (!_form.currentState!.validate()) return;
-                ref
-                    .read(appControllerProvider.notifier)
-                    .closeSample(
-                      initialOdometer: double.parse(_initialOdo.text),
-                      initialNeedle: double.parse(_initialNeedle.text),
-                      finalOdometer: double.parse(_finalOdo.text),
-                      finalNeedle: double.parse(_finalNeedle.text),
-                      visualReferenceLiters: visual
-                          ? double.parse(_visualReference.text)
-                          : null,
-                      createDevelopmentEvidence:
-                          !productionCamera && _completeEvidence,
-                    );
-              },
-              child: const Text('CORRECTA · CALCULAR RESULTADO'),
+              onPressed: state.busy
+                  ? null
+                  : () async {
+                      if (!_form.currentState!.validate()) return;
+                      await ref
+                          .read(appControllerProvider.notifier)
+                          .closeSample(
+                            initialOdometer: double.parse(_initialOdo.text),
+                            initialNeedle: double.parse(_initialNeedle.text),
+                            finalOdometer: double.parse(_finalOdo.text),
+                            finalNeedle: double.parse(_finalNeedle.text),
+                            visualReferenceLiters: visual
+                                ? double.parse(_visualReference.text)
+                                : null,
+                            createDevelopmentEvidence:
+                                !productionCamera && _completeEvidence,
+                          );
+                    },
+              child: Text(
+                state.busy ? 'FINALIZANDO…' : 'CORRECTA · CALCULAR RESULTADO',
+              ),
             ),
           ],
         ),

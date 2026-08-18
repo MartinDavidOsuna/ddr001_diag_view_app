@@ -259,6 +259,12 @@ void main() {
       expect(result?.liters, closeTo(25, 2));
     });
 
+    test('detects the centerline of a broad painted red pointer', () async {
+      final result = await detector.detect(_dial(35, thickness: 25), config);
+      expect(result, isNotNull);
+      expect(result!.angleDegrees, closeTo(35, 4));
+    });
+
     test(
       'uses the physical red axis in an off-center non-square crop',
       () async {
@@ -283,6 +289,36 @@ void main() {
     test('rejects image without red needle', () async {
       final image = img.Image(width: 300, height: 300);
       img.fill(image, color: img.ColorRgb8(230, 230, 230));
+      expect(await detector.detect(image, config), isNull);
+    });
+
+    test('rejects black line, reflection, screw, mark and shadow', () async {
+      final image = img.Image(width: 300, height: 300);
+      img.fill(image, color: img.ColorRgb8(220, 220, 220));
+      img.drawLine(
+        image,
+        x1: 150,
+        y1: 150,
+        x2: 280,
+        y2: 40,
+        color: img.ColorRgb8(15, 15, 15),
+        thickness: 9,
+      );
+      img.drawCircle(
+        image,
+        x: 150,
+        y: 150,
+        radius: 13,
+        color: img.ColorRgb8(90, 90, 90),
+      );
+      img.fillRect(
+        image,
+        x1: 30,
+        y1: 40,
+        x2: 70,
+        y2: 260,
+        color: img.ColorRgb8(245, 245, 245),
+      );
       expect(await detector.detect(image, config), isNull);
     });
 
@@ -335,6 +371,7 @@ img.Image _dial(
   int height = 300,
   int? centerX,
   int? centerY,
+  int thickness = 7,
 }) {
   final image = img.Image(width: width, height: height);
   img.fill(image, color: img.ColorRgb8(235, 235, 235));
@@ -351,7 +388,7 @@ img.Image _dial(
     x2: x,
     y2: y,
     color: color ?? img.ColorRgb8(230, 20, 20),
-    thickness: 7,
+    thickness: thickness,
   );
   return image;
 }

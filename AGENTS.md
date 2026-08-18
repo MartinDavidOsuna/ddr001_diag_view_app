@@ -23,3 +23,4 @@
 - Flutter: `dart format`, `flutter analyze`, tests; sin lógica de negocio en widgets.
 - Node: TypeScript strict, validación de inputs, sin `any` injustificado, tests.
 - Código/identificadores en inglés; UI/documentación de producto en español.
+- Todo cambio que modifique un procedimiento visible para el técnico debe revisar y, cuando corresponda, actualizar `app/assets/manual/manual_de_uso.md` en el mismo cambio.

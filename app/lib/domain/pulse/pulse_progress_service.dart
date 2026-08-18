@@ -37,6 +37,7 @@ final class PulseProgressService implements PulseProgressPort {
         id: sample.id,
         pulseCount: count,
         referenceLiters: count * sample.configuration.litersPerPulse,
+        firstPulseAt: sample.pulseCount == 0 ? event.receivedAt : null,
       );
       result.add(count);
     });

@@ -21,7 +21,7 @@ String meterStatusLabel(ExternalMeterStatus status) => switch (status) {
   ExternalMeterStatus.foundWithSurvey => 'Localizado con levantamiento',
   ExternalMeterStatus.foundNoSurvey => 'Localizado sin levantamiento',
   ExternalMeterStatus.notFound => 'Nuevo / no localizado',
-  ExternalMeterStatus.unknownOffline => 'Pendiente de consulta / offline',
+  ExternalMeterStatus.unknownOffline => 'Sin resultado de consulta',
 };
 
 final class IdentificationScreen extends ConsumerStatefulWidget {
@@ -48,6 +48,7 @@ final class _IdentificationScreenState
   Widget build(BuildContext context) {
     final state = ref.watch(appControllerProvider);
     final controller = ref.read(appControllerProvider.notifier);
+    final capabilities = ref.watch(appDependenciesProvider);
     return AppScaffold(
       title: 'Identificación',
       child: Form(
@@ -110,27 +111,60 @@ final class _IdentificationScreenState
                 icon: Icons.speed,
               ),
               const SizedBox(height: 10),
-              const ListTile(
+              ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(
-                  Icons.location_off_outlined,
-                  color: AppColors.muted,
+                  state.gps == null
+                      ? Icons.location_off_outlined
+                      : Icons.location_on_outlined,
+                  color: state.gps == null
+                      ? AppColors.muted
+                      : AppColors.success,
                 ),
-                title: Text('GPS preparado'),
+                title: Text(
+                  state.gpsCaptureState == GpsCaptureState.capturing
+                      ? 'Obteniendo ubicación GPS…'
+                      : state.gps == null
+                      ? 'Ubicación GPS no capturada'
+                      : '${state.gps!.latitude.toStringAsFixed(6)}, ${state.gps!.longitude.toStringAsFixed(6)}',
+                ),
                 subtitle: Text(
-                  'Ubicación no disponible en Stage 3',
-                  style: TextStyle(color: AppColors.muted),
+                  state.gps == null
+                      ? state.gpsMessage ??
+                            'Funciona sin internet. La prueba puede continuar si GPS falla.'
+                      : 'Precisión ±${state.gps!.accuracyMeters.toStringAsFixed(0)} m',
+                  style: const TextStyle(color: AppColors.muted),
+                ),
+                trailing: IconButton(
+                  key: const Key('capture-gps'),
+                  onPressed:
+                      state.busy ||
+                          state.gpsCaptureState == GpsCaptureState.capturing
+                      ? null
+                      : controller.captureGps,
+                  tooltip: 'Obtener ubicación GPS',
+                  icon: const Icon(Icons.my_location),
                 ),
               ),
-              const ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(Icons.cloud_off_outlined, color: AppColors.muted),
-                title: Text('Pendiente de consulta / offline'),
-                subtitle: Text(
-                  'La cuenta nueva siempre está permitida.',
-                  style: TextStyle(color: AppColors.muted),
+              if (capabilities.hydrantLookupConfigured)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(
+                    Icons.manage_search_outlined,
+                    color: AppColors.heading,
+                  ),
+                  title: Text(
+                    state.hydrantLookupInProgress
+                        ? 'Consultando…'
+                        : state.meter == null
+                        ? 'Consulta de cuenta disponible'
+                        : meterStatusLabel(state.meter!.externalStatus),
+                  ),
+                  subtitle: const Text(
+                    'La consulta es informativa y nunca bloquea la prueba.',
+                    style: TextStyle(color: AppColors.muted),
+                  ),
                 ),
-              ),
               if (state.errorMessage != null)
                 Text(
                   state.errorMessage!,
@@ -314,12 +348,32 @@ final class _TestSetupScreenState extends ConsumerState<TestSetupScreen> {
   late final _uncertainty = TextEditingController(
     text: ref.read(appControllerProvider).readingUncertaintyLiters.toString(),
   );
+  late final _minimum = TextEditingController(
+    text: ref.read(appControllerProvider).minimumVolumeLiters.toString(),
+  );
+  late final _maximum = TextEditingController(
+    text: ref.read(appControllerProvider).maximumVolumeLiters.toString(),
+  );
+  late final _startMin = TextEditingController(
+    text: ref.read(appControllerProvider).controlStartMinimumLps.toString(),
+  );
+  late final _startMax = TextEditingController(
+    text: ref.read(appControllerProvider).controlStartMaximumLps.toString(),
+  );
+  late final _hydrantK = TextEditingController(
+    text: ref.read(appControllerProvider).hydrantLitersPerPulse.toString(),
+  );
 
   @override
   void dispose() {
     _k.dispose();
     _step.dispose();
     _uncertainty.dispose();
+    _minimum.dispose();
+    _maximum.dispose();
+    _startMin.dispose();
+    _startMax.dispose();
+    _hydrantK.dispose();
     super.dispose();
   }
 
@@ -358,6 +412,77 @@ final class _TestSetupScreenState extends ConsumerState<TestSetupScreen> {
               ),
             ),
             const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    key: const Key('config-minimum-volume'),
+                    controller: _minimum,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'Vmín orientativo (L)',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    key: const Key('config-maximum-volume'),
+                    controller: _maximum,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'Vmáx orientativo (L)',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    key: const Key('config-control-start-min'),
+                    controller: _startMin,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'Caudal mínimo para iniciar (L/s)',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    key: const Key('config-control-start-max'),
+                    controller: _startMax,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'Caudal máximo para iniciar (L/s)',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              key: const Key('config-hydrant-k'),
+              controller: _hydrantK,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: const InputDecoration(
+                labelText: 'Medidor del hidrante · litros por pulso',
+              ),
+            ),
+            const SizedBox(height: 10),
             TextField(
               key: const Key('config-step'),
               controller: _step,
@@ -392,10 +517,15 @@ final class _TestSetupScreenState extends ConsumerState<TestSetupScreen> {
                   litersPerPulse: double.tryParse(_k.text) ?? 1,
                   evidenceStepLiters: double.tryParse(_step.text) ?? 25,
                   uncertaintyLiters: double.tryParse(_uncertainty.text) ?? 1,
+                  minimumVolumeLiters: double.tryParse(_minimum.text) ?? 100,
+                  maximumVolumeLiters: double.tryParse(_maximum.text) ?? 300,
+                  controlStartMinimumLps: double.tryParse(_startMin.text) ?? .5,
+                  controlStartMaximumLps: double.tryParse(_startMax.text) ?? 50,
+                  hydrantLitersPerPulse: double.tryParse(_hydrantK.text) ?? 1,
                 );
                 controller.startSample();
               },
-              child: const Text('INICIAR PRUEBA'),
+              child: const Text('PREPARAR Y CAPTURAR INICIO'),
             ),
           ],
         ),

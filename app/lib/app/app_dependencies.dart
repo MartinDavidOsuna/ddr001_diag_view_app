@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:uuid/uuid.dart';
 
 import '../data/local/database/app_database.dart' hide User;
@@ -17,6 +19,8 @@ import '../infrastructure/vision/needle_detector.dart';
 import '../infrastructure/vision/odometer_reader.dart';
 import '../infrastructure/vision/vision_pipeline.dart';
 import '../infrastructure/pulse/ble_discovery.dart';
+import '../infrastructure/export/case_export_service.dart';
+import '../infrastructure/remote/remote_api.dart';
 
 abstract interface class SessionStore {
   Future<String?> readActiveUserId();
@@ -53,6 +57,78 @@ abstract interface class AuthService {
     required String phone,
   });
   Future<void> logout();
+}
+
+abstract interface class LocationPort {
+  Future<GpsSnapshot> capture();
+}
+
+enum LocationFailureKind {
+  serviceDisabled,
+  denied,
+  permanentlyDenied,
+  timeout,
+  unavailable,
+}
+
+final class LocationFailure implements Exception {
+  const LocationFailure(this.kind, this.message);
+  final LocationFailureKind kind;
+  final String message;
+  @override
+  String toString() => message;
+}
+
+final class GeolocatorLocationAdapter implements LocationPort {
+  @override
+  Future<GpsSnapshot> capture() async {
+    if (!await Geolocator.isLocationServiceEnabled()) {
+      throw const LocationFailure(
+        LocationFailureKind.serviceDisabled,
+        'Los servicios de ubicación están desactivados. Actívalos para obtener GPS.',
+      );
+    }
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      throw LocationFailure(
+        permission == LocationPermission.deniedForever
+            ? LocationFailureKind.permanentlyDenied
+            : LocationFailureKind.denied,
+        permission == LocationPermission.deniedForever
+            ? 'Permiso de ubicación denegado permanentemente. Habilítalo en Ajustes de Android.'
+            : 'Permiso de ubicación denegado. La prueba puede continuar sin GPS.',
+      );
+    }
+    final Position position;
+    try {
+      position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 15),
+        ),
+      );
+    } on TimeoutException {
+      throw const LocationFailure(
+        LocationFailureKind.timeout,
+        'GPS tardó demasiado. Intenta nuevamente en un lugar con mejor recepción.',
+      );
+    } catch (_) {
+      throw const LocationFailure(
+        LocationFailureKind.unavailable,
+        'No fue posible obtener la ubicación. La prueba puede continuar sin GPS.',
+      );
+    }
+    return GpsSnapshot(
+      latitude: position.latitude,
+      longitude: position.longitude,
+      accuracyMeters: position.accuracy,
+      capturedAt: position.timestamp.toUtc(),
+    );
+  }
 }
 
 final class LocalAuthService implements AuthService {
@@ -96,6 +172,92 @@ final class LocalAuthService implements AuthService {
     await sessionStore.saveActiveUserId(user.id);
     return user;
   }
+
+  @override
+  Future<void> logout() => sessionStore.clear();
+}
+
+final class ServerBackedAuthService implements AuthService {
+  ServerBackedAuthService({
+    required this.users,
+    required this.sessionStore,
+    required this.tokens,
+    required this.api,
+  });
+
+  final UserRepository users;
+  final SessionStore sessionStore;
+  final TokenStore tokens;
+  final RemoteApiClient api;
+
+  @override
+  Future<User?> restoreSession() async {
+    final id = await sessionStore.readActiveUserId();
+    return id == null ? null : users.getById(id);
+  }
+
+  @override
+  Future<User> login({
+    required String displayName,
+    required String email,
+    required String phone,
+  }) async {
+    final remote = await api.login(
+      displayName: displayName,
+      email: email,
+      phone: phone,
+    );
+    final existing = await users.getById(remote.user.id);
+    final user = User(
+      id: remote.user.id,
+      displayName: existing?.displayName ?? remote.user.displayName,
+      email: remote.user.email,
+      phone: remote.user.phone,
+      createdAt: existing?.createdAt ?? remote.user.createdAt,
+      lastLoginAt: remote.user.lastLoginAt,
+    );
+    await users.save(user);
+    await tokens.write(remote.token);
+    await sessionStore.saveActiveUserId(user.id);
+    return user;
+  }
+
+  @override
+  Future<void> logout() async {
+    final token = await tokens.read();
+    if (token != null) {
+      try {
+        await api.logout(token);
+      } catch (_) {
+        // Local explicit logout always completes; remote revocation retries are
+        // impossible after the local secret is deliberately discarded.
+      }
+    }
+    await tokens.clear();
+    await sessionStore.clear();
+  }
+}
+
+final class ExistingSessionOnlyAuthService implements AuthService {
+  ExistingSessionOnlyAuthService(this.users, this.sessionStore);
+
+  final UserRepository users;
+  final SessionStore sessionStore;
+
+  @override
+  Future<User?> restoreSession() async {
+    final id = await sessionStore.readActiveUserId();
+    return id == null ? null : users.getById(id);
+  }
+
+  @override
+  Future<User> login({
+    required String displayName,
+    required String email,
+    required String phone,
+  }) => throw StateError(
+    'El primer acceso requiere conexión al backend DDR001 configurado.',
+  );
 
   @override
   Future<void> logout() => sessionStore.clear();
@@ -247,9 +409,14 @@ final class AppDependencies {
     required this.sampleClosure,
     required this.caseClosure,
     required this.auth,
+    required this.sessionStore,
     required this.evidenceCapture,
     required this.pulseProgress,
+    required this.caseExport,
     this.bleDiscovery,
+    this.location,
+    this.remoteApi,
+    this.tokenStore,
     this.camera,
     this.visualPipeline,
   });
@@ -262,6 +429,11 @@ final class AppDependencies {
       fileStore: fileStore,
       sessionStore: SharedPreferencesSessionStore(),
     );
+    const apiBaseUrl = String.fromEnvironment('DDR001_API_BASE_URL');
+    final tokenStore = const SecureTokenStore();
+    final remoteApi = apiBaseUrl.isEmpty
+        ? null
+        : RemoteApiClient(baseUrl: apiBaseUrl);
     return base.copyWith(
       evidenceCapture: CameraEvidenceCaptureAdapter(fileStore, base.evidence),
       camera: FlutterCameraAdapter(),
@@ -270,6 +442,17 @@ final class AppDependencies {
         needle: const RedNeedleDetector(),
       ),
       bleDiscovery: BleDiscoveryService(),
+      location: GeolocatorLocationAdapter(),
+      auth: remoteApi == null
+          ? ExistingSessionOnlyAuthService(base.users, base.sessionStore)
+          : ServerBackedAuthService(
+              users: base.users,
+              sessionStore: base.sessionStore,
+              tokens: tokenStore,
+              api: remoteApi,
+            ),
+      remoteApi: remoteApi,
+      tokenStore: tokenStore,
     );
   }
 
@@ -300,8 +483,10 @@ final class AppDependencies {
       sampleClosure: LocalSampleClosureService(database, fileStore),
       caseClosure: LocalVerificationCaseClosureService(database),
       auth: LocalAuthService(users, sessionStore),
+      sessionStore: sessionStore,
       evidenceCapture: DevelopmentEvidenceCaptureAdapter(fileStore, evidence),
       pulseProgress: PulseProgressService(samples),
+      caseExport: CaseExportService(),
     );
   }
 
@@ -318,11 +503,20 @@ final class AppDependencies {
   final SampleClosureService sampleClosure;
   final VerificationCaseClosureService caseClosure;
   final AuthService auth;
+  final SessionStore sessionStore;
   final EvidenceCapturePort evidenceCapture;
   final PulseProgressPort pulseProgress;
+  final CaseExportService caseExport;
   final BleDiscoveryService? bleDiscovery;
+  final LocationPort? location;
+  final RemoteApiClient? remoteApi;
+  final TokenStore? tokenStore;
   final CameraPort? camera;
   final VisualReadingPipeline? visualPipeline;
+
+  bool get backendSyncConfigured => remoteApi != null;
+  bool get hydrantLookupConfigured => remoteApi != null;
+  bool get locationAvailable => location != null;
 
   AppDependencies copyWith({
     EvidenceCapturePort? evidenceCapture,
@@ -330,6 +524,10 @@ final class AppDependencies {
     VisualReadingPipeline? visualPipeline,
     PulseProgressPort? pulseProgress,
     BleDiscoveryService? bleDiscovery,
+    LocationPort? location,
+    AuthService? auth,
+    RemoteApiClient? remoteApi,
+    TokenStore? tokenStore,
   }) => AppDependencies(
     database: database,
     fileStore: fileStore,
@@ -343,10 +541,15 @@ final class AppDependencies {
     sync: sync,
     sampleClosure: sampleClosure,
     caseClosure: caseClosure,
-    auth: auth,
+    auth: auth ?? this.auth,
+    sessionStore: sessionStore,
     evidenceCapture: evidenceCapture ?? this.evidenceCapture,
     pulseProgress: pulseProgress ?? this.pulseProgress,
+    caseExport: caseExport,
     bleDiscovery: bleDiscovery ?? this.bleDiscovery,
+    location: location ?? this.location,
+    remoteApi: remoteApi ?? this.remoteApi,
+    tokenStore: tokenStore ?? this.tokenStore,
     camera: camera ?? this.camera,
     visualPipeline: visualPipeline ?? this.visualPipeline,
   );

@@ -49,9 +49,23 @@ final class RedNeedleDetector implements NeedleDetectionPort {
         final red = pixel.r.toDouble();
         final green = pixel.g.toDouble();
         final blue = pixel.b.toDouble();
+        final maximum = math.max(red, math.max(green, blue));
+        final minimum = math.min(red, math.min(green, blue));
+        final chroma = maximum - minimum;
+        final saturation = maximum == 0 ? 0.0 : chroma / maximum;
+        final hue = chroma == 0
+            ? 0.0
+            : normalizeAngleDegrees(60 * ((green - blue) / chroma));
         final dominance = red - math.max(green, blue);
-        if (red < 90 || dominance < 35 || red < green * 1.35) continue;
-        points.add((x: x.toDouble(), y: y.toDouble(), weight: dominance));
+        final isRedHue = hue <= 22 || hue >= 338;
+        if (maximum < 65 || saturation < .35 || !isRedHue || dominance < 22) {
+          continue;
+        }
+        points.add((
+          x: x.toDouble(),
+          y: y.toDouble(),
+          weight: dominance * saturation,
+        ));
       }
     }
     if (points.length < minimumRedPixels) return null;
@@ -81,23 +95,72 @@ final class RedNeedleDetector implements NeedleDetectionPort {
       final radius = math.sqrt(dx * dx + dy * dy);
       if (radius < minNeedleRadius || radius > maxNeedleRadius) continue;
       final angle = normalizeAngleDegrees(math.atan2(dy, dx) * 180 / math.pi);
+      final radialWeight = radius / maxNeedleRadius;
       bins[angle.floor() % bins.length] +=
-          point.weight * (radius / maxNeedleRadius);
+          point.weight * radialWeight * radialWeight;
     }
+    final outerPoints = points.where((point) {
+      final dx = point.x - hubX;
+      final dy = point.y - hubY;
+      return math.sqrt(dx * dx + dy * dy) >= .18 * scale;
+    }).toList();
+    if (outerPoints.length < math.max(4, minimumRedPixels ~/ 3)) return null;
+    // Real water-meter pointers are frequently broad painted triangles rather
+    // than one-pixel lines. Measure a narrow radial sector instead of only
+    // three degrees, otherwise a valid broad red needle is reported at the
+    // wrong edge or rejected for low confidence.
+    const halfWindow = 8;
     var bestBin = 0;
-    for (var index = 1; index < bins.length; index++) {
-      if (bins[index] > bins[bestBin]) bestBin = index;
+    var bestWindowWeight = -1.0;
+    for (var center = 0; center < bins.length; center++) {
+      var weight = 0.0;
+      for (var offset = -halfWindow; offset <= halfWindow; offset++) {
+        weight += bins[(center + offset) % bins.length];
+      }
+      if (weight > bestWindowWeight) {
+        bestWindowWeight = weight;
+        bestBin = center;
+      }
     }
-    final neighborhood =
-        bins[(bestBin - 1) % bins.length] +
-        bins[bestBin] +
-        bins[(bestBin + 1) % bins.length];
+    var neighborhood = 0.0;
+    var vectorX = 0.0;
+    var vectorY = 0.0;
+    for (var offset = -halfWindow; offset <= halfWindow; offset++) {
+      final index = (bestBin + offset) % bins.length;
+      final weight = bins[index];
+      neighborhood += weight;
+      final radians = (index + .5) * math.pi / 180;
+      vectorX += math.cos(radians) * weight;
+      vectorY += math.sin(radians) * weight;
+    }
     final total = bins.fold<double>(0, (sum, value) => sum + value);
     final confidence = total == 0
         ? 0.0
         : (neighborhood / total).clamp(0, 1).toDouble();
-    if (confidence < .18) return null;
-    var angle = bestBin + .5;
+    if (confidence < .30) return null;
+    final radialBuckets = <int>{};
+    var maximumReach = 0.0;
+    for (final point in points) {
+      final dx = point.x - hubX;
+      final dy = point.y - hubY;
+      final radius = math.sqrt(dx * dx + dy * dy);
+      if (radius < minNeedleRadius || radius > maxNeedleRadius) continue;
+      final pointAngle = normalizeAngleDegrees(
+        math.atan2(dy, dx) * 180 / math.pi,
+      );
+      final separation = math.min(
+        normalizeAngleDegrees(pointAngle - (bestBin + .5)),
+        normalizeAngleDegrees((bestBin + .5) - pointAngle),
+      );
+      if (separation <= 8) {
+        radialBuckets.add((radius / (.05 * scale)).floor());
+        maximumReach = math.max(maximumReach, radius);
+      }
+    }
+    if (radialBuckets.length < 4 || maximumReach < .25 * scale) return null;
+    var angle = vectorX == 0 && vectorY == 0
+        ? bestBin + .5
+        : normalizeAngleDegrees(math.atan2(vectorY, vectorX) * 180 / math.pi);
     final zeroDistance = math.min(
       normalizeAngleDegrees(angle - config.zeroAngleDegrees),
       normalizeAngleDegrees(config.zeroAngleDegrees - angle),

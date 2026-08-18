@@ -1,7 +1,43 @@
 # CHANGELOG funcional
 
+## Correctivo de interacción del selector — 2026-08-17
+- Finalizar táctil/remoto congela pulsos y Vref antes de acceder a cámara. La UI responde de inmediato con `FINALIZANDO…`; Evidence pendiente, foto FINAL y análisis continúan después sin mover el endpoint.
+- INTERMEDIATE queda evidence-only y elimina OCR/aguja síncronos que detenían visualmente la sección 4. El enlace BLE inicia después de confirmar START, evitando desconexiones mientras se fijan/analizan regiones.
+- El disparador Bluetooth se intercepta ahora en `MainActivity.dispatchKeyEvent`, porque Android consume VOLUME_UP/VOLUME_DOWN antes del árbol de foco Flutter. El canal nativo se activa únicamente en Prueba en curso; fuera de ella el volumen conserva su función normal.
+- Confianza visible calculada exclusivamente con pulsos del medidor de control. INTERMEDIATE y FINAL se capturan sin overlay global; FINAL se toma al finalizar, reutiliza/analiza las regiones de START y abre directamente la confirmación. Controles Bluetooth tipo shutter (volumen) pueden iniciar/finalizar bajo las mismas compuertas, sin activar otras funciones.
+- El panel de prueba refresca cada 500 ms los caudales continuos del medidor de control y del hidrante usando el tiempo transcurrido, incluso si no llegan pulsos. INICIAR toma bases lógicas para los acumulados oficiales sin reiniciar la telemetría ni el ESP32. El encabezado muestra ESP32, control remoto y confianza del medidor de control; la última celda del panel muestra V hidrante según su K configurada.
+- El control remoto requiere confirmación de dos pasos antes de habilitar acciones: primera pulsación abre `Control conectado`; segunda pulsación o `ACEPTAR` lo arma. El resumen fijo incorpora medidor y Q/caudal/K, y se eliminan del cuerpo los duplicados BLE READY y contador ESP32.
+- Se agrega preparación por rango de caudal del medidor de control: antes de INICIAR no se persisten pulsos; el botón verde se habilita sólo dentro del rango. Se congela K independiente del medidor del hidrante y Drift avanza 6→7 aditivamente.
+- Registro/reporte usan INICIO, INTERMEDIO y FINAL; HTML/PDF incorporan timestamp por punto. INTERMEDIO intenta llenar Lectura, Vmec y error diagnóstico mediante visión sobre la Evidence automática, conservando guiones si la visión falla.
+- Firmware/BLE v2 separa contador patrón GPIO27 y contador diagnóstico opcional GPIO25. Flutter acepta payload v1/v2, usa únicamente GPIO27 para Vref y muestra GPIO25 sin exigir incrementos.
+- Tras fijar regiones START se contrae la tarjeta de carátula. Prueba en curso incorpora un panel fijo bajo el título con primer pulso persistido, pulsos, V patrón, caudal calculado a dos decimales y el botón FINALIZAR siempre visible.
+- Registro muestra el timestamp de START/INTERMEDIATE/FINAL y persiste `Lectura L`/avance de START y FINAL al confirmar, antes del intento de cierre. Las intermedias automáticas se vinculan al umbral planificado (25/50/75…) aunque la captura física termine unos pulsos después, evitando duplicados y falsos faltantes.
+- Las evidencias INTERMEDIATE se fotografían automáticamente al cruzar cada umbral: no se abre la pantalla Cámara ni se presenta un botón de captura. La coordinación cierra la cámara de Evidence antes de reanudar el detector LED.
+- El editor manual de regiones abre en modo fijo sin scroll: mover o redimensionar el totalizador/dial ya no desplaza la pantalla. Se protegieron los límites geométricos y la carga de campos OCR posterior al frame para evitar excepciones mostradas como pantalla roja después de capturar.
+- El selector separa explícitamente edición de TOTALIZADOR y DIAL; la calibración DEBUG usa la misma selección sobre fotografía fija. OCR evalúa variantes color/contraste/umbral con consenso y la aguja admite punteros rojos pintados anchos. La calibración ya no destruye la cámara compartida.
+- Si el OCR de línea completa no obtiene el totalizador, un fallback mecánico divide exclusivamente el crop confirmado según el número de tambores configurado, reconoce cada dígito y reconstruye la propuesta sin buscar texto fuera del rectángulo.
+- El fallback mecánico usa cinco tambores como valor inicial editable y reconoce transiciones consecutivas de rodillo (por ejemplo 2→3), conservando el dígito anterior y advirtiendo al técnico que debe confirmarlo.
+- Las fuentes de pulso abren INTERMEDIATE al alcanzar cada paso y FINAL se bloquea mientras falte una evidencia planificada; esto evita cierres `INVALID_EVIDENCE` causados por omitir silenciosamente fotografías BLE.
+
+## Correctivo V1 — carátula manual-first, GPS y manual offline — 2026-08-16
+- Validación Pixel del 2026-08-17 corrigió una recaptura incompleta: `REPETIR FOTO` elimina ahora Evidence, archivo derivado y Point diagnóstico del tipo recapturado mientras la muestra permanece abierta.
+- START/FINAL dejan de analizar regiones supuestas: el técnico confirma rectángulo de totalizador, un círculo de dial y formato/escala antes de ejecutar OCR/aguja; INTERMEDIATE conserva captura ligera.
+- OCR y aguja procesan exclusivamente crops confirmados. El detector exige evidencia roja radial suficiente y devuelve `Aguja no detectada` frente a artefactos no rojos, sin invalidar la Evidence.
+- GPS Android local expone estados de permiso, servicio desactivado, timeout y error; la ubicación se recupera desde Sample y no depende del backend.
+- Consulta de hidrantes y sincronización se muestran solo con capability configurada; adapters, contratos, cola y datos locales permanecen intactos.
+- Ajustes incorpora el Manual de Uso canónico `app/assets/manual/manual_de_uso.md`, renderizado offline con versión instalada obtenida en runtime.
+- No cambian motor Stage 1, secuencia START→INTERMEDIATE→FINAL, Stage 5, contratos backend ni diseño de reportes.
+
+## V1 integral (implementación local/backend) — 2026-08-15
+- Se agregan exportes locales CSV, JSON contractual, HTML autocontenido y PDF offline con las evidencias de la misma corrida.
+- Registro usa Points persistidos START/INTERMEDIATE/FINAL/MANUAL_DIAGNOSTIC; al cierre START/FINAL reciben lectura y diagnóstico calculados por el motor Stage 1.
+- Drift avanza 5→6 mediante tabla auxiliar aditiva para congelar Vmín/Vmáx sin alterar filas/checksums históricos; el contrato compartido avanza a v8.
+- Se implementa backend V1 Node/TypeScript strict/Express/Prisma/PostgreSQL, auth passwordless, expedientes, muestras idempotentes, evidencia en filesystem, reportes y sync.
+- La API externa real fue inspeccionada: `ddr001_api_rv` expone `GET /api/v1/hydrants/:accountNumber` autenticado. El adaptador DDR001 es read-only y configurable.
+- Firmware confirmado por código/hardware declarado con entrada GPIO27 y LED integrado GPIO2; las referencias documentales previas a GPIO25 externo quedan corregidas. La validación física nueva permanece pendiente mientras no exista acceso al hardware/Pixel.
+
 ## Etapa 5.1 — 2026-08-11 — ESP32-WROOM-32 e integridad persistente
-- Firmware ESP32 en PlatformIO: GPIO27, LED GPIO25, BLE custom y contador acumulativo v1.
+- Firmware ESP32 en PlatformIO: GPIO27, LED integrado GPIO2, BLE custom y contador acumulativo v1.
 - Flutter incorpora descubrimiento DDR001, parser uint32, baseline, reconciliación, recovery e ImageStream LED por ROI.
 - Drift 4→5, Sample contract v7 y canonical v4 agregan adquisición/integridad sin alterar históricos.
 - BLE validado 20/20, 100/100 y reconexión 12/12; LED físico/flujo Pixel completo siguen pendientes y Stage 5 no se cierra.

@@ -44,12 +44,13 @@ Los JSON Schemas de `packages/shared-contracts/` son contratos serializables. Pr
 - `sample_number` secuencial dentro del caudal.
 - `status`: `DRAFT | RUNNING | INVALID_EVIDENCE | CLOSED_VALID`.
 - `measurement_source`: `VISUAL | MANUAL | LED | BLE`. `VISUAL` corresponde a **LECTURA VISUAL** productiva sobre un medidor real; no significa simulación.
-- timestamps inicio/fin.
+- timestamps inicio/fin. En métodos de pulsos, el inicio se reemplaza una sola vez con `PulseEvent.receivedAt` del primer pulso aceptado; en LECTURA VISUAL conserva el momento de inicio de la Sample.
 - GPS nullable.
-- configuración congelada: K, paso, volumen objetivo/orientativo, incertidumbre y parámetros relevantes.
+- configuración congelada: K, paso, volumen mínimo/máximo operativo, volumen objetivo/orientativo, incertidumbre y parámetros relevantes.
+- configuración de arranque congelada: caudal mínimo/máximo del medidor de control y K L/pulso independiente del medidor del hidrante. Se persiste en `sample_operational_settings`; schemaVersion 7 agrega columnas de forma aditiva.
 - configuración de adquisición nullable: identidad/UUID/versión BLE, baseline/último contador, ROI/umbrales LED y BLE auxiliar.
 - integridad `OK | COMPROMISED`, razón, timestamp y fuente; `COMPROMISED` bloquea `CLOSED_VALID` sin reutilizar `INVALID_EVIDENCE`.
-- configuración visual nullable para compatibilidad histórica: ROI relativo y formato del totalizador (`digitCount`, `decimalPlaces`, unidad, ceros iniciales y origen); centro/radio relativo del dial; multiplicador, litros por vuelta, cero, sentido y origen `AUTO_CONFIRMED | MANUAL`. Se confirma en START, se recupera durante RUNNING y forma parte de la canonicalización v3 de muestras nuevas; muestras sin formato conservan v1/v2.
+- configuración visual nullable para compatibilidad histórica: región relativa seleccionada manualmente para el totalizador y su formato (`digitCount`, `decimalPlaces`, unidad, ceros iniciales y origen); centro/radio relativo del único dial elegido por el técnico; multiplicador, litros por vuelta, cero, sentido y origen `AUTO_CONFIRMED | MANUAL`. Se confirma antes de analizar START, se recupera durante RUNNING y forma parte de la canonicalización v3 de muestras nuevas; muestras sin formato conservan v1/v2. El correctivo manual-first reutiliza estos campos y no requiere migración.
 - lecturas inicial/final con origen (`AUTO_CONFIRMED | MANUAL`) y `evidence_id` nullable; en captura visual productiva enlaza la imagen exacta que originó la propuesta confirmada.
 - resultado: V_ref, V_ind, E, U, MPE, decision_metric(s), verdict.
 - `checksum` al cierre.
@@ -81,6 +82,9 @@ Representa la política de sesión persistente; no usar password. El secreto/tok
 
 ## Report
 - `report_id`, `case_id`, versión, html_path/local, pdf_path nullable, checksum, created_at.
+
+## Metadata de despliegue servidor
+PostgreSQL conserva registros iniciales no operativos con versiones de esquema, API y sync. No se crean usuarios ni expedientes ficticios; el primer login crea la identidad real.
 
 ## Inmutabilidad
 - `Sample(CLOSED_VALID)` no admite UPDATE funcional de lecturas, pulsos, evidencia ni resultado.

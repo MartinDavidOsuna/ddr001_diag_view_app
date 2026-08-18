@@ -10,13 +10,19 @@ final class AppScaffold extends ConsumerWidget {
     required this.child,
     super.key,
     this.showBack = true,
+    this.onBack,
     this.actions,
+    this.scrollable = true,
+    this.pinnedHeader,
   });
 
   final String title;
   final Widget child;
   final bool showBack;
+  final VoidCallback? onBack;
   final List<Widget>? actions;
+  final bool scrollable;
+  final Widget? pinnedHeader;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -35,8 +41,9 @@ final class AppScaffold extends ConsumerWidget {
         leading: showBack
             ? IconButton(
                 tooltip: 'Volver',
-                onPressed: () =>
-                    ref.read(appControllerProvider.notifier).showHome(),
+                onPressed:
+                    onBack ??
+                    () => ref.read(appControllerProvider.notifier).showHome(),
                 icon: const Icon(Icons.arrow_back),
               )
             : null,
@@ -58,15 +65,39 @@ final class AppScaffold extends ConsumerWidget {
       body: SafeArea(
         child: Stack(
           children: [
-            SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: MediaQuery.sizeOf(context).height - 120,
+            if (scrollable)
+              Column(
+                children: [
+                  if (pinnedHeader != null)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.md,
+                        AppSpacing.md,
+                        AppSpacing.md,
+                        0,
+                      ),
+                      child: pinnedHeader!,
+                    ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: MediaQuery.sizeOf(context).height - 120,
+                        ),
+                        child: child,
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            else
+              Positioned.fill(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: child,
                 ),
-                child: child,
               ),
-            ),
             if (state.busy)
               const Positioned.fill(
                 child: ColoredBox(

@@ -18,7 +18,7 @@
   ],
   "properties": {
     "schema": {
-      "const": "ddr001.verification.sample/v7"
+      "const": "ddr001.verification.sample/v8"
     },
     "sample_id": {
       "type": "string"
@@ -92,6 +92,8 @@
         "capture_step_l",
         "mpe_pct",
         "reading_uncertainty_l"
+        ,"minimum_volume_l"
+        ,"maximum_volume_l"
       ],
       "properties": {
         "k_l_per_pulse": {
@@ -115,6 +117,14 @@
         },
         "meter_face": {
           "$ref": "#/$defs/meter_face"
+        },
+        "minimum_volume_l": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "maximum_volume_l": {
+          "type": "number",
+          "exclusiveMinimum": 0
         },
         "pulse_acquisition": {
           "$ref": "#/$defs/pulse_acquisition"

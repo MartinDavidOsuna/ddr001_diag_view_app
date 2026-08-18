@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:ddr001_diag_view_app/app/app_dependencies.dart';
@@ -8,9 +10,12 @@ import 'package:ddr001_diag_view_app/infrastructure/camera/camera_models.dart';
 import 'package:ddr001_diag_view_app/infrastructure/camera/camera_port.dart';
 import 'package:ddr001_diag_view_app/infrastructure/vision/vision_models.dart';
 import 'package:ddr001_diag_view_app/infrastructure/vision/vision_pipeline.dart';
+import 'package:ddr001_diag_view_app/infrastructure/remote/remote_api.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
 import '../support/presentation_fixture.dart';
 
@@ -160,14 +165,66 @@ void main() {
       uncertaintyLiters: 1,
     );
     await controller.startSample();
+    final armedAt = controller.state.sample!.startedAt!;
     await controller.addManualPulse();
+    final firstPulseAt = controller.state.sample!.startedAt!;
     await controller.addManualPulse();
     final persisted = await fixture.dependencies.samples.getById(
       controller.state.sample!.id,
     );
     expect(persisted?.pulseCount, 2);
     expect(persisted?.referenceLitersProgress, 4);
+    expect(firstPulseAt.isBefore(armedAt), isFalse);
+    expect(persisted?.startedAt, firstPulseAt);
   });
+
+  test(
+    'pulse threshold captures required intermediate evidence automatically',
+    () async {
+      final camera = _FakeCameraPort();
+      final dependencies = fixture.dependencies.copyWith(
+        camera: camera,
+        visualPipeline: _FakeVisualPipeline(),
+      );
+      controller = AppController(dependencies);
+      await _prepare(controller, method: MeasurementMethod.manual);
+      controller.updateSetup(
+        litersPerPulse: 1,
+        evidenceStepLiters: 2,
+        uncertaintyLiters: 1,
+      );
+      await controller.startSample();
+      final start = File('${fixture.directory.path}/threshold-start.jpg');
+      await start.writeAsBytes(List<int>.filled(900, 9));
+      await controller.processCapturedPhoto(start.path);
+      await controller.reanalyzeRegions(
+        const DialVisionConfiguration(
+          totalizerConfiguration: TotalizerConfiguration(
+            digitCount: 3,
+            decimalPlaces: 1,
+          ),
+        ),
+      );
+      await controller.confirmCameraReading(
+        odometer: 1,
+        needle: 0,
+        corrected: true,
+      );
+      await controller.addManualPulse();
+      expect(controller.state.page, AppPage.run);
+      await controller.addManualPulse();
+      expect(controller.state.page, AppPage.run);
+      expect(controller.state.capturePurpose, isNull);
+      expect(camera.captureCount, 1);
+      final evidence = await dependencies.evidence.listBySample(
+        controller.state.sample!.id,
+      );
+      expect(
+        evidence.where((item) => item.type == EvidenceType.intermediate),
+        hasLength(1),
+      );
+    },
+  );
 
   test('RUNNING sample is recovered by a new controller', () async {
     await _prepare(controller, method: MeasurementMethod.manual);
@@ -182,7 +239,7 @@ void main() {
   });
 
   test(
-    'recovery reanalyzes existing unconfirmed START without new Evidence',
+    'recovery restores technician-selected START regions without new Evidence',
     () async {
       final dependencies = fixture.dependencies.copyWith(
         camera: _FakeCameraPort(),
@@ -194,12 +251,31 @@ void main() {
       final photo = File('${fixture.directory.path}/recovery-start.jpg');
       await photo.writeAsBytes(List<int>.filled(900, 7));
       await controller.processCapturedPhoto(photo.path);
+      const selected = DialVisionConfiguration(
+        totalizerRegion: TotalizerRegion(NormalizedRect(.08, .72, .44, .16)),
+        selectedDial: NormalizedCircle(.78, .22, .14),
+        multiplier: .01,
+        litersPerRevolution: 1,
+        totalizerConfiguration: TotalizerConfiguration(
+          digitCount: 6,
+          decimalPlaces: 2,
+        ),
+      );
+      await controller.reanalyzeRegions(selected);
       final evidenceId = controller.state.readingProposal!.evidenceId;
       final restarted = AppController(dependencies);
       await restarted.initialize();
       await restarted.resumeSample();
       expect(restarted.state.page, AppPage.camera);
       expect(restarted.state.readingProposal!.evidenceId, evidenceId);
+      expect(restarted.state.readingProposal!.analysisCompleted, isFalse);
+      final restored = restarted.state.readingProposal!.configuration;
+      expect(restored.totalizerRegion.geometry.left, .08);
+      expect(restored.totalizerRegion.geometry.top, .72);
+      expect(restored.selectedDial.centerX, .78);
+      expect(restored.selectedDial.centerY, .22);
+      expect(restored.multiplier, .01);
+      expect(restored.totalizerConfiguration?.decimalPlaces, 2);
       expect(restarted.state.evidence, hasLength(1));
     },
   );
@@ -221,8 +297,15 @@ void main() {
       final start = File('${fixture.directory.path}/start.jpg');
       await start.writeAsBytes(List<int>.generate(900, (index) => index % 255));
       await controller.processCapturedPhoto(start.path);
+      expect(controller.state.readingProposal!.analysisCompleted, isFalse);
       final discarded = controller.state.readingProposal!;
       await controller.recapturePhoto();
+      expect(
+        await cameraDependencies.points.listBySample(
+          controller.state.sample!.id,
+        ),
+        isEmpty,
+      );
       expect(
         await cameraDependencies.evidence.getById(discarded.evidenceId),
         isNull,
@@ -261,6 +344,12 @@ void main() {
         controller.state.sample!.initialReading!.source,
         ReadingSource.autoConfirmed,
       );
+      expect(
+        controller.state.points
+            .singleWhere((point) => point.type == PointType.start)
+            .readingLiters,
+        47000.1,
+      );
       expect(controller.state.sample!.meterFaceConfiguration!.dialRadius, .18);
       expect(
         controller.state.sample!.configuration.needleLitersPerRevolution,
@@ -281,13 +370,10 @@ void main() {
       );
 
       await controller.setDevelopmentVisualReference(10);
-      controller.requestFinalEvidence();
-      final finalPhoto = File('${fixture.directory.path}/final.jpg');
-      await finalPhoto.writeAsBytes(
-        List<int>.generate(900, (index) => (index * 3) % 255),
-      );
-      await controller.processCapturedPhoto(finalPhoto.path);
+      await controller.requestFinalEvidence();
       final finalEvidenceId = controller.state.readingProposal!.evidenceId;
+      expect(controller.state.page, AppPage.camera);
+      expect(controller.state.busy, isFalse);
       await controller.confirmCameraReading(
         odometer: 47,
         needle: .2,
@@ -301,6 +387,11 @@ void main() {
         controller.state.sample!.finalReading!.source,
         ReadingSource.manual,
       );
+      final finalPointBeforeClosure = controller.state.points.singleWhere(
+        (point) => point.type == PointType.finalPoint,
+      );
+      expect(finalPointBeforeClosure.readingLiters, 47000.2);
+      expect(finalPointBeforeClosure.indicatedLiters, closeTo(10.1, 1e-9));
       expect(controller.state.page, AppPage.readings);
       await controller.closeSample(
         initialOdometer: 47,
@@ -393,13 +484,139 @@ void main() {
       expect(samples.last.sampleNumber, 2);
     },
   );
+
+  test('GPS success is captured without a network dependency', () async {
+    final gps = GpsSnapshot(
+      latitude: 29.0729,
+      longitude: -110.9559,
+      accuracyMeters: 4.5,
+      capturedAt: DateTime.utc(2026, 8, 16),
+    );
+    final locationController = AppController(
+      fixture.dependencies.copyWith(location: _FakeLocation(result: gps)),
+    );
+    await locationController.captureGps();
+    expect(locationController.state.gps, same(gps));
+    expect(locationController.state.gpsCaptureState, GpsCaptureState.captured);
+  });
+
+  test(
+    'configured hydrant capability reports Consultando only during request',
+    () async {
+      final response = Completer<http.Response>();
+      final dependencies = fixture.dependencies.copyWith(
+        remoteApi: RemoteApiClient(
+          baseUrl: 'https://configured.invalid',
+          client: MockClient((request) => response.future),
+        ),
+        tokenStore: _FakeTokenStore(),
+      );
+      final remoteController = AppController(dependencies);
+      await remoteController.login('Técnico', 'field@aquafim.mx', '4491234567');
+      final lookup = remoteController.identifyMeter(
+        meterId: 'H-100',
+        lpsApprox: 20,
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(remoteController.state.hydrantLookupInProgress, isTrue);
+      response.complete(
+        http.Response(jsonEncode({'status': 'NOT_FOUND', 'data': null}), 200),
+      );
+      await lookup;
+      expect(remoteController.state.hydrantLookupInProgress, isFalse);
+      expect(
+        remoteController.state.meter?.externalStatus,
+        ExternalMeterStatus.notFound,
+      );
+    },
+  );
+
+  test(
+    'GPS captured at start is persisted and restored with RUNNING sample',
+    () async {
+      final gps = GpsSnapshot(
+        latitude: 29.0729,
+        longitude: -110.9559,
+        accuracyMeters: 3.2,
+        capturedAt: DateTime.utc(2026, 8, 16, 20),
+      );
+      final dependencies = fixture.dependencies.copyWith(
+        location: _FakeLocation(result: gps),
+      );
+      final locationController = AppController(dependencies);
+      await _prepare(locationController, method: MeasurementMethod.manual);
+      await locationController.startSample();
+      final persisted = await dependencies.samples.getById(
+        locationController.state.sample!.id,
+      );
+      expect(persisted?.gps?.latitude, gps.latitude);
+      expect(persisted?.gps?.accuracyMeters, gps.accuracyMeters);
+
+      final restarted = AppController(dependencies);
+      await restarted.initialize();
+      expect(restarted.state.gps?.longitude, gps.longitude);
+      expect(restarted.state.gpsCaptureState, GpsCaptureState.captured);
+    },
+  );
+
+  for (final item in <(LocationFailureKind, GpsCaptureState)>[
+    (LocationFailureKind.denied, GpsCaptureState.denied),
+    (LocationFailureKind.permanentlyDenied, GpsCaptureState.permanentlyDenied),
+    (LocationFailureKind.serviceDisabled, GpsCaptureState.serviceDisabled),
+    (LocationFailureKind.timeout, GpsCaptureState.timeout),
+    (LocationFailureKind.unavailable, GpsCaptureState.error),
+  ]) {
+    test('GPS maps ${item.$1.name} to an actionable UI state', () async {
+      final locationController = AppController(
+        fixture.dependencies.copyWith(
+          location: _FakeLocation(
+            failure: LocationFailure(item.$1, 'Fallo controlado'),
+          ),
+        ),
+      );
+      await locationController.captureGps();
+      expect(locationController.state.gps, isNull);
+      expect(locationController.state.gpsCaptureState, item.$2);
+      expect(locationController.state.gpsMessage, 'Fallo controlado');
+    });
+  }
+}
+
+final class _FakeLocation implements LocationPort {
+  const _FakeLocation({this.result, this.failure});
+  final GpsSnapshot? result;
+  final LocationFailure? failure;
+
+  @override
+  Future<GpsSnapshot> capture() async {
+    if (failure case final failure?) throw failure;
+    return result!;
+  }
+}
+
+final class _FakeTokenStore implements TokenStore {
+  @override
+  Future<void> clear() async {}
+  @override
+  Future<String?> read() async => 'test-token';
+  @override
+  Future<void> write(String token) async {}
 }
 
 final class _FakeCameraPort implements CameraPort {
+  int captureCount = 0;
   @override
   Widget buildPreview() => const SizedBox();
   @override
-  Future<CapturedPhoto> capture() => throw UnimplementedError();
+  Future<CapturedPhoto> capture() async {
+    captureCount++;
+    final file = File(
+      '${Directory.systemTemp.path}/ddr001-auto-intermediate-$captureCount.jpg',
+    );
+    await file.writeAsBytes(List<int>.filled(900, captureCount));
+    return CapturedPhoto(path: file.path, capturedAt: DateTime.now().toUtc());
+  }
+
   @override
   Future<void> dispose() async {}
   @override
@@ -416,6 +633,24 @@ final class _FakeCameraPort implements CameraPort {
 }
 
 final class _FakeVisualPipeline implements VisualReadingPipeline {
+  @override
+  Future<VisualReadingProposal> prepare({
+    required String evidenceId,
+    required String evidencePath,
+    DialVisionConfiguration? configuration,
+  }) async => VisualReadingProposal(
+    evidenceId: evidenceId,
+    evidencePath: evidencePath,
+    odometerRaw: '',
+    odometerValue: null,
+    needleLiters: null,
+    needleAngle: null,
+    warnings: const [],
+    createdAt: DateTime.utc(2026, 8, 10),
+    configuration: configuration ?? const DialVisionConfiguration(),
+    analysisCompleted: false,
+  );
+
   @override
   Future<VisualReadingProposal> analyze({
     required String evidenceId,

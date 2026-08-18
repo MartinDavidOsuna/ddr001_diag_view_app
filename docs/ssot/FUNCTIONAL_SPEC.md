@@ -20,7 +20,7 @@
 ## 2. Identificación (`features/identification`)
 - ID/número de cuenta del medidor: texto libre, cualquier valor permitido.
 - Consulta opcional/automática de solo lectura al sistema de hidrantes cuando haya conectividad.
-- Estados visibles: localizado con datos previos / localizado sin levantamiento / no localizado-nuevo / consulta pendiente por falta de red.
+- Cuando la capability remota está configurada, estados visibles: consultando / localizado con datos previos / localizado sin levantamiento / no localizado-nuevo / error real. Sin configuración, la consulta se oculta y el ID continúa editable; no se presenta un pendiente ficticio al técnico.
 - Si existe levantamiento previo, mostrar los datos disponibles sin obligar a que existan.
 - Caudal: Q1, Q2, Q3 o Q4 con descripción técnica correcta y MPE derivado por zona.
 - `LPS aprox.` manual.
@@ -39,16 +39,19 @@ Manual, LED y BLE comparten una interfaz común de eventos de pulso. **LECTURA V
 El modo que en el prototipo web se denominaba **Simulación** debe migrarse a Flutter como **LECTURA VISUAL**, eliminando cualquier semántica de simulación en la app productiva. El simulador web externo permanece sin cambios y se usa para validar esta implementación.
 
 ## 4. Carátula y cámara (`features/camera_dial`)
+- En START, antes de cualquier análisis definitivo, se abre `CONFIGURAR LECTURA`: el técnico mueve/redimensiona el rectángulo de totalizador, mueve/redimensiona el círculo del dial elegido y confirma formato/escala. Solo `ANALIZAR LECTURA` ejecuta OCR y detección de aguja.
+- Después de `FIJAR REGIONES`, la tarjeta de fotografía se contrae para priorizar formato, escala y `ANALIZAR LECTURA`.
 - El OCR conserva texto raw y candidatos separados del formato. La posición decimal solo se aplica desde `TotalizerConfiguration` confirmada en START (`digitCount`, `decimalPlaces`, unidad y política de ceros iniciales); nunca se infiere silenciosamente.
 - FINAL reutiliza el formato congelado. Una inconsistencia o carácter ambiguo exige confirmación/corrección humana y no invalida una fotografía íntegra.
 - El procedimiento conserva una Evidence completa por START, cada INTERMEDIATE planificada y FINAL; no existen fotos separadas para totalizador y aguja.
 - `TotalizerRegion` y el dial seleccionado usan geometría normalizada respecto de la imagen orientada. El técnico puede mover/redimensionar ambos y reanalizar la misma Evidence.
-- Se representan múltiples candidatos de dial. Solo se elige automáticamente el de menor volumen por vuelta cuando la escala es inequívoca; de lo contrario el técnico confirma candidato y escala (`×1`, `×0.1`, `×0.01`, `×0.001`).
-- Geometría, escala, cero, sentido y litros/vuelta confirmados en START se recuperan y reutilizan durante la Sample. INTERMEDIATE intenta diagnóstico sin exigir OCR perfecto; START y FINAL mantienen confirmación completa.
+- Pueden existir uno o varios diales, pero el técnico selecciona exactamente uno. Las sugerencias automáticas, si existen, no se autoaceptan ni sobrescriben la geometría confirmada. Se conservan las escalas soportadas (`×1`, `×0.1`, `×0.01`, `×0.001`).
+- Geometría, escala, cero, sentido y litros/vuelta confirmados en START se recuperan y reutilizan durante la Sample. Al alcanzar cada umbral planificado, INTERMEDIATE toma y persiste automáticamente una fotografía completa sin navegación ni obturador manual; no exige OCR perfecto. START conserva captura/configuración manual-first. FINAL se captura automáticamente al finalizar y solicita al técnico únicamente confirmar/corregir el análisis basado en la configuración START.
 - Vista en vivo y estado de cámara.
 - ROI/ajustes necesarios para lectura de carátula.
-- Detección automática de aguja roja; si falla: mensaje explícito `Aguja no detectada`.
-- OCR automático del odómetro.
+- Detección automática exclusivamente dentro del círculo. Requiere dominancia y cantidad roja suficientes, componente coherente con el eje, dirección radial, longitud y confianza mínimas; si falla: `Aguja no detectada`.
+- OCR automático exclusivamente sobre el rectángulo elegido; números externos nunca son candidatos.
+- El técnico confirma el número real de tambores. Si un tambor mecánico muestra simultáneamente dos dígitos consecutivos durante una transición (por ejemplo 2→3), la propuesta conserva el dígito anterior/visible en la parte superior y exige confirmación humana.
 - Toda lectura automática exitosa se presenta al técnico para confirmación: `Lectura detectada: ... ¿Es correcta?`.
 - Si OCR/aguja falla, se habilita captura manual de la lectura correspondiente.
 - La confirmación/corrección es posible antes de cerrar la muestra.
@@ -57,6 +60,9 @@ El modo que en el prototipo web se denominaba **Simulación** debe migrarse a Fl
 Estados mínimos: `draft → ready → running → awaiting_reading_confirmation → closed_valid | invalid_evidence`.
 
 ### Iniciar
+- Preparación congela caudal mínimo/máximo del medidor de control para habilitar el inicio y K L/pulso independiente del medidor del hidrante.
+- Después de confirmar Evidence INICIO, GPIO27 se observa solamente para estabilización: no incrementa Sample/Vref. `INICIAR PRUEBA` permanece verde pero deshabilitado hasta que el caudal calculado esté dentro del rango; dentro del rango el caudal se muestra verde y el botón se habilita.
+- Al pulsar `INICIAR PRUEBA` se fijan baselines de ambos canales, comienza el registro, se oculta ese botón y aparece `FINALIZAR Y CONFIRMAR LECTURAS`.
 - Captura GPS si es posible.
 - Congela configuración de la muestra.
 - Fija contador origen.
@@ -64,19 +70,27 @@ Estados mínimos: `draft → ready → running → awaiting_reading_confirmation
 - Si la fotografía inicial falla, no inicia una muestra válida; informa y permite reintentar.
 
 ### Durante
+- ESP32 mantiene dos canales: flujómetro 1 calibrado en GPIO27 es el patrón y única fuente de Vref; flujómetro 2 bajo prueba en GPIO25 es opcional/diagnóstico y puede permanecer en cero sin comprometer la muestra. Fotografías y lecturas visuales corresponden al flujómetro 2.
+- En UI se denominan `medidor de control` y `medidor del hidrante`; el resumen no expone la etiqueta técnica `flujómetro 1 · GPIO27`.
+- Debajo del título permanece fijo un panel con timestamp del primer pulso observado, acumulados oficiales, caudales calculados, V patrón y V hidrante. Un reloj de UI actualiza ambos caudales cada 500 ms como `pulsos observados × K / tiempo desde el primer pulso`, incluso sin pulsos nuevos, por lo que decaen hasta mostrarse como cero cuando se detiene el flujo. La observación es continua al cruzar INICIAR; los acumulados oficiales parten lógicamente de cero sin reiniciar el ESP32 ni el caudal mostrado. El encabezado muestra conexión ESP32, presencia del control remoto y confianza diagnóstica `max(0, (1 − 1/N) × 100)`, calculada exclusivamente con `N` pulsos observados del medidor de control; no participa en metrología ni veredicto. El panel mantiene siempre visible `FINALIZAR Y CONFIRMAR LECTURAS` una vez iniciada la medición.
+- Controles Bluetooth de disparo que Android exponga como volumen arriba/abajo activan exclusivamente INICIAR o FINALIZAR según el estado. INICIAR conserva la compuerta de caudal; FINALIZAR exige medición iniciada y Vref positivo. No disparan fotografías ni otras acciones directamente.
 - Indicadores: pulsos, V patrón, tiempo, incertidumbre estimada.
 - Captura intermedia automática según paso (25 L default).
+- INTERMEDIATE se limita a captura/persistencia de Evidence y no ejecuta OCR/aguja en el isolate de UI, evitando detener pulsos, volumen y método de la sección 4. La toma de FINAL tampoco muestra overlay; FINAL reutiliza y analiza automáticamente la configuración visual congelada en START y abre después su confirmación/corrección.
+- Para BLE/LED, el enlace de contador se inicia después de confirmar la lectura START, no durante la selección/análisis de regiones, evitando que el trabajo visual compita con el establecimiento del enlace.
 - Puede existir captura diagnóstica manual adicional.
 - Si una evidencia intermedia obligatoria falla, la muestra queda `invalid_evidence`; el técnico debe repetir la prueba.
 
 ### Finalizar
+- La acción táctil o remota congela inmediatamente el endpoint de pulsos/Vref antes de cualquier operación de cámara. Eventos posteriores se ignoran; callbacks ya serializados terminan antes de fijar el snapshot.
+- La UI cambia inmediatamente a `FINALIZANDO…`. Evidencias intermedias faltantes, captura FINAL y análisis se completan después sin overlay global; al existir propuesta se abre confirmación/corrección.
 - Captura final obligatoria.
 - Si falla, marca `invalid_evidence` y ofrece repetir.
 - Abre captura/confirmación de lecturas.
 - Calcula solo cuando lecturas inicial/final estén confirmadas.
 
 ## 6. Registro (`features/registry`)
-Tabla de puntos: tipo, pulsos, V patrón, lectura, V mecánico, error diagnóstico y referencia a evidencia.
+Tabla de puntos: tipo, timestamp local de captura, pulsos, V patrón, lectura, V mecánico, error diagnóstico y referencia a evidencia. START y FINAL muestran su lectura confirmada inmediatamente; INTERMEDIATE conserva guion porque su captura automática es Evidence transparente y no ejecuta lectura visual en primer plano.
 
 El error de puntos es solo diagnóstico. El resultado oficial siempre es endpoint.
 

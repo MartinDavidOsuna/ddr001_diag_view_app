@@ -36,6 +36,8 @@ Response normalizada:
 
 La implementación debe inspeccionar la API de hidrantes y mapear su endpoint/payload real; no se permite modificarla ni inventar contratos externos.
 
+Contrato externo inspeccionado el 2026-08-15 en `ddr001_api_rv`: `GET /api/v1/hydrants/:accountNumber`, con Bearer de campo; `404` significa no localizado. `officialInspectionId` o `latestInspectionId` indican levantamiento disponible. El adaptador se configura mediante base URL y token separados, solo ejecuta GET y no reexpone la credencial.
+
 ## 3. Expedientes
 - `POST /cases` crea/ingesta expediente idempotente.
 - `GET /cases/:id` devuelve expediente completo o vista expandible.

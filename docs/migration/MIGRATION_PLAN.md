@@ -44,29 +44,29 @@ Notas: `STAGE_3_FLUTTER_UI_NOTES.md`.
 Notas: `STAGE_4_VISUAL_READING_CAMERA_NOTES.md`.
 
 ## Etapa 5 — ESP32
-- [ ] Interfaz común de pulsos para Manual/BLE/LED y abstracción de adquisición compatible con LECTURA VISUAL.
+- [x] Interfaz común de pulsos para Manual/BLE/LED y abstracción de adquisición compatible con LECTURA VISUAL.
 - [ ] Validación ampliada y calibración por familia de medidor de **LECTURA VISUAL**.
-- [ ] BLE ESP32.
-- [ ] LED ESP32 por cámara.
+- [x] BLE ESP32 (implementación y fake CI; validación física previa documentada).
+- [x] LED ESP32 por cámara (implementación y fake CI; validación física final pendiente).
 - [ ] Validación de LECTURA VISUAL y motor contra simulador web externo sin modificarlo.
 
 ## Etapa 6 — Reporte
-- [ ] HTML autocontenido fiel a referencia.
-- [ ] Imágenes embebidas.
-- [ ] Botón Descargar PDF + render PDF equivalente.
-- [ ] Generación offline.
+- [x] HTML autocontenido fiel a referencia.
+- [x] Imágenes embebidas.
+- [x] Botón Descargar PDF + render PDF equivalente.
+- [x] Generación offline.
 
 ## Etapa 7 — Backend + sync
-- [ ] Express/TS/Prisma/PostgreSQL.
-- [ ] Auth persistente.
-- [ ] Cases/flow-points/samples/evidence/report/sync.
-- [ ] Filesystem storage abstraído.
-- [ ] Endpoints de consulta para panel futuro.
+- [x] Express/TS/Prisma/PostgreSQL.
+- [x] Auth persistente.
+- [x] Cases/flow-points/samples/evidence/report/sync.
+- [x] Filesystem storage abstraído.
+- [x] Endpoints de consulta para panel futuro.
 
 ## Etapa 8 — Integración API hidrantes
-- [ ] Inspeccionar API existente.
-- [ ] Consumir endpoint real de consulta de cuenta/levantamiento.
-- [ ] Adaptador read-only; cero cambios al sistema de hidrantes.
+- [x] Inspeccionar API existente.
+- [x] Consumir endpoint real de consulta de cuenta/levantamiento.
+- [x] Adaptador read-only; cero cambios al sistema de hidrantes.
 
 ## Etapa 9 — Endurecimiento Android
 - [ ] Cierre inesperado/reanudación.
@@ -76,6 +76,15 @@ Notas: `STAGE_4_VISUAL_READING_CAMERA_NOTES.md`.
 - [ ] Foto corrupta/almacenamiento lleno.
 - [ ] Reintentos/duplicados de sync.
 - [ ] APK/AAB y pruebas de campo.
+
+## Correctivo V1 — carátula manual-first, GPS y ayuda offline
+- [x] START exige selección táctil de totalizador y un dial antes de analizar.
+- [x] OCR/aguja quedan limitados a crops confirmados; aguja no roja se rechaza.
+- [x] Geometría/formato/escala START se persisten y recuperan con la misma Evidence.
+- [x] GPS Android local maneja permiso, servicio apagado, timeout y error sin depender de red.
+- [x] Capabilities remotas no configuradas se ocultan sin borrar cola/adapters.
+- [x] Manual canónico offline agregado a Ajustes; todo cambio operativo debe revisarlo.
+- [ ] Smoke físico GPS/cámara y recorrido manual-first en Pixel cuando exista dispositivo ADB.
 
 ## Etapa 4.2 — Calibración cuantitativa
 - [x] Corpus físico de aguja BEFORE/AFTER (21 + 21 imágenes) y métricas reales.
@@ -99,7 +108,7 @@ Resultados: `STAGE_4_3_TOTALIZER_RESULTS.md`.
 - [x] Pipeline común MANUAL/LED/BLE con persistencia inmediata de N × K.
 - [x] Parser/fuente BLE configurable y detector LED con ROI, baseline, histéresis y debounce.
 - [x] Política conservadora de coordinación de cámara sin pérdida silenciosa.
-- [ ] UI/persistencia BLE, adaptador real de frames LED e integridad comprometida persistida.
+- [x] UI/persistencia BLE, adaptador real de frames LED e integridad comprometida persistida.
 - [ ] Validación física cuantitativa con hardware ESP32 y coordinación de evidencia.
 
 Estado: correctivo imprescindible antes de cerrar Stage 5; ver `STAGE_5_ESP32_PULSE_SOURCES_NOTES.md`.

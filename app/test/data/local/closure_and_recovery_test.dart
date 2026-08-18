@@ -207,6 +207,15 @@ void main() {
           capturedAt: fixedTime,
         ),
       );
+      await fixture.points.save(
+        TestPoint(
+          id: 'final-point',
+          sampleId: 'sample-1',
+          type: PointType.finalPoint,
+          pulseCount: 200,
+          capturedAt: fixedTime,
+        ),
+      );
       final closed = await fixture.sampleClosure.closeValid(
         'sample-1',
         at: fixedTime,
@@ -232,6 +241,19 @@ void main() {
       expect(
         (await fixture.samples.getById('sample-1'))!.checksum,
         closed.checksum,
+      );
+      final persistedPoints = await fixture.points.listBySample('sample-1');
+      expect(
+        persistedPoints
+            .firstWhere((point) => point.type == PointType.start)
+            .indicatedLiters,
+        0,
+      );
+      expect(
+        persistedPoints
+            .firstWhere((point) => point.type == PointType.finalPoint)
+            .diagnosticErrorPct,
+        closeTo(closed.result!.errorPct, 1e-9),
       );
     },
   );

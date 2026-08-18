@@ -64,12 +64,14 @@ Jerarquía principal:
 - **Bluetooth desde ESP32**. Cada evento/notificación válida equivale igualmente a `K` litros.
 - La funcionalidad que el prototipo/simulador identifica como simulación se conserva en producción bajo el nombre **LECTURA VISUAL**: se utilizará con medidores reales en campo, usando la cámara/visión para obtener la lectura del medidor y derivar el avance observado. El archivo web legado sigue siendo únicamente una herramienta externa de validación y no se integra ni se modifica.
 - Todas las fuentes implementan una abstracción común `PulseSource`.
+- En ESP32 v2, GPIO27 recibe el flujómetro 1 de control calibrado y gobierna Vref/integridad; GPIO25 recibe pulsos opcionales del flujómetro 2 bajo prueba. La ausencia de pulsos GPIO25 no es una falla y el medidor 2 continúa documentándose mediante fotografías y lecturas.
 
 ## 9. Cámara, visión y OCR
 - Cada captura obligatoria sigue siendo una sola fotografía completa de la carátula. Esa Evidence original se conserva sin filtros y produce derivados separados para TOTALIZADOR y DIAL; ajustar derivados no crea otra Evidence.
-- La selección del dial se basa en la menor cantidad de volumen por vuelta/división (mayor resolución metrológica), no en su tamaño físico. Ante escala/candidato ambiguo se exige confirmación visual.
+- El flujo productivo es **manual-first**: tras START el técnico coloca y redimensiona un rectángulo sobre los únicos dígitos del totalizador, coloca un círculo sobre el dial que utilizará y confirma formato/escala antes de `ANALIZAR LECTURA`. No existe una plantilla universal ni una selección automática autoritativa entre diales.
+- El técnico selecciona el dial de menor cantidad de volumen por vuelta/división entre los disponibles (mayor resolución metrológica), no el de mayor tamaño físico. La app no decide qué dial corresponde.
 - La geometría relativa y escala confirmadas en START se congelan para la Sample y se reutilizan en INTERMEDIATE y FINAL.
-- La app intenta reconocer automáticamente la **aguja** y los **dígitos del odómetro**.
+- OCR recibe exclusivamente el crop rectangular y el detector de aguja exclusivamente el crop circular confirmados. Una detección de aguja válida requiere componente rojo, geometría radial y confianza mínima; nunca se sustituye por la mejor anomalía no roja.
 - Si no detecta la aguja, informa explícitamente al técnico y permite continuar hacia captura/confirmación manual cuando proceda.
 - Si OCR falla, solicita lectura manual.
 - Tras una lectura automática exitosa siempre muestra la lectura detectada y pide confirmación: **¿Es correcta?**

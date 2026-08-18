@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +12,7 @@ import '../../infrastructure/camera/camera_models.dart';
 import '../../infrastructure/vision/vision_models.dart';
 import '../app_controller.dart';
 import '../common/app_scaffold.dart';
+import '../common/meter_face_region_editor.dart';
 
 final class VisualCalibrationScreen extends ConsumerStatefulWidget {
   const VisualCalibrationScreen({super.key});
@@ -33,6 +36,8 @@ final class _VisualCalibrationScreenState
   var _busy = false;
   String? _error;
   VisualReadingProposal? _proposal;
+  String? _capturedPath;
+  MeterFaceEditTarget _editTarget = MeterFaceEditTarget.totalizer;
   var _index = 0;
 
   @override
@@ -70,11 +75,65 @@ final class _VisualCalibrationScreenState
     try {
       final photo = await dependencies.camera!.capture();
       await dependencies.camera!.pause();
-      final proposal = await dependencies.visualPipeline!.analyze(
+      if (mounted) {
+        setState(() {
+          _capturedPath = photo.path;
+          _proposal = null;
+        });
+      }
+    } catch (error) {
+      if (mounted) setState(() => _error = 'No se pudo capturar: $error');
+      try {
+        await dependencies.camera!.resume();
+      } catch (_) {}
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _analyze() async {
+    final path = _capturedPath;
+    if (path == null) return;
+    final knownNeedle = double.tryParse(_knownNeedle.text);
+    final knownOdometer = double.tryParse(_knownOdometer.text);
+    final knownTotalizerText = _knownOdometer.text.trim().replaceAll(',', '.');
+    final knownDigits = knownTotalizerText.replaceAll(RegExp(r'\D'), '');
+    final separator = knownTotalizerText.indexOf('.');
+    if (knownDigits.isNotEmpty) {
+      _configuration = _copy(
+        totalizerConfiguration: TotalizerConfiguration(
+          digitCount: knownDigits.length,
+          decimalPlaces: separator < 0
+              ? 0
+              : knownTotalizerText.length - separator - 1,
+          source: DialConfigurationSource.manual,
+        ),
+      );
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    final dependencies = ref.read(appDependenciesProvider);
+    try {
+      var proposal = await dependencies.visualPipeline!.analyze(
         evidenceId: 'debug-cal-${DateTime.now().microsecondsSinceEpoch}',
-        evidencePath: photo.path,
+        evidencePath: path,
         configuration: _configuration,
       );
+      if (knownNeedle != null && proposal.needleAngle != null) {
+        final revolution = _configuration.litersPerRevolution;
+        final knownFraction = (knownNeedle % revolution) / revolution;
+        final calibratedZero = _configuration.clockwise
+            ? proposal.needleAngle! - knownFraction * 360
+            : proposal.needleAngle! + knownFraction * 360;
+        _configuration = _copy(zeroAngle: calibratedZero);
+        proposal = await dependencies.visualPipeline!.analyze(
+          evidenceId: 'debug-cal-${DateTime.now().microsecondsSinceEpoch}',
+          evidencePath: path,
+          configuration: _configuration,
+        );
+      }
       _index++;
       final record = <String, Object?>{
         'tag': 'DDR001_CALIBRATION',
@@ -107,17 +166,29 @@ final class _VisualCalibrationScreenState
           _configuration.totalizerRegion.geometry.width,
           _configuration.totalizerRegion.geometry.height,
         ],
-        'path': photo.path,
+        'path': path,
       };
       debugPrint(jsonEncode(record), wrapWidth: 4096);
       if (mounted) setState(() => _proposal = proposal);
     } catch (error) {
-      if (mounted) setState(() => _error = '$error');
+      if (mounted) setState(() => _error = 'No se pudo analizar: $error');
     } finally {
-      try {
-        await dependencies.camera!.resume();
-      } catch (_) {}
       if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _repeatPhoto() async {
+    final camera = ref.read(appDependenciesProvider).camera!;
+    setState(() {
+      _capturedPath = null;
+      _proposal = null;
+      _error = null;
+    });
+    try {
+      await camera.resume();
+      if (mounted) setState(() => _ready = true);
+    } catch (error) {
+      if (mounted) setState(() => _error = 'No se pudo reabrir la cámara.');
     }
   }
 
@@ -125,7 +196,10 @@ final class _VisualCalibrationScreenState
   void dispose() {
     _knownNeedle.dispose();
     _knownOdometer.dispose();
-    ref.read(appDependenciesProvider).camera?.dispose();
+    // AppDependencies owns the shared camera. Disposing it here made later
+    // production captures reuse a closed controller and surface a red Flutter
+    // error screen. Calibration only releases the active preview.
+    unawaited(ref.read(appDependenciesProvider).camera?.pause());
     super.dispose();
   }
 
@@ -134,6 +208,61 @@ final class _VisualCalibrationScreenState
     if (!kDebugMode) return const SizedBox.shrink();
     final circle = _configuration.selectedDial;
     final roi = _configuration.totalizerRegion.geometry;
+    if (_capturedPath != null && _proposal == null) {
+      return AppScaffold(
+        title: 'Calibración visual · DEBUG',
+        scrollable: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const StatusBanner(
+              text:
+                  'Seleccione sobre la fotografía el totalizador y el dial que se calibrarán.',
+              color: AppColors.warning,
+              icon: Icons.crop_free,
+            ),
+            const SizedBox(height: 8),
+            SegmentedButton<MeterFaceEditTarget>(
+              segments: const [
+                ButtonSegment(
+                  value: MeterFaceEditTarget.totalizer,
+                  label: Text('TOTALIZADOR'),
+                ),
+                ButtonSegment(
+                  value: MeterFaceEditTarget.dial,
+                  label: Text('DIAL'),
+                ),
+              ],
+              selected: {_editTarget},
+              onSelectionChanged: (value) =>
+                  setState(() => _editTarget = value.single),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: Center(
+                child: MeterFaceRegionEditor(
+                  imagePath: _capturedPath!,
+                  configuration: _configuration,
+                  target: _editTarget,
+                  onChanged: (value) => setState(() => _configuration = value),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            FilledButton.icon(
+              key: const Key('calibration-analyze-regions'),
+              onPressed: _busy ? null : _analyze,
+              icon: const Icon(Icons.document_scanner_outlined),
+              label: Text(_busy ? 'ANALIZANDO…' : 'ANALIZAR REGIONES'),
+            ),
+            TextButton(
+              onPressed: _busy ? null : _repeatPhoto,
+              child: const Text('REPETIR FOTO'),
+            ),
+          ],
+        ),
+      );
+    }
     return AppScaffold(
       title: 'Calibración visual · DEBUG',
       child: SingleChildScrollView(
@@ -144,7 +273,9 @@ final class _VisualCalibrationScreenState
               aspectRatio: 3 / 4,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(AppRadius.card),
-                child: _ready
+                child: _capturedPath != null
+                    ? Image.file(File(_capturedPath!), fit: BoxFit.cover)
+                    : _ready
                     ? ref.read(appDependenciesProvider).camera!.buildPreview()
                     : const ColoredBox(color: Colors.black),
               ),
@@ -233,7 +364,9 @@ final class _VisualCalibrationScreenState
               (v) => _setRoi(roi.left, roi.top, roi.width, v),
             ),
             FilledButton.icon(
-              onPressed: _ready && !_busy ? _capture : null,
+              onPressed: _ready && !_busy && _capturedPath == null
+                  ? _capture
+                  : null,
               icon: const Icon(Icons.camera_alt_outlined),
               label: Text(
                 _busy ? 'ANALIZANDO…' : 'CAPTURAR MEDICIÓN ${_index + 1}',
@@ -256,6 +389,10 @@ final class _VisualCalibrationScreenState
               ),
               Text(
                 'Confianza: ${p.needleConfidence?.toStringAsFixed(4) ?? '<n/a>'} · píxeles rojos: ${p.needleCandidatePixelCount ?? '<n/a>'}',
+              ),
+              FilledButton.tonal(
+                onPressed: _repeatPhoto,
+                child: const Text('NUEVA FOTOGRAFÍA'),
               ),
             ],
             if (_error != null)
@@ -316,6 +453,7 @@ final class _VisualCalibrationScreenState
     TotalizerRegion? totalizer,
     double? zeroAngle,
     bool? clockwise,
+    TotalizerConfiguration? totalizerConfiguration,
   }) => DialVisionConfiguration(
     selectedDial: circle ?? _configuration.selectedDial,
     totalizerRegion: totalizer ?? _configuration.totalizerRegion,
@@ -324,6 +462,7 @@ final class _VisualCalibrationScreenState
     litersPerRevolution: _configuration.litersPerRevolution,
     multiplier: _configuration.multiplier,
     source: DialConfigurationSource.manual,
-    totalizerConfiguration: _configuration.totalizerConfiguration,
+    totalizerConfiguration:
+        totalizerConfiguration ?? _configuration.totalizerConfiguration,
   );
 }

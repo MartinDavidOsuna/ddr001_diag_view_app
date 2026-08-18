@@ -15,6 +15,12 @@ void main() {
       expect(value.counter, 0x12345678);
     });
 
+    test('parses v2 control and optional meter-under-test counters', () {
+      final value = protocol.parse([2, 10, 0, 0, 0, 25, 0, 0, 0]);
+      expect(value!.counter, 10);
+      expect(value.meterUnderTestCounter, 25);
+    });
+
     test('rejects invalid version and length', () {
       expect(protocol.parse([]), isNull);
       expect(protocol.parse([2, 0, 0, 0, 0]), isNull);

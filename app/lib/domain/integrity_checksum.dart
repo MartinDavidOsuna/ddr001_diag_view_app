@@ -35,7 +35,9 @@ String calculateSampleChecksum({
   final fields = <String>[
     _field(
       'canonicalVersion',
-      sample.pulseAcquisitionConfiguration != null
+      c.controlStartMaximumLps.isFinite
+          ? 5
+          : sample.pulseAcquisitionConfiguration != null
           ? 4
           : sample.meterFaceConfiguration?.totalizerConfiguration != null
           ? 3
@@ -55,6 +57,15 @@ String calculateSampleChecksum({
     _field('lpsApprox', c.lpsApprox),
     _field('litersPerOdometerUnit', c.litersPerOdometerUnit),
     _field('needleLitersPerRevolution', c.needleLitersPerRevolution),
+    if (c.minimumVolumeLiters != null)
+      _field('minimumVolumeLiters', c.minimumVolumeLiters),
+    if (c.maximumVolumeLiters != null)
+      _field('maximumVolumeLiters', c.maximumVolumeLiters),
+    if (c.controlStartMaximumLps.isFinite) ...[
+      _field('controlStartMinimumLps', c.controlStartMinimumLps),
+      _field('controlStartMaximumLps', c.controlStartMaximumLps),
+      _field('hydrantLitersPerPulse', c.hydrantLitersPerPulse),
+    ],
     _field('createdAt', sample.createdAt),
     _field('startedAt', sample.startedAt),
     _field('endedAt', endedAt),

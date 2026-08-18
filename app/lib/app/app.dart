@@ -1,9 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../presentation/app_controller.dart';
+import '../domain/models.dart';
 import '../presentation/auth/login_screen.dart';
 import '../presentation/home/home_screens.dart';
+import '../presentation/home/manual_screen.dart';
 import '../presentation/results/result_screens.dart';
 import '../presentation/workflow/readings_screen.dart';
 import '../presentation/workflow/camera_screen.dart';
@@ -22,6 +27,9 @@ final class Ddr001App extends ConsumerStatefulWidget {
 }
 
 final class _Ddr001AppState extends ConsumerState<Ddr001App> {
+  static const _remoteChannel = MethodChannel('ddr001/remote_test_control');
+  bool? _nativeRemoteSuppressed;
+
   @override
   void initState() {
     super.initState();
@@ -30,9 +38,22 @@ final class _Ddr001AppState extends ConsumerState<Ddr001App> {
     }
   }
 
+  Future<void> _setNativeRemoteSuppressed(bool active) async {
+    if (_nativeRemoteSuppressed == active) return;
+    _nativeRemoteSuppressed = active;
+    try {
+      await _remoteChannel.invokeMethod<void>('setActive', active);
+    } on MissingPluginException {
+      // Widget tests and non-Android platforms have no native key bridge.
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(appControllerProvider);
+    unawaited(
+      _setNativeRemoteSuppressed(state.sample?.status == SampleStatus.running),
+    );
     return MaterialApp(
       title: 'DDR001 VERIFICADOR VISUAL',
       debugShowCheckedModeBanner: false,
@@ -55,6 +76,7 @@ final class _Ddr001AppState extends ConsumerState<Ddr001App> {
             AppPage.caseSummary => const CaseSummaryScreen(),
             AppPage.history => const HistoryScreen(),
             AppPage.settings => const SettingsScreen(),
+            AppPage.manual => const ManualScreen(),
             AppPage.invalidEvidence => const InvalidEvidenceScreen(),
             AppPage.camera => const CameraCaptureScreen(),
             AppPage.debugCalibration => const VisualCalibrationScreen(),

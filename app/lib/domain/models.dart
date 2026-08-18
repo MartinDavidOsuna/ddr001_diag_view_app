@@ -184,6 +184,11 @@ final class SampleConfiguration {
     required this.litersPerOdometerUnit,
     required this.needleLitersPerRevolution,
     this.lpsApprox,
+    this.minimumVolumeLiters,
+    this.maximumVolumeLiters,
+    this.controlStartMinimumLps = 0,
+    this.controlStartMaximumLps = double.infinity,
+    this.hydrantLitersPerPulse = 1,
   });
 
   final MeasurementMethod measurementMethod;
@@ -195,6 +200,11 @@ final class SampleConfiguration {
   final double? lpsApprox;
   final double litersPerOdometerUnit;
   final double needleLitersPerRevolution;
+  final double? minimumVolumeLiters;
+  final double? maximumVolumeLiters;
+  final double controlStartMinimumLps;
+  final double controlStartMaximumLps;
+  final double hydrantLitersPerPulse;
 }
 
 enum DialConfigurationSource { autoConfirmed, manual }

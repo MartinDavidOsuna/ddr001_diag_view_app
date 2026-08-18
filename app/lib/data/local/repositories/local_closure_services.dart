@@ -40,7 +40,7 @@ final class LocalSampleClosureService implements SampleClosureService {
       database.samples,
     )..where((t) => t.id.equals(sampleId))).getSingleOrNull();
     if (sampleRow == null) throw StateError('Sample not found.');
-    final sample = mapSample(sampleRow);
+    final sample = await mapSampleWithSettings(database, sampleRow);
     if (sample.status != domain.SampleStatus.running) {
       throw StateError('Only a RUNNING sample can close.');
     }
@@ -74,7 +74,8 @@ final class LocalSampleClosureService implements SampleClosureService {
     );
     if (!await _evidenceIsComplete(evidence, evidencePlan)) {
       await _markInvalid(sampleId, at);
-      return mapSample(
+      return mapSampleWithSettings(
+        database,
         await (database.select(
           database.samples,
         )..where((t) => t.id.equals(sampleId))).getSingle(),
@@ -110,6 +111,39 @@ final class LocalSampleClosureService implements SampleClosureService {
       endedAt: at,
       requiredEvidence: requiredEvidence,
     );
+    final initialReadingLiters =
+        sample.initialReading!.reading.odometerUnits *
+            sample.initialReading!.reading.litersPerOdometerUnit +
+        sample.initialReading!.reading.needleLiters;
+    final finalReadingLiters =
+        sample.finalReading!.reading.odometerUnits *
+            sample.finalReading!.reading.litersPerOdometerUnit +
+        sample.finalReading!.reading.needleLiters;
+    await (database.update(database.testPoints)..where(
+          (point) =>
+              point.sampleId.equals(sampleId) &
+              point.type.equals(domain.PointType.start.name),
+        ))
+        .write(
+          db.TestPointsCompanion(
+            readingLiters: Value(initialReadingLiters),
+            indicatedLiters: const Value(0),
+            needleLiters: Value(sample.initialReading!.reading.needleLiters),
+          ),
+        );
+    await (database.update(database.testPoints)..where(
+          (point) =>
+              point.sampleId.equals(sampleId) &
+              point.type.equals(domain.PointType.finalPoint.name),
+        ))
+        .write(
+          db.TestPointsCompanion(
+            readingLiters: Value(finalReadingLiters),
+            indicatedLiters: Value(result.indicatedLiters),
+            diagnosticErrorPct: Value(result.errorPct),
+            needleLiters: Value(sample.finalReading!.reading.needleLiters),
+          ),
+        );
     await (database.update(
       database.samples,
     )..where((t) => t.id.equals(sampleId))).write(
@@ -142,7 +176,8 @@ final class LocalSampleClosureService implements SampleClosureService {
         at: at,
       );
     }
-    return mapSample(
+    return mapSampleWithSettings(
+      database,
       await (database.select(
         database.samples,
       )..where((t) => t.id.equals(sampleId))).getSingle(),
@@ -271,7 +306,9 @@ final class LocalVerificationCaseClosureService
                     t.status.equals(domain.SampleStatus.closedValid.name),
               ))
               .get();
-      final samples = sampleRows.map(mapSample).toList();
+      final samples = await Future.wait(
+        sampleRows.map((row) => mapSampleWithSettings(database, row)),
+      );
       final result = metrology.FlowPointResult.summarize(
         flowPoint: metrology.FlowPoint.values.byName(flowRow.code),
         samples: samples.map((s) => s.result!).toList(),

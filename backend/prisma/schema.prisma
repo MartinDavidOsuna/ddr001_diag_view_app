@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model DeploymentMetadata {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@map("deployment_metadata")
+}
+
+model User {
+  id           String    @id @map("user_id") @db.Uuid
+  email        String
+  phone        String
+  displayName  String?   @map("display_name")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  lastLoginAt  DateTime? @map("last_login_at")
+  sessions     AuthSession[]
+  cases        VerificationCase[]
+  @@unique([email, phone])
+  @@map("users")
+}
+
+model AuthSession {
+  id         String    @id @map("session_id") @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  tokenHash  String    @unique @map("token_hash")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  revokedAt  DateTime? @map("revoked_at")
+  user       User      @relation(fields: [userId], references: [id])
+  @@index([userId])
+  @@map("auth_sessions")
+}
+
+model Meter {
+  id               String   @id @map("meter_id")
+  externalStatus   String   @map("external_status")
+  externalSnapshot Json?    @map("external_snapshot")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  cases            VerificationCase[]
+  @@map("meters")
+}
+
+model VerificationCase {
+  id             String    @id @map("case_id") @db.Uuid
+  meterId        String    @map("meter_id")
+  userId         String    @map("user_id") @db.Uuid
+  status         String
+  overallVerdict String?   @map("overall_verdict")
+  reportVersion  Int       @map("report_version")
+  checksum       String?
+  payload        Json
+  createdAt      DateTime  @map("created_at")
+  closedAt       DateTime? @map("closed_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  meter          Meter     @relation(fields: [meterId], references: [id])
+  user           User      @relation(fields: [userId], references: [id])
+  flowPoints     FlowPoint[]
+  reports        Report[]
+  @@index([meterId, status])
+  @@index([userId, createdAt])
+  @@map("verification_cases")
+}
+
+model FlowPoint {
+  id        String   @id @map("flow_point_id") @db.Uuid
+  caseId    String   @map("case_id") @db.Uuid
+  code      String
+  status    String
+  checksum  String?
+  payload   Json
+  createdAt DateTime @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  case      VerificationCase @relation(fields: [caseId], references: [id])
+  samples   Sample[]
+  @@unique([caseId, code])
+  @@map("flow_points")
+}
+
+model Sample {
+  id          String    @id @map("sample_id") @db.Uuid
+  flowPointId String    @map("flow_point_id") @db.Uuid
+  sampleNumber Int      @map("sample_number")
+  status      String
+  checksum    String
+  payload     Json
+  startedAt   DateTime? @map("started_at")
+  endedAt     DateTime? @map("ended_at")
+  createdAt   DateTime  @map("created_at")
+  flowPoint   FlowPoint @relation(fields: [flowPointId], references: [id])
+  evidence    Evidence[]
+  @@index([flowPointId, sampleNumber])
+  @@map("samples")
+}
+
+model Evidence {
+  id               String   @id @map("evidence_id") @db.Uuid
+  sampleId         String?  @map("sample_id") @db.Uuid
+  pendingSampleId  String?  @map("pending_sample_id") @db.Uuid
+  sha256           String
+  storageKey       String   @map("storage_key")
+  originalFilename String?  @map("original_filename")
+  mimeType         String   @map("mime_type")
+  sizeBytes        Int      @map("size_bytes")
+  payload          Json
+  createdAt        DateTime @default(now()) @map("created_at")
+  sample           Sample?  @relation(fields: [sampleId], references: [id])
+  @@unique([sha256, storageKey])
+  @@index([sampleId])
+  @@index([pendingSampleId])
+  @@map("evidence")
+}
+
+model Report {
+  id         String   @id @map("report_id") @db.Uuid
+  caseId     String   @map("case_id") @db.Uuid
+  version    Int
+  checksum   String
+  htmlKey    String?  @map("html_key")
+  pdfKey     String?  @map("pdf_key")
+  payload    Json
+  createdAt  DateTime @default(now()) @map("created_at")
+  case       VerificationCase @relation(fields: [caseId], references: [id])
+  @@index([caseId, version])
+  @@map("reports")
+}

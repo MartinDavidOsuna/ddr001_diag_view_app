@@ -6,7 +6,7 @@ Fecha: 2026-08-11. Rama: `feature/stage-5-esp32-pulse-sources`.
 
 COM15 fue confirmado como CH340 y `esptool 5.3.1` identificó `ESP32-D0WD-V3 revision 3.1`, 40 MHz, MAC Wi-Fi `1c:69:20:ea:ea:14`. PlatformIO 6.1.19 compiló y flasheó `firmware/esp32_pulse_bridge` exclusivamente en COM15.
 
-El firmware acepta flanco GPIO27 con pull-up y debounce 40 ms. Cada pulso incrementa un `uint32`, actualiza BLE y enciende LED externo GPIO25 durante 120 ms. El comando serie `p` es únicamente inyección explícita de desarrollo.
+Corrección V1 (2026-08-15): el firmware vigente y el hardware confirmado usan el LED integrado GPIO2, no un LED externo GPIO25. El firmware acepta flanco GPIO27 con pull-up y debounce 40 ms. Cada pulso incrementa un `uint32`, actualiza BLE y enciende GPIO2 durante 120 ms. El comando serie `p` es únicamente inyección explícita de desarrollo.
 
 ## BLE v1
 

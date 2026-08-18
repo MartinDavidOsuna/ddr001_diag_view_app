@@ -28,12 +28,6 @@ final class HomeScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          StatusBanner(
-            text: 'Operación local disponible · Consulta externa pendiente',
-            color: AppColors.heading,
-            icon: Icons.cloud_off_outlined,
-          ),
-          const SizedBox(height: 14),
           SectionCard(
             title: 'Inicio',
             child: Column(
@@ -176,10 +170,13 @@ final class HistoryScreen extends ConsumerWidget {
                               Text(
                                 'Resultado: ${overallLabel(item.overallVerdict)}',
                               ),
-                              const Text(
-                                'Sync: pendiente local',
-                                style: TextStyle(color: AppColors.muted),
-                              ),
+                              if (ref
+                                  .read(appDependenciesProvider)
+                                  .backendSyncConfigured)
+                                const Text(
+                                  'Sincronización disponible',
+                                  style: TextStyle(color: AppColors.muted),
+                                ),
                             ],
                           ),
                         ),
@@ -200,42 +197,141 @@ final class SettingsScreen extends ConsumerWidget {
     final state = ref.watch(appControllerProvider);
     return AppScaffold(
       title: 'Ajustes',
-      child: SectionCard(
-        title: 'Usuario actual',
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _Info(label: 'Nombre', value: state.user?.displayName ?? '—'),
-            _Info(label: 'Correo', value: state.user?.email ?? '—'),
-            _Info(label: 'Teléfono', value: state.user?.phone ?? '—'),
-            const SizedBox(height: 16),
-            const Text(
-              'Versión 0.1.0 · Stage 3',
-              style: TextStyle(color: AppColors.muted),
+      child: Column(
+        children: [
+          SectionCard(
+            title: 'Usuario actual',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _Info(label: 'Nombre', value: state.user?.displayName ?? '—'),
+                _Info(label: 'Correo', value: state.user?.email ?? '—'),
+                _Info(label: 'Teléfono', value: state.user?.phone ?? '—'),
+                const SizedBox(height: 16),
+                const Text(
+                  'Versión V1 · offline-first',
+                  style: TextStyle(color: AppColors.muted),
+                ),
+                const SizedBox(height: 18),
+                OutlinedButton.icon(
+                  key: const Key('manual-de-uso'),
+                  onPressed: ref
+                      .read(appControllerProvider.notifier)
+                      .showManual,
+                  icon: const Icon(Icons.menu_book_outlined),
+                  label: const Text('MANUAL DE USO  >'),
+                ),
+                const SizedBox(height: 10),
+                if (kDebugMode) ...[
+                  FilledButton.tonalIcon(
+                    key: const Key('visual-calibration-debug'),
+                    onPressed: ref
+                        .read(appControllerProvider.notifier)
+                        .showDebugCalibration,
+                    icon: const Icon(Icons.science_outlined),
+                    label: const Text('CALIBRACIÓN VISUAL · DEBUG'),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                OutlinedButton.icon(
+                  key: const Key('logout'),
+                  onPressed: ref.read(appControllerProvider.notifier).logout,
+                  icon: const Icon(Icons.logout),
+                  label: const Text('CERRAR SESIÓN'),
+                ),
+              ],
             ),
-            const SizedBox(height: 18),
-            if (kDebugMode) ...[
-              FilledButton.tonalIcon(
-                key: const Key('visual-calibration-debug'),
-                onPressed: ref
-                    .read(appControllerProvider.notifier)
-                    .showDebugCalibration,
-                icon: const Icon(Icons.science_outlined),
-                label: const Text('CALIBRACIÓN VISUAL · DEBUG'),
-              ),
-              const SizedBox(height: 10),
-            ],
-            OutlinedButton.icon(
-              key: const Key('logout'),
-              onPressed: ref.read(appControllerProvider.notifier).logout,
-              icon: const Icon(Icons.logout),
-              label: const Text('CERRAR SESIÓN'),
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 14),
+          const _OperationalSettings(),
+        ],
       ),
     );
   }
+}
+
+final class _OperationalSettings extends ConsumerStatefulWidget {
+  const _OperationalSettings();
+  @override
+  ConsumerState<_OperationalSettings> createState() =>
+      _OperationalSettingsState();
+}
+
+final class _OperationalSettingsState
+    extends ConsumerState<_OperationalSettings> {
+  late final _k = TextEditingController(
+    text: ref.read(appControllerProvider).litersPerPulse.toString(),
+  );
+  late final _step = TextEditingController(
+    text: ref.read(appControllerProvider).evidenceStepLiters.toString(),
+  );
+  late final _minimum = TextEditingController(
+    text: ref.read(appControllerProvider).minimumVolumeLiters.toString(),
+  );
+  late final _maximum = TextEditingController(
+    text: ref.read(appControllerProvider).maximumVolumeLiters.toString(),
+  );
+  late final _uncertainty = TextEditingController(
+    text: ref.read(appControllerProvider).readingUncertaintyLiters.toString(),
+  );
+
+  @override
+  void dispose() {
+    _k.dispose();
+    _step.dispose();
+    _minimum.dispose();
+    _maximum.dispose();
+    _uncertainty.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => SectionCard(
+    title: 'Ajustes (avanzado)',
+    child: Column(
+      children: [
+        _field(_k, 'K (L/pulso)'),
+        _field(_step, 'Paso captura/evidencia (L)'),
+        _field(_minimum, 'Vmín orientativo (L)'),
+        _field(_maximum, 'Vmáx orientativo (L)'),
+        _field(_uncertainty, 'Incertidumbre de lectura ±L'),
+        const SizedBox(height: 8),
+        const Text(
+          'El MPE se deriva de Q1–Q4. Los valores quedan congelados al crear cada muestra.',
+          style: TextStyle(color: AppColors.muted),
+        ),
+        const SizedBox(height: 12),
+        FilledButton(
+          onPressed: () {
+            ref
+                .read(appControllerProvider.notifier)
+                .updateSetup(
+                  litersPerPulse: double.tryParse(_k.text) ?? 1,
+                  evidenceStepLiters: double.tryParse(_step.text) ?? 25,
+                  uncertaintyLiters: double.tryParse(_uncertainty.text) ?? 1,
+                  minimumVolumeLiters: double.tryParse(_minimum.text) ?? 100,
+                  maximumVolumeLiters: double.tryParse(_maximum.text) ?? 300,
+                );
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Ajustes aplicados a nuevas muestras.'),
+              ),
+            );
+          },
+          child: const Text('GUARDAR AJUSTES'),
+        ),
+      ],
+    ),
+  );
+
+  Widget _field(TextEditingController controller, String label) => Padding(
+    padding: const EdgeInsets.only(bottom: 10),
+    child: TextField(
+      controller: controller,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      decoration: InputDecoration(labelText: label),
+    ),
+  );
 }
 
 final class _Info extends StatelessWidget {

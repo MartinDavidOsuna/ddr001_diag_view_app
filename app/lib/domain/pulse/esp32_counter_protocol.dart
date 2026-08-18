@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 abstract final class Ddr001BleContract {
-  static const protocolVersion = 1;
+  static const protocolVersion = 2;
   static const serviceUuid = '7b3a0001-6d5f-4f3c-9a21-4d4452303031';
   static const counterCharacteristicUuid =
       '7b3a0002-6d5f-4f3c-9a21-4d4452303031';
@@ -11,23 +11,32 @@ abstract final class Ddr001BleContract {
 }
 
 final class Esp32CounterPayload {
-  const Esp32CounterPayload({required this.version, required this.counter});
+  const Esp32CounterPayload({
+    required this.version,
+    required this.counter,
+    this.meterUnderTestCounter,
+  });
   final int version;
   final int counter;
+  final int? meterUnderTestCounter;
 }
 
 final class Esp32CounterProtocol {
   const Esp32CounterProtocol();
 
   Esp32CounterPayload? parse(List<int> payload) {
-    if (payload.length != 5 ||
-        payload.first != Ddr001BleContract.protocolVersion) {
+    final version = payload.isEmpty ? -1 : payload.first;
+    if (!((version == 1 && payload.length == 5) ||
+        (version == 2 && payload.length == 9))) {
       return null;
     }
     final data = ByteData.sublistView(Uint8List.fromList(payload));
     return Esp32CounterPayload(
       version: payload.first,
       counter: data.getUint32(1, Endian.little),
+      meterUnderTestCounter: version == 2
+          ? data.getUint32(5, Endian.little)
+          : null,
     );
   }
 }

@@ -35,6 +35,7 @@ abstract interface class SampleRepository {
     required String id,
     required int pulseCount,
     double? referenceLiters,
+    DateTime? firstPulseAt,
     ConfirmedReading? initialReading,
     ConfirmedReading? finalReading,
   });
@@ -56,6 +57,7 @@ abstract interface class SampleRepository {
 abstract interface class PointRepository {
   Future<void> save(TestPoint point);
   Future<List<TestPoint>> listBySample(String sampleId);
+  Future<void> deleteByTypeFromOpenSample(String sampleId, PointType type);
 }
 
 abstract interface class EvidenceRepository {

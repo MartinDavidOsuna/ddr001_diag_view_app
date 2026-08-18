@@ -215,6 +215,7 @@ final class VisualReadingProposal {
     this.needleCandidatePixelCount,
     this.odometerCandidates = const [],
     this.totalizerReadingProposal,
+    this.analysisCompleted = true,
   });
   final String evidenceId, evidencePath, odometerRaw;
   final double? odometerValue,
@@ -225,6 +226,7 @@ final class VisualReadingProposal {
   final int? needleCandidatePixelCount;
   final List<OdometerCandidate> odometerCandidates;
   final TotalizerReadingProposal? totalizerReadingProposal;
+  final bool analysisCompleted;
   final List<String> warnings;
   final DateTime createdAt;
   final DialVisionConfiguration configuration;

@@ -296,7 +296,25 @@ final class LocalSampleRepository implements SampleRepository {
         'Frozen sample configuration must match its flow point.',
       );
     }
-    await database.into(database.samples).insert(_sampleCompanion(sample));
+    await database.transaction(() async {
+      await database.into(database.samples).insert(_sampleCompanion(sample));
+      final minimum = sample.configuration.minimumVolumeLiters;
+      final maximum = sample.configuration.maximumVolumeLiters;
+      if (minimum != null && maximum != null) {
+        await database.customStatement(
+          'INSERT INTO sample_operational_settings '
+          '(sample_id, minimum_volume_liters, maximum_volume_liters, control_start_minimum_lps, control_start_maximum_lps, hydrant_liters_per_pulse) VALUES (?, ?, ?, ?, ?, ?)',
+          [
+            sample.id,
+            minimum,
+            maximum,
+            sample.configuration.controlStartMinimumLps,
+            sample.configuration.controlStartMaximumLps,
+            sample.configuration.hydrantLitersPerPulse,
+          ],
+        );
+      }
+    });
     return sample;
   }
 
@@ -305,7 +323,7 @@ final class LocalSampleRepository implements SampleRepository {
     final row = await (database.select(
       database.samples,
     )..where((t) => t.id.equals(id))).getSingleOrNull();
-    return row == null ? null : mapSample(row);
+    return row == null ? null : mapSampleWithSettings(database, row);
   }
 
   @override
@@ -340,6 +358,7 @@ final class LocalSampleRepository implements SampleRepository {
     required String id,
     required int pulseCount,
     double? referenceLiters,
+    DateTime? firstPulseAt,
     domain.ConfirmedReading? initialReading,
     domain.ConfirmedReading? finalReading,
   }) => database.transaction(() async {
@@ -355,6 +374,9 @@ final class LocalSampleRepository implements SampleRepository {
     )..where((t) => t.id.equals(id))).write(
       db.SamplesCompanion(
         pulseCount: Value(pulseCount),
+        startedAtMs: firstPulseAt != null && current.pulseCount == 0
+            ? Value(_ms(firstPulseAt))
+            : const Value.absent(),
         progressReferenceLiters: Value(
           referenceLiters ?? current.referenceLitersProgress,
         ),
@@ -499,28 +521,30 @@ final class LocalSampleRepository implements SampleRepository {
   });
 
   @override
-  Future<List<domain.Sample>> listByFlow(String flowPointId) async =>
-      (await (database.select(database.samples)
-                ..where((t) => t.flowPointId.equals(flowPointId))
-                ..orderBy([(t) => OrderingTerm.asc(t.sampleNumber)]))
-              .get())
-          .map(mapSample)
-          .toList(growable: false);
+  Future<List<domain.Sample>> listByFlow(String flowPointId) async {
+    final rows =
+        await (database.select(database.samples)
+              ..where((t) => t.flowPointId.equals(flowPointId))
+              ..orderBy([(t) => OrderingTerm.asc(t.sampleNumber)]))
+            .get();
+    return Future.wait(rows.map((row) => mapSampleWithSettings(database, row)));
+  }
 
   @override
-  Future<List<domain.Sample>> listIncomplete() async =>
-      (await (database.select(database.samples)
-            ..where(
-              (t) => t.status.isIn([
-                domain.SampleStatus.draft.name,
-                domain.SampleStatus.running.name,
-                domain.SampleStatus.invalidEvidence.name,
-              ]),
-            )
-            ..orderBy([(t) => OrderingTerm.desc(t.updatedAtMs)]))
-              .get())
-          .map(mapSample)
-          .toList(growable: false);
+  Future<List<domain.Sample>> listIncomplete() async {
+    final rows =
+        await (database.select(database.samples)
+              ..where(
+                (t) => t.status.isIn([
+                  domain.SampleStatus.draft.name,
+                  domain.SampleStatus.running.name,
+                  domain.SampleStatus.invalidEvidence.name,
+                ]),
+              )
+              ..orderBy([(t) => OrderingTerm.desc(t.updatedAtMs)]))
+            .get();
+    return Future.wait(rows.map((row) => mapSampleWithSettings(database, row)));
+  }
 
   @override
   Future<domain.Sample?> getActiveByFlow(String flowPointId) async {
@@ -536,7 +560,7 @@ final class LocalSampleRepository implements SampleRepository {
       ..orderBy([(t) => OrderingTerm.desc(t.sampleNumber)])
       ..limit(1);
     final row = await query.getSingleOrNull();
-    return row == null ? null : mapSample(row);
+    return row == null ? null : mapSampleWithSettings(database, row);
   }
 }
 
@@ -584,7 +608,14 @@ db.SamplesCompanion _sampleCompanion(domain.Sample sample) {
   );
 }
 
-domain.Sample mapSample(db.SampleRow row) {
+domain.Sample mapSample(
+  db.SampleRow row, {
+  double? minimumVolumeLiters,
+  double? maximumVolumeLiters,
+  double? controlStartMinimumLps,
+  double? controlStartMaximumLps,
+  double? hydrantLitersPerPulse,
+}) {
   final config = domain.SampleConfiguration(
     measurementMethod: metrology.MeasurementMethod.values.byName(
       row.measurementMethod,
@@ -597,6 +628,11 @@ domain.Sample mapSample(db.SampleRow row) {
     lpsApprox: row.lpsApprox,
     litersPerOdometerUnit: row.litersPerOdometerUnit,
     needleLitersPerRevolution: row.needleLitersPerRevolution,
+    minimumVolumeLiters: minimumVolumeLiters,
+    maximumVolumeLiters: maximumVolumeLiters,
+    controlStartMinimumLps: controlStartMinimumLps ?? 0,
+    controlStartMaximumLps: controlStartMaximumLps ?? double.infinity,
+    hydrantLitersPerPulse: hydrantLitersPerPulse ?? 1,
   );
   domain.ConfirmedReading? reading(
     double? odometer,
@@ -742,7 +778,28 @@ Future<domain.Sample> _requiredSample(
     database.samples,
   )..where((t) => t.id.equals(id))).getSingleOrNull();
   if (row == null) throw StateError('Sample not found.');
-  return mapSample(row);
+  return mapSampleWithSettings(database, row);
+}
+
+Future<domain.Sample> mapSampleWithSettings(
+  db.AppDatabase database,
+  db.SampleRow row,
+) async {
+  final setting = await database
+      .customSelect(
+        'SELECT minimum_volume_liters, maximum_volume_liters, control_start_minimum_lps, control_start_maximum_lps, hydrant_liters_per_pulse '
+        'FROM sample_operational_settings WHERE sample_id = ?',
+        variables: [Variable<String>(row.id)],
+      )
+      .getSingleOrNull();
+  return mapSample(
+    row,
+    minimumVolumeLiters: setting?.read<double>('minimum_volume_liters'),
+    maximumVolumeLiters: setting?.read<double>('maximum_volume_liters'),
+    controlStartMinimumLps: setting?.read<double>('control_start_minimum_lps'),
+    controlStartMaximumLps: setting?.read<double>('control_start_maximum_lps'),
+    hydrantLitersPerPulse: setting?.read<double>('hydrant_liters_per_pulse'),
+  );
 }
 
 Future<void> _ensureCaseOpenForFlow(
@@ -815,6 +872,22 @@ final class LocalPointRepository implements PointRepository {
             ),
           )
           .toList(growable: false);
+
+  @override
+  Future<void> deleteByTypeFromOpenSample(
+    String sampleId,
+    domain.PointType type,
+  ) async {
+    final sample = await _requiredSample(database, sampleId);
+    if (sample.status == domain.SampleStatus.closedValid) {
+      throw StateError('Closed sample points are immutable.');
+    }
+    await (database.delete(database.testPoints)..where(
+          (table) =>
+              table.sampleId.equals(sampleId) & table.type.equals(type.name),
+        ))
+        .go();
+  }
 }
 
 final class LocalEvidenceRepository implements EvidenceRepository {

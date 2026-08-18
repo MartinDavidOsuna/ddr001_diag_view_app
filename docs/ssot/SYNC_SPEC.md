@@ -9,7 +9,7 @@ La app completa funciona sin señal una vez que existe sesión local. SQLite/Dri
 3. Validar que toda evidencia obligatoria exista y sea íntegra.
 4. Cerrar muestra, congelar datos y checksum.
 5. Encolar evidencias y entidades.
-6. Al recuperar red: subir binarios primero; luego metadata/muestra/caudal/expediente.
+6. Al recuperar red: subir cada evidencia/binario con metadata de enlace pendiente; luego muestra, caudal y expediente. El servidor enlaza atómicamente evidencias previamente preparadas cuando recibe la muestra.
 7. Confirmación idempotente → `synced`.
 
 ## Estados

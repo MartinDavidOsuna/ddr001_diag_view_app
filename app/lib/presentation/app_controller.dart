@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 import '../app/app_dependencies.dart';
 import '../core/metrology/metrology.dart';
 import '../domain/expected_evidence_plan.dart';
+import '../domain/control_start_gate.dart';
 import '../domain/models.dart';
 import '../domain/pulse/pulse_source.dart';
 import '../infrastructure/camera/camera_models.dart';
@@ -17,6 +18,7 @@ import '../domain/pulse/esp32_counter_protocol.dart';
 import '../infrastructure/pulse/camera_resource_coordinator.dart';
 import '../infrastructure/pulse/led_pulse_detector.dart';
 import '../infrastructure/camera/flutter_camera_adapter.dart';
+import '../infrastructure/export/case_export_service.dart';
 
 enum AppPage {
   loading,
@@ -32,14 +34,26 @@ enum AppPage {
   caseSummary,
   history,
   settings,
+  manual,
   invalidEvidence,
   camera,
   debugCalibration,
 }
 
-enum CapturePurpose { start, intermediate, finalEvidence }
+enum CapturePurpose { start, intermediate, manualDiagnostic, finalEvidence }
 
 enum HardwareState { notConnected, preparing, ready, error, disconnected }
+
+enum GpsCaptureState {
+  idle,
+  capturing,
+  captured,
+  serviceDisabled,
+  denied,
+  permanentlyDenied,
+  timeout,
+  error,
+}
 
 final class AppViewState {
   const AppViewState({
@@ -56,9 +70,22 @@ final class AppViewState {
     this.litersPerPulse = 1,
     this.evidenceStepLiters = 25,
     this.readingUncertaintyLiters = 1,
+    this.minimumVolumeLiters = 100,
+    this.maximumVolumeLiters = 300,
+    this.controlStartMinimumLps = 0.5,
+    this.controlStartMaximumLps = 50,
+    this.hydrantLitersPerPulse = 1,
+    this.measurementStarted = false,
+    this.finalizingMeasurement = false,
+    this.preStartControlPulseCount = 0,
+    this.preStartControlFirstPulseAt,
+    this.hydrantMonitorPulseCount = 0,
+    this.hydrantMonitorFirstPulseAt,
+    this.remoteControlConnected = false,
     this.hardwareState = HardwareState.notConnected,
     this.evidence = const [],
     this.samples = const [],
+    this.points = const [],
     this.cases = const [],
     this.errorMessage,
     this.capturePurpose,
@@ -80,6 +107,15 @@ final class AppViewState {
     this.ledReconciledPulses = 0,
     this.ledFalsePositives = 0,
     this.ledFramesDropped = 0,
+    this.gps,
+    this.gpsCaptureState = GpsCaptureState.idle,
+    this.gpsMessage,
+    this.hydrantLookupInProgress = false,
+    this.exportedFiles,
+    this.syncMessage = 'Pendiente local',
+    this.reportSampleIds = const {},
+    this.meterUnderTestPulseCount = 0,
+    this.meterUnderTestFirstPulseAt,
   });
 
   final AppPage page;
@@ -95,9 +131,22 @@ final class AppViewState {
   final double litersPerPulse;
   final double evidenceStepLiters;
   final double readingUncertaintyLiters;
+  final double minimumVolumeLiters;
+  final double maximumVolumeLiters;
+  final double controlStartMinimumLps;
+  final double controlStartMaximumLps;
+  final double hydrantLitersPerPulse;
+  final bool measurementStarted;
+  final bool finalizingMeasurement;
+  final int preStartControlPulseCount;
+  final DateTime? preStartControlFirstPulseAt;
+  final int hydrantMonitorPulseCount;
+  final DateTime? hydrantMonitorFirstPulseAt;
+  final bool remoteControlConnected;
   final HardwareState hardwareState;
   final List<Evidence> evidence;
   final List<Sample> samples;
+  final List<TestPoint> points;
   final List<VerificationCase> cases;
   final String? errorMessage;
   final CapturePurpose? capturePurpose;
@@ -114,6 +163,15 @@ final class AppViewState {
   final int ledReconciledPulses;
   final int ledFalsePositives;
   final int ledFramesDropped;
+  final GpsSnapshot? gps;
+  final GpsCaptureState gpsCaptureState;
+  final String? gpsMessage;
+  final bool hydrantLookupInProgress;
+  final ExportedCaseFiles? exportedFiles;
+  final String syncMessage;
+  final Set<String> reportSampleIds;
+  final int meterUnderTestPulseCount;
+  final DateTime? meterUnderTestFirstPulseAt;
 
   AppViewState copyWith({
     AppPage? page,
@@ -134,9 +192,24 @@ final class AppViewState {
     double? litersPerPulse,
     double? evidenceStepLiters,
     double? readingUncertaintyLiters,
+    double? minimumVolumeLiters,
+    double? maximumVolumeLiters,
+    double? controlStartMinimumLps,
+    double? controlStartMaximumLps,
+    double? hydrantLitersPerPulse,
+    bool? measurementStarted,
+    bool? finalizingMeasurement,
+    int? preStartControlPulseCount,
+    DateTime? preStartControlFirstPulseAt,
+    bool clearPreStartControlFirstPulseAt = false,
+    int? hydrantMonitorPulseCount,
+    DateTime? hydrantMonitorFirstPulseAt,
+    bool clearHydrantMonitorFirstPulseAt = false,
+    bool? remoteControlConnected,
     HardwareState? hardwareState,
     List<Evidence>? evidence,
     List<Sample>? samples,
+    List<TestPoint>? points,
     List<VerificationCase>? cases,
     String? errorMessage,
     bool clearError = false,
@@ -157,6 +230,17 @@ final class AppViewState {
     int? ledReconciledPulses,
     int? ledFalsePositives,
     int? ledFramesDropped,
+    GpsSnapshot? gps,
+    GpsCaptureState? gpsCaptureState,
+    String? gpsMessage,
+    bool clearGpsMessage = false,
+    bool? hydrantLookupInProgress,
+    ExportedCaseFiles? exportedFiles,
+    String? syncMessage,
+    Set<String>? reportSampleIds,
+    int? meterUnderTestPulseCount,
+    DateTime? meterUnderTestFirstPulseAt,
+    bool clearMeterUnderTestFirstPulseAt = false,
   }) => AppViewState(
     page: page ?? this.page,
     busy: busy ?? this.busy,
@@ -172,9 +256,31 @@ final class AppViewState {
     evidenceStepLiters: evidenceStepLiters ?? this.evidenceStepLiters,
     readingUncertaintyLiters:
         readingUncertaintyLiters ?? this.readingUncertaintyLiters,
+    minimumVolumeLiters: minimumVolumeLiters ?? this.minimumVolumeLiters,
+    maximumVolumeLiters: maximumVolumeLiters ?? this.maximumVolumeLiters,
+    controlStartMinimumLps:
+        controlStartMinimumLps ?? this.controlStartMinimumLps,
+    controlStartMaximumLps:
+        controlStartMaximumLps ?? this.controlStartMaximumLps,
+    hydrantLitersPerPulse: hydrantLitersPerPulse ?? this.hydrantLitersPerPulse,
+    measurementStarted: measurementStarted ?? this.measurementStarted,
+    finalizingMeasurement: finalizingMeasurement ?? this.finalizingMeasurement,
+    preStartControlPulseCount:
+        preStartControlPulseCount ?? this.preStartControlPulseCount,
+    preStartControlFirstPulseAt: clearPreStartControlFirstPulseAt
+        ? null
+        : preStartControlFirstPulseAt ?? this.preStartControlFirstPulseAt,
+    hydrantMonitorPulseCount:
+        hydrantMonitorPulseCount ?? this.hydrantMonitorPulseCount,
+    hydrantMonitorFirstPulseAt: clearHydrantMonitorFirstPulseAt
+        ? null
+        : hydrantMonitorFirstPulseAt ?? this.hydrantMonitorFirstPulseAt,
+    remoteControlConnected:
+        remoteControlConnected ?? this.remoteControlConnected,
     hardwareState: hardwareState ?? this.hardwareState,
     evidence: evidence ?? this.evidence,
     samples: samples ?? this.samples,
+    points: points ?? this.points,
     cases: cases ?? this.cases,
     errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
     capturePurpose: clearCapturePurpose
@@ -197,6 +303,19 @@ final class AppViewState {
     ledReconciledPulses: ledReconciledPulses ?? this.ledReconciledPulses,
     ledFalsePositives: ledFalsePositives ?? this.ledFalsePositives,
     ledFramesDropped: ledFramesDropped ?? this.ledFramesDropped,
+    gps: gps ?? this.gps,
+    gpsCaptureState: gpsCaptureState ?? this.gpsCaptureState,
+    gpsMessage: clearGpsMessage ? null : gpsMessage ?? this.gpsMessage,
+    hydrantLookupInProgress:
+        hydrantLookupInProgress ?? this.hydrantLookupInProgress,
+    exportedFiles: exportedFiles ?? this.exportedFiles,
+    syncMessage: syncMessage ?? this.syncMessage,
+    reportSampleIds: reportSampleIds ?? this.reportSampleIds,
+    meterUnderTestPulseCount:
+        meterUnderTestPulseCount ?? this.meterUnderTestPulseCount,
+    meterUnderTestFirstPulseAt: clearMeterUnderTestFirstPulseAt
+        ? null
+        : meterUnderTestFirstPulseAt ?? this.meterUnderTestFirstPulseAt,
   );
 }
 
@@ -221,6 +340,10 @@ final class AppController extends StateNotifier<AppViewState> {
   StreamSubscription<PulseEvent>? _pulseSubscription;
   StreamSubscription<PulseSourceState>? _pulseStateSubscription;
   StreamSubscription<int>? _counterSubscription;
+  StreamSubscription<int>? _meterUnderTestCounterSubscription;
+  int? _meterUnderTestCounterBaseline;
+  int? _hydrantMonitorCounterBaseline;
+  int? _latestMeterUnderTestCounter;
   StreamSubscription<PulseEvent>? _ledSubscription;
   final CameraResourceCoordinator _cameraCoordinator =
       CameraResourceCoordinator();
@@ -229,6 +352,7 @@ final class AppController extends StateNotifier<AppViewState> {
   int? _latestEsp32Counter;
   int _pendingOpticalPulses = 0;
   Future<void> _pulseQueue = Future.value();
+  bool _openingIntermediateEvidence = false;
 
   Future<void> initialize() async {
     await _guard(() async {
@@ -272,6 +396,7 @@ final class AppController extends StateNotifier<AppViewState> {
   void startIdentification() =>
       state = state.copyWith(page: AppPage.identification, clearError: true);
   void showSettings() => state = state.copyWith(page: AppPage.settings);
+  void showManual() => state = state.copyWith(page: AppPage.manual);
   void showDebugCalibration() {
     if (kDebugMode) {
       state = state.copyWith(page: AppPage.debugCalibration);
@@ -313,6 +438,35 @@ final class AppController extends StateNotifier<AppViewState> {
   void setHardwareState(HardwareState value) =>
       state = state.copyWith(hardwareState: value);
 
+  Future<void> captureGps() async {
+    final location = dependencies.location;
+    if (location == null) return;
+    state = state.copyWith(
+      gpsCaptureState: GpsCaptureState.capturing,
+      clearGpsMessage: true,
+      clearError: true,
+    );
+    try {
+      final gps = await location.capture();
+      state = state.copyWith(
+        gps: gps,
+        gpsCaptureState: GpsCaptureState.captured,
+        gpsMessage: 'Ubicación obtenida correctamente.',
+      );
+    } on LocationFailure catch (error) {
+      state = state.copyWith(
+        gpsCaptureState: _gpsStateForFailure(error.kind),
+        gpsMessage: error.message,
+      );
+    } catch (_) {
+      state = state.copyWith(
+        gpsCaptureState: GpsCaptureState.error,
+        gpsMessage:
+            'No fue posible obtener la ubicación. La prueba puede continuar sin GPS.',
+      );
+    }
+  }
+
   Future<void> scanBleDevices() async {
     final discovery = dependencies.bleDiscovery;
     if (discovery == null) return;
@@ -348,7 +502,7 @@ final class AppController extends StateNotifier<AppViewState> {
       }
       final now = DateTime.now().toUtc();
       final existingMeter = await dependencies.meters.getById(id);
-      final meter = Meter(
+      var meter = Meter(
         id: id,
         externalStatus:
             existingMeter?.externalStatus ?? ExternalMeterStatus.unknownOffline,
@@ -357,6 +511,26 @@ final class AppController extends StateNotifier<AppViewState> {
         createdAt: existingMeter?.createdAt ?? now,
         updatedAt: now,
       );
+      final api = dependencies.remoteApi;
+      final token = await dependencies.tokenStore?.read();
+      if (api != null && token != null) {
+        state = state.copyWith(hydrantLookupInProgress: true);
+        try {
+          final remote = await api.lookupMeter(id, token);
+          meter = Meter(
+            id: remote.id,
+            externalStatus: remote.externalStatus,
+            externalSnapshotJson: remote.externalSnapshotJson,
+            externalCheckedAt: remote.externalCheckedAt,
+            createdAt: existingMeter?.createdAt ?? remote.createdAt,
+            updatedAt: now,
+          );
+        } catch (_) {
+          // Identification remains usable offline or while the external
+          // read-only adapter is unavailable.
+        }
+        state = state.copyWith(hydrantLookupInProgress: false);
+      }
       await dependencies.meters.save(meter);
       var verificationCase = await dependencies.cases.findOpenByMeter(id);
       if (verificationCase == null || verificationCase.userId != user.id) {
@@ -404,16 +578,37 @@ final class AppController extends StateNotifier<AppViewState> {
     required double litersPerPulse,
     required double evidenceStepLiters,
     required double uncertaintyLiters,
+    double? minimumVolumeLiters,
+    double? maximumVolumeLiters,
+    double? controlStartMinimumLps,
+    double? controlStartMaximumLps,
+    double? hydrantLitersPerPulse,
   }) {
     if (litersPerPulse <= 0 ||
         evidenceStepLiters <= 0 ||
         uncertaintyLiters < 0) {
       throw ArgumentError('La configuración contiene valores inválidos.');
     }
+    final minimum = minimumVolumeLiters ?? state.minimumVolumeLiters;
+    final maximum = maximumVolumeLiters ?? state.maximumVolumeLiters;
+    final startMinimum = controlStartMinimumLps ?? state.controlStartMinimumLps;
+    final startMaximum = controlStartMaximumLps ?? state.controlStartMaximumLps;
+    final hydrantK = hydrantLitersPerPulse ?? state.hydrantLitersPerPulse;
+    if (minimum <= 0 || maximum < minimum) {
+      throw ArgumentError('Vmín/Vmáx no son válidos.');
+    }
+    if (startMinimum < 0 || startMaximum <= startMinimum || hydrantK <= 0) {
+      throw ArgumentError('Rango de inicio/K del medidor no válido.');
+    }
     state = state.copyWith(
       litersPerPulse: litersPerPulse,
       evidenceStepLiters: evidenceStepLiters,
       readingUncertaintyLiters: uncertaintyLiters,
+      minimumVolumeLiters: minimum,
+      maximumVolumeLiters: maximum,
+      controlStartMinimumLps: startMinimum,
+      controlStartMaximumLps: startMaximum,
+      hydrantLitersPerPulse: hydrantK,
     );
   }
 
@@ -448,13 +643,47 @@ final class AppController extends StateNotifier<AppViewState> {
           lpsApprox: flow.lpsApprox,
           litersPerOdometerUnit: 1000,
           needleLitersPerRevolution: 100,
+          minimumVolumeLiters: state.minimumVolumeLiters,
+          maximumVolumeLiters: state.maximumVolumeLiters,
+          controlStartMinimumLps: state.controlStartMinimumLps,
+          controlStartMaximumLps: state.controlStartMaximumLps,
+          hydrantLitersPerPulse: state.hydrantLitersPerPulse,
         ),
         createdAt: now,
         updatedAt: now,
         pulseCount: 0,
       );
       await dependencies.samples.createDraft(draft);
-      final running = await dependencies.samples.start(draft.id, at: now);
+      GpsSnapshot? gps = state.gps;
+      var gpsCaptureState = state.gpsCaptureState;
+      String? gpsMessage = state.gpsMessage;
+      if (gps == null && dependencies.location != null) {
+        try {
+          gps = await dependencies.location!.capture();
+          gpsCaptureState = GpsCaptureState.captured;
+          gpsMessage = 'Ubicación obtenida correctamente.';
+        } on LocationFailure catch (error) {
+          gpsCaptureState = _gpsStateForFailure(error.kind);
+          gpsMessage = error.message;
+        } catch (_) {
+          gpsCaptureState = GpsCaptureState.error;
+          gpsMessage =
+              'No fue posible obtener la ubicación. La prueba puede continuar sin GPS.';
+          // GPS is desirable but nullable by contract and never blocks a run.
+        }
+      }
+      final running = await dependencies.samples.start(
+        draft.id,
+        at: now,
+        gps: gps,
+      );
+      state = state.copyWith(
+        gps: gps,
+        gpsCaptureState: gps == null
+            ? gpsCaptureState
+            : GpsCaptureState.captured,
+        gpsMessage: gpsMessage,
+      );
       if (dependencies.camera != null) {
         await _refreshSample(running.id);
         state = state.copyWith(
@@ -463,6 +692,9 @@ final class AppController extends StateNotifier<AppViewState> {
           captureVolumeLiters: 0,
           cameraState: CameraOperationState.idle,
           clearReadingProposal: true,
+          measurementStarted: false,
+          preStartControlPulseCount: 0,
+          clearPreStartControlFirstPulseAt: true,
         );
         return;
       }
@@ -497,6 +729,7 @@ final class AppController extends StateNotifier<AppViewState> {
         ),
       );
       await _refreshSample(sample.id);
+      await _openDueIntermediateEvidence(sample.id);
     });
   }
 
@@ -516,43 +749,204 @@ final class AppController extends StateNotifier<AppViewState> {
     });
   }
 
-  void showReadings() => state = state.copyWith(page: AppPage.readings);
-
-  Future<void> requestIntermediateEvidence(double volumeLiters) async {
-    await _pauseLedForEvidence();
+  void beginMeasurement() {
+    final sample = state.sample;
+    final first = state.preStartControlFirstPulseAt;
+    if (sample == null || first == null || state.measurementStarted) return;
+    final gate = ControlStartGate.evaluate(
+      pulses: state.preStartControlPulseCount,
+      litersPerPulse: sample.configuration.litersPerPulse,
+      firstPulseAt: first,
+      now: DateTime.now().toUtc(),
+      minimumLps: sample.configuration.controlStartMinimumLps,
+      maximumLps: sample.configuration.controlStartMaximumLps,
+    );
+    if (!gate.inRange) return;
+    state = state.copyWith(measurementStarted: true, clearError: true);
+    _meterUnderTestCounterBaseline = _latestMeterUnderTestCounter;
     state = state.copyWith(
-      page: AppPage.camera,
-      capturePurpose: CapturePurpose.intermediate,
-      captureVolumeLiters: volumeLiters,
-      cameraState: CameraOperationState.idle,
-      clearReadingProposal: true,
+      meterUnderTestPulseCount: 0,
+      clearMeterUnderTestFirstPulseAt: true,
     );
   }
 
-  Future<void> requestFinalEvidence() async {
+  void setRemoteControlConnected(bool connected) {
+    if (state.remoteControlConnected == connected) return;
+    state = state.copyWith(remoteControlConnected: connected);
+  }
+
+  void showReadings() => state = state.copyWith(page: AppPage.readings);
+
+  Future<void> requestIntermediateEvidence(double volumeLiters) async {
+    await _captureIntermediateEvidenceAutomatically(volumeLiters);
+  }
+
+  Future<void> _captureIntermediateEvidenceAutomatically(
+    double volumeLiters,
+  ) async {
+    final camera = dependencies.camera;
     final sample = state.sample;
-    if (sample == null) return;
-    final reference =
-        sample.configuration.measurementMethod == MeasurementMethod.visual
-        ? sample.referenceLitersProgress
-        : sample.pulseCount * sample.configuration.litersPerPulse;
-    if (reference == null || reference <= 0) {
+    if (camera == null || sample == null) {
       state = state.copyWith(
-        errorMessage: 'El volumen de referencia debe ser mayor que cero.',
+        errorMessage:
+            'No fue posible capturar automáticamente la evidencia INTERMEDIATE.',
       );
       return;
     }
     await _pauseLedForEvidence();
     state = state.copyWith(
+      page: AppPage.run,
+      capturePurpose: CapturePurpose.intermediate,
+      captureVolumeLiters: volumeLiters,
+      cameraState: CameraOperationState.processing,
+      clearReadingProposal: true,
+    );
+    var captureCameraClosed = false;
+    try {
+      // The LED detector and the evidence capture share the physical camera.
+      // Reopen it cleanly so takePicture never races an old image stream.
+      await camera.pause();
+      await camera.resume();
+      final photo = await camera.capture();
+      await camera.pause();
+      captureCameraClosed = true;
+      await processCapturedPhoto(photo.path, transparent: true);
+    } catch (_) {
+      state = state.copyWith(
+        page: AppPage.run,
+        cameraState: CameraOperationState.error,
+        clearCapturePurpose: true,
+        errorMessage:
+            'No fue posible capturar automáticamente la evidencia INTERMEDIATE.',
+      );
+      await _resumeLedAfterEvidence(sample);
+    } finally {
+      if (!captureCameraClosed) await camera.pause();
+    }
+  }
+
+  Future<void> requestManualDiagnosticPoint() async {
+    final sample = state.sample;
+    if (sample == null) return;
+    final reference = sample.configuration.measurementMethod.isPulseEventSource
+        ? sample.pulseCount * sample.configuration.litersPerPulse
+        : sample.referenceLitersProgress ?? 0;
+    await _pauseLedForEvidence();
+    state = state.copyWith(
       page: AppPage.camera,
-      capturePurpose: CapturePurpose.finalEvidence,
+      capturePurpose: CapturePurpose.manualDiagnostic,
       captureVolumeLiters: reference,
       cameraState: CameraOperationState.idle,
       clearReadingProposal: true,
     );
   }
 
-  Future<void> processCapturedPhoto(String sourcePath) async {
+  Future<void> requestFinalEvidence() async {
+    if (state.finalizingMeasurement) return;
+    final sample = state.sample;
+    if (sample == null) return;
+    var reference =
+        sample.configuration.measurementMethod == MeasurementMethod.visual
+        ? sample.referenceLitersProgress ?? 0
+        : sample.pulseCount * sample.configuration.litersPerPulse;
+    if (reference <= 0) {
+      state = state.copyWith(
+        errorMessage: 'El volumen de referencia debe ser mayor que cero.',
+      );
+      return;
+    }
+    // Freeze the metrological endpoint before doing any camera or vision work.
+    // Queued/new pulse callbacks observe this flag and cannot move Vref.
+    state = state.copyWith(
+      measurementStarted: false,
+      finalizingMeasurement: true,
+      page: AppPage.run,
+      capturePurpose: CapturePurpose.finalEvidence,
+      captureVolumeLiters: reference,
+      cameraState: CameraOperationState.processing,
+      clearReadingProposal: true,
+      clearError: true,
+    );
+    // Complete only callbacks that had already entered the serialized queue;
+    // events received after finalizingMeasurement became true are discarded.
+    await _pulseQueue;
+    final drainedSample = await dependencies.samples.getById(sample.id);
+    if (drainedSample != null &&
+        sample.configuration.measurementMethod.isPulseEventSource) {
+      reference =
+          drainedSample.pulseCount * sample.configuration.litersPerPulse;
+      state = state.copyWith(
+        sample: drainedSample,
+        captureVolumeLiters: reference,
+      );
+    }
+    var missingIntermediate = await _firstMissingIntermediate(
+      sample,
+      reference,
+    );
+    while (missingIntermediate != null) {
+      await requestIntermediateEvidence(missingIntermediate);
+      if (state.cameraState == CameraOperationState.error) {
+        state = state.copyWith(
+          measurementStarted: true,
+          finalizingMeasurement: false,
+        );
+        return;
+      }
+      missingIntermediate = await _firstMissingIntermediate(sample, reference);
+    }
+    // INTERMEDIATE clears its own capture context; restore the frozen FINAL.
+    state = state.copyWith(
+      page: AppPage.run,
+      capturePurpose: CapturePurpose.finalEvidence,
+      captureVolumeLiters: reference,
+      cameraState: CameraOperationState.processing,
+      clearReadingProposal: true,
+    );
+    final camera = dependencies.camera;
+    if (camera == null) {
+      state = state.copyWith(
+        cameraState: CameraOperationState.error,
+        measurementStarted: true,
+        finalizingMeasurement: false,
+        clearCapturePurpose: true,
+        errorMessage:
+            'No fue posible capturar automáticamente la evidencia FINAL.',
+      );
+      return;
+    }
+    var captureCameraClosed = false;
+    try {
+      await _pauseLedForEvidence();
+      await camera.pause();
+      await camera.resume();
+      final photo = await camera.capture();
+      await camera.pause();
+      captureCameraClosed = true;
+      await processCapturedPhoto(photo.path, transparent: true);
+      if (state.readingProposal != null) {
+        state = state.copyWith(page: AppPage.camera);
+      }
+    } catch (_) {
+      state = state.copyWith(
+        page: AppPage.run,
+        cameraState: CameraOperationState.error,
+        measurementStarted: true,
+        finalizingMeasurement: false,
+        clearCapturePurpose: true,
+        errorMessage:
+            'No fue posible capturar automáticamente la evidencia FINAL.',
+      );
+      await _resumeLedAfterEvidence(sample);
+    } finally {
+      if (!captureCameraClosed) await camera.pause();
+    }
+  }
+
+  Future<void> processCapturedPhoto(
+    String sourcePath, {
+    bool transparent = false,
+  }) async {
     await _guard(() async {
       var sample = state.sample;
       final verificationCase = state.activeCase;
@@ -564,6 +958,7 @@ final class AppController extends StateNotifier<AppViewState> {
       final type = switch (purpose) {
         CapturePurpose.start => EvidenceType.start,
         CapturePurpose.intermediate => EvidenceType.intermediate,
+        CapturePurpose.manualDiagnostic => EvidenceType.extra,
         CapturePurpose.finalEvidence => EvidenceType.finalEvidence,
       };
       if (sample.configuration.measurementMethod == MeasurementMethod.led) {
@@ -573,35 +968,69 @@ final class AppController extends StateNotifier<AppViewState> {
         await _flushLedReconciliation(sample.id);
         sample = await dependencies.samples.getById(sample.id) ?? sample;
       }
-      final volume = sample.configuration.measurementMethod.isPulseEventSource
-          ? sample.pulseCount * sample.configuration.litersPerPulse
-          : state.captureVolumeLiters ?? 0;
+      final plannedIntermediate = purpose == CapturePurpose.intermediate
+          ? state.captureVolumeLiters
+          : null;
+      final volume =
+          (purpose == CapturePurpose.finalEvidence
+              ? state.captureVolumeLiters
+              : plannedIntermediate) ??
+          (sample.configuration.measurementMethod.isPulseEventSource
+              ? sample.pulseCount * sample.configuration.litersPerPulse
+              : state.captureVolumeLiters ?? 0);
+      final evidencePulseCount =
+          sample.configuration.measurementMethod.isPulseEventSource
+          ? (volume / sample.configuration.litersPerPulse).round()
+          : null;
       final evidence = await dependencies.evidenceCapture.captureExisting(
         sourcePath: sourcePath,
         caseId: verificationCase.id,
         sample: sample,
         type: type,
         volumeRefLiters: volume,
-        pulseCount: sample.configuration.measurementMethod.isPulseEventSource
-            ? (volume / sample.configuration.litersPerPulse).round()
-            : null,
+        pulseCount: evidencePulseCount,
       );
+      await dependencies.points.save(
+        TestPoint(
+          id: 'point-${evidence.id}',
+          sampleId: sample.id,
+          type: switch (purpose) {
+            CapturePurpose.start => PointType.start,
+            CapturePurpose.intermediate => PointType.intermediate,
+            CapturePurpose.manualDiagnostic => PointType.manualDiagnostic,
+            CapturePurpose.finalEvidence => PointType.finalPoint,
+          },
+          pulseCount: evidencePulseCount,
+          referenceLiters: volume,
+          capturedAt: evidence.capturedAt,
+        ),
+      );
+      // INTERMEDIATE is intentionally evidence-only. OCR/needle processing on
+      // the UI isolate would stall the live pulse/volume indicators. START and
+      // FINAL retain the complete confirmed visual-reading pipeline.
       VisualReadingProposal? proposal;
-      try {
-        proposal = await dependencies.visualPipeline?.analyze(
-          evidenceId: evidence.id,
-          evidencePath: evidence.localPath,
-          configuration: sample.meterFaceConfiguration == null
+      if (purpose == CapturePurpose.start ||
+          purpose == CapturePurpose.finalEvidence) {
+        try {
+          final frozenConfiguration = sample.meterFaceConfiguration == null
               ? null
               : DialVisionConfiguration.fromDomain(
                   sample.meterFaceConfiguration!,
-                ),
-        );
-      } catch (_) {
-        // A valid decodable photograph remains evidence when automatic vision fails.
-        if (purpose == CapturePurpose.intermediate) {
-          proposal = null;
-        } else {
+                );
+          proposal =
+              purpose == CapturePurpose.finalEvidence &&
+                  frozenConfiguration != null
+              ? await dependencies.visualPipeline?.analyze(
+                  evidenceId: evidence.id,
+                  evidencePath: evidence.localPath,
+                  configuration: frozenConfiguration,
+                )
+              : await dependencies.visualPipeline?.prepare(
+                  evidenceId: evidence.id,
+                  evidencePath: evidence.localPath,
+                  configuration: frozenConfiguration,
+                );
+        } catch (_) {
           await dependencies.evidence.deleteFromOpenSample(evidence.id);
           await dependencies.fileStore.deleteTemporary(
             evidence.localPath,
@@ -612,20 +1041,18 @@ final class AppController extends StateNotifier<AppViewState> {
         }
       }
       await _refreshSample(sample.id);
-      if (purpose == CapturePurpose.start) {
-        await _startBleForCurrentSample();
-      }
       state = state.copyWith(
         cameraState: proposal == null
             ? CameraOperationState.confirmed
             : CameraOperationState.proposalReady,
         readingProposal: proposal,
       );
-      if (purpose == CapturePurpose.intermediate) {
+      if (purpose == CapturePurpose.intermediate ||
+          purpose == CapturePurpose.manualDiagnostic) {
         state = state.copyWith(page: AppPage.run, clearCapturePurpose: true);
         await _resumeLedAfterEvidence(sample);
       }
-    });
+    }, showBusy: !transparent);
   }
 
   Future<void> confirmCameraReading({
@@ -662,12 +1089,56 @@ final class AppController extends StateNotifier<AppViewState> {
             ? confirmed
             : null,
       );
+      final readingLiters =
+          confirmed.reading.odometerUnits *
+              confirmed.reading.litersPerOdometerUnit +
+          confirmed.reading.needleLiters;
+      final pointId = 'point-${proposal.evidenceId}';
+      final point = state.points
+          .where((item) => item.id == pointId)
+          .firstOrNull;
+      if (point != null) {
+        final initial = purpose == CapturePurpose.finalEvidence
+            ? sample.initialReading
+            : null;
+        final indicated = initial == null
+            ? (purpose == CapturePurpose.start ? 0.0 : null)
+            : calculateIndicatedVolume(
+                initial: initial.reading,
+                finalReading: confirmed.reading,
+                referenceLiters:
+                    sample.configuration.measurementMethod.isPulseEventSource
+                    ? sample.pulseCount * sample.configuration.litersPerPulse
+                    : sample.referenceLitersProgress ?? 0,
+              );
+        await dependencies.points.save(
+          TestPoint(
+            id: point.id,
+            sampleId: point.sampleId,
+            type: point.type,
+            capturedAt: point.capturedAt,
+            pulseCount: point.pulseCount,
+            referenceLiters: point.referenceLiters,
+            readingLiters: readingLiters,
+            indicatedLiters: indicated,
+            needleLiters: confirmed.reading.needleLiters,
+          ),
+        );
+      }
       await _refreshSample(sample.id);
       state = state.copyWith(
         page: purpose == CapturePurpose.start ? AppPage.run : AppPage.readings,
         cameraState: CameraOperationState.confirmed,
         clearCapturePurpose: true,
+        measurementStarted:
+            purpose == CapturePurpose.start &&
+            sample.configuration.measurementMethod != MeasurementMethod.ble &&
+            sample.configuration.measurementMethod != MeasurementMethod.led,
+        finalizingMeasurement: false,
       );
+      if (purpose == CapturePurpose.start) {
+        await _startBleForCurrentSample();
+      }
     });
   }
 
@@ -676,6 +1147,14 @@ final class AppController extends StateNotifier<AppViewState> {
       final proposal = state.readingProposal;
       if (proposal == null) {
         throw StateError('No existe una foto para reanalizar.');
+      }
+      final sample = state.sample;
+      if (state.capturePurpose == CapturePurpose.start && sample != null) {
+        await dependencies.samples.updateMeterFaceConfiguration(
+          sample.id,
+          configuration.toDomain(),
+        );
+        await _refreshSample(sample.id);
       }
       state = state.copyWith(cameraState: CameraOperationState.processing);
       final analyzed = await dependencies.visualPipeline!.analyze(
@@ -694,6 +1173,20 @@ final class AppController extends StateNotifier<AppViewState> {
     final proposal = state.readingProposal;
     if (proposal != null) {
       await _guard(() async {
+        final sample = state.sample;
+        final purpose = state.capturePurpose;
+        if (sample != null && purpose != null) {
+          final pointType = switch (purpose) {
+            CapturePurpose.start => PointType.start,
+            CapturePurpose.intermediate => PointType.intermediate,
+            CapturePurpose.manualDiagnostic => PointType.manualDiagnostic,
+            CapturePurpose.finalEvidence => PointType.finalPoint,
+          };
+          await dependencies.points.deleteByTypeFromOpenSample(
+            sample.id,
+            pointType,
+          );
+        }
         await dependencies.evidence.deleteFromOpenSample(proposal.evidenceId);
         await dependencies.fileStore.deleteTemporary(
           proposal.evidencePath,
@@ -820,7 +1313,14 @@ final class AppController extends StateNotifier<AppViewState> {
       for (final flow in flows) {
         samples.addAll(await dependencies.samples.listByFlow(flow.id));
       }
-      state = state.copyWith(page: AppPage.caseSummary, samples: samples);
+      state = state.copyWith(
+        page: AppPage.caseSummary,
+        samples: samples,
+        reportSampleIds: samples
+            .where((sample) => sample.status == SampleStatus.closedValid)
+            .map((sample) => sample.id)
+            .toSet(),
+      );
     });
   }
 
@@ -837,6 +1337,174 @@ final class AppController extends StateNotifier<AppViewState> {
       state = state.copyWith(activeCase: closed, page: AppPage.caseSummary);
     });
   }
+
+  Future<void> exportCurrentCase() async {
+    final verificationCase = state.activeCase;
+    final user = state.user;
+    final meter = state.meter;
+    if (verificationCase == null || user == null || meter == null) return;
+    await _guard(() async {
+      final flows = await dependencies.flows.listByCase(verificationCase.id);
+      final samples = <Sample>[];
+      final points = <String, List<TestPoint>>{};
+      final evidence = <String, List<Evidence>>{};
+      for (final flow in flows) {
+        final flowSamples = (await dependencies.samples.listByFlow(flow.id))
+            .where(
+              (sample) =>
+                  state.reportSampleIds.isEmpty ||
+                  state.reportSampleIds.contains(sample.id),
+            )
+            .toList();
+        samples.addAll(flowSamples);
+        for (final sample in flowSamples) {
+          points[sample.id] = await dependencies.points.listBySample(sample.id);
+          evidence[sample.id] = await dependencies.evidence.listBySample(
+            sample.id,
+          );
+        }
+      }
+      final files = await dependencies.caseExport.export(
+        CaseExportBundle(
+          user: user,
+          meter: meter,
+          verificationCase: verificationCase,
+          flows: flows,
+          samples: samples,
+          pointsBySample: points,
+          evidenceBySample: evidence,
+        ),
+      );
+      state = state.copyWith(exportedFiles: files);
+    });
+  }
+
+  void toggleReportSample(String sampleId, bool selected) {
+    final ids = {...state.reportSampleIds};
+    if (selected) {
+      ids.add(sampleId);
+    } else {
+      ids.remove(sampleId);
+    }
+    state = state.copyWith(reportSampleIds: ids, clearError: true);
+  }
+
+  Future<void> syncCurrentCase() async {
+    final api = dependencies.remoteApi;
+    final token = await dependencies.tokenStore?.read();
+    final verificationCase = state.activeCase;
+    final user = state.user;
+    if (api == null || token == null) {
+      state = state.copyWith(
+        syncMessage: 'Pendiente local · backend no configurado',
+      );
+      return;
+    }
+    if (verificationCase == null || user == null) return;
+    await _guard(() async {
+      state = state.copyWith(syncMessage: 'Sincronizando…');
+      final flows = await dependencies.flows.listByCase(verificationCase.id);
+      final samples = <Sample>[];
+      for (final flow in flows) {
+        samples.addAll(
+          (await dependencies.samples.listByFlow(
+            flow.id,
+          )).where((sample) => sample.status == SampleStatus.closedValid),
+        );
+      }
+      // Binary evidence is staged first. The server associates it when the
+      // immutable Sample metadata arrives.
+      for (final sample in samples) {
+        for (final evidence in await dependencies.evidence.listBySample(
+          sample.id,
+        )) {
+          await api.uploadEvidence(token: token, evidence: evidence);
+        }
+      }
+      await api.postJson('/api/v1/cases', token, {
+        'case_id': verificationCase.id,
+        'meter_id': verificationCase.meterId,
+        'user_id': verificationCase.userId,
+        'status': verificationCase.status.name.toUpperCase(),
+        'overall_verdict': _overallVerdictApi(verificationCase.overallVerdict),
+        'report_version': verificationCase.reportVersion,
+        'checksum': verificationCase.checksum,
+        'created_at': verificationCase.createdAt.toUtc().toIso8601String(),
+        'closed_at': verificationCase.closedAt?.toUtc().toIso8601String(),
+      });
+      for (final flow in flows) {
+        await api.postJson(
+          '/api/v1/cases/${verificationCase.id}/flow-points',
+          token,
+          {
+            'flow_point_id': flow.id,
+            'code': flow.code.name.toUpperCase(),
+            'status': flow.status.name.toUpperCase(),
+            'lps_approx': flow.lpsApprox,
+            'mpe_pct': flow.mpePct,
+            'created_at': flow.createdAt.toUtc().toIso8601String(),
+          },
+        );
+      }
+      for (final sample in samples) {
+        await api.postJson('/api/v1/samples', token, _sampleSyncJson(sample));
+      }
+      final syncedEntityIds = <String>{
+        verificationCase.id,
+        ...flows.map((flow) => flow.id),
+        ...samples.map((sample) => sample.id),
+      };
+      for (final sample in samples) {
+        syncedEntityIds.addAll(
+          (await dependencies.evidence.listBySample(
+            sample.id,
+          )).map((evidence) => evidence.id),
+        );
+      }
+      for (final item in await dependencies.sync.listPending()) {
+        if (syncedEntityIds.contains(item.entityId)) {
+          await dependencies.sync.markSynced(
+            item.id,
+            at: DateTime.now().toUtc(),
+          );
+        }
+      }
+      state = state.copyWith(syncMessage: 'Sincronizado');
+    });
+  }
+
+  Map<String, Object?> _sampleSyncJson(Sample sample) => {
+    'sample_id': sample.id,
+    'flow_point_id': sample.flowPointId,
+    'sample_number': sample.sampleNumber,
+    'status': 'CLOSED_VALID',
+    'checksum': sample.checksum,
+    'created_at': sample.createdAt.toUtc().toIso8601String(),
+    'started_at': sample.startedAt?.toUtc().toIso8601String(),
+    'ended_at': sample.endedAt?.toUtc().toIso8601String(),
+    'measurement_source': sample.configuration.measurementMethod.name
+        .toUpperCase(),
+    'pulse_count': sample.pulseCount,
+    'acquisition_integrity': sample.acquisitionIntegrity.status.name
+        .toUpperCase(),
+    'result': sample.result == null
+        ? null
+        : {
+            'v_ref_l': sample.result!.referenceLiters,
+            'v_ind_l': sample.result!.indicatedLiters,
+            'error_pct': sample.result!.errorPct,
+            'uncertainty_pct': sample.result!.uncertaintyPct,
+            'mpe_pct': sample.result!.mpePct,
+            'verdict': sample.result!.verdict.name.toUpperCase(),
+          },
+  };
+
+  String? _overallVerdictApi(OverallVerdict? verdict) => switch (verdict) {
+    OverallVerdict.approved => 'APROBADO',
+    OverallVerdict.rejected => 'RECHAZADO',
+    OverallVerdict.inconclusive => 'NO_CONCLUYENTE',
+    null => null,
+  };
 
   Future<void> resumeSample() async {
     final sample = state.sample;
@@ -861,7 +1529,7 @@ final class AppController extends StateNotifier<AppViewState> {
         final start = state.evidence.lastWhere(
           (item) => item.type == EvidenceType.start,
         );
-        final proposal = await dependencies.visualPipeline?.analyze(
+        final proposal = await dependencies.visualPipeline?.prepare(
           evidenceId: start.id,
           evidencePath: start.localPath,
           configuration: sample.meterFaceConfiguration == null
@@ -897,6 +1565,7 @@ final class AppController extends StateNotifier<AppViewState> {
     }
     final meter = await dependencies.meters.getById(verificationCase.meterId);
     final evidence = await dependencies.evidence.listBySample(sample.id);
+    final points = await dependencies.points.listBySample(sample.id);
     final samples = await dependencies.samples.listByFlow(flow.id);
     state = state.copyWith(
       activeCase: verificationCase,
@@ -907,7 +1576,13 @@ final class AppController extends StateNotifier<AppViewState> {
       selectedMethod: sample.configuration.measurementMethod,
       lpsApprox: flow.lpsApprox,
       evidence: evidence,
+      points: points,
       samples: samples,
+      gps: sample.gps,
+      gpsCaptureState: sample.gps == null
+          ? GpsCaptureState.idle
+          : GpsCaptureState.captured,
+      measurementStarted: sample.pulseCount > 0,
     );
   }
 
@@ -915,6 +1590,43 @@ final class AppController extends StateNotifier<AppViewState> {
     final sample = await dependencies.samples.getById(id);
     if (sample == null) throw StateError('No se encontró la muestra.');
     await _loadSampleContext(sample);
+  }
+
+  Future<double?> _firstMissingIntermediate(
+    Sample sample,
+    double currentReference,
+  ) async {
+    final evidence = await dependencies.evidence.listBySample(sample.id);
+    final step = sample.configuration.evidenceStepLiters;
+    for (var volume = step; volume < currentReference; volume += step) {
+      final captured = evidence.any(
+        (item) =>
+            item.type == EvidenceType.intermediate &&
+            item.volumeRefLiters != null &&
+            (item.volumeRefLiters! - volume).abs() <=
+                ExpectedEvidencePlan.comparisonEpsilon,
+      );
+      if (!captured) return volume;
+    }
+    return null;
+  }
+
+  Future<void> _openDueIntermediateEvidence(String sampleId) async {
+    if (_openingIntermediateEvidence || state.page != AppPage.run) return;
+    final sample = await dependencies.samples.getById(sampleId);
+    if (sample == null || sample.status != SampleStatus.running) return;
+    final current = sample.configuration.measurementMethod.isPulseEventSource
+        ? sample.pulseCount * sample.configuration.litersPerPulse
+        : sample.referenceLitersProgress ?? 0;
+    if (current <= 0) return;
+    final missing = await _firstMissingIntermediate(sample, current + 1e-9);
+    if (missing == null || missing > current) return;
+    _openingIntermediateEvidence = true;
+    try {
+      await requestIntermediateEvidence(missing);
+    } finally {
+      _openingIntermediateEvidence = false;
+    }
   }
 
   Future<void> _startBleForCurrentSample() async {
@@ -934,6 +1646,7 @@ final class AppController extends StateNotifier<AppViewState> {
     await _pulseSubscription?.cancel();
     await _pulseStateSubscription?.cancel();
     await _counterSubscription?.cancel();
+    await _meterUnderTestCounterSubscription?.cancel();
     final source = BlePulseSource(
       BlePulseConfiguration(
         deviceId: deviceId,
@@ -944,12 +1657,24 @@ final class AppController extends StateNotifier<AppViewState> {
       ),
     );
     _bleSource = source;
-    if (sample.configuration.measurementMethod == MeasurementMethod.ble) {
-      _pulseSubscription = source.events.listen((event) async {
-        await dependencies.pulseProgress.acceptPulse(sample.id, event);
-        await _refreshSample(sample.id);
+    _pulseSubscription = source.events.listen((event) {
+      _pulseQueue = _pulseQueue.then((_) async {
+        if (state.finalizingMeasurement) return;
+        // This monitor is deliberately continuous across the START boundary.
+        // Official Sample pulses are persisted only after measurementStarted.
+        state = state.copyWith(
+          preStartControlPulseCount: state.preStartControlPulseCount + 1,
+          preStartControlFirstPulseAt:
+              state.preStartControlFirstPulseAt ?? event.receivedAt,
+        );
+        if (!state.measurementStarted) return;
+        if (sample.configuration.measurementMethod == MeasurementMethod.ble) {
+          await dependencies.pulseProgress.acceptPulse(sample.id, event);
+          await _refreshSample(sample.id);
+          await _openDueIntermediateEvidence(sample.id);
+        }
       });
-    }
+    });
     _pulseStateSubscription = source.states.listen((pulseState) {
       state = state.copyWith(
         hardwareState: switch (pulseState.status) {
@@ -1004,6 +1729,45 @@ final class AppController extends StateNotifier<AppViewState> {
           unawaited(_restorePersistedLedDetector(current, old!));
         }
       }
+    });
+    _meterUnderTestCounterBaseline = null;
+    _hydrantMonitorCounterBaseline = null;
+    _meterUnderTestCounterSubscription = source.meterUnderTestCounters.listen((
+      counter,
+    ) {
+      _latestMeterUnderTestCounter = counter;
+      final monitorBaseline = _hydrantMonitorCounterBaseline;
+      if (monitorBaseline == null || counter < monitorBaseline) {
+        _hydrantMonitorCounterBaseline = counter;
+        state = state.copyWith(
+          hydrantMonitorPulseCount: 0,
+          clearHydrantMonitorFirstPulseAt: true,
+        );
+      } else {
+        final monitorPulses = counter - monitorBaseline;
+        state = state.copyWith(
+          hydrantMonitorPulseCount: monitorPulses,
+          hydrantMonitorFirstPulseAt:
+              monitorPulses > 0 && state.hydrantMonitorFirstPulseAt == null
+              ? DateTime.now().toUtc()
+              : state.hydrantMonitorFirstPulseAt,
+        );
+      }
+      if (!state.measurementStarted) return;
+      final baseline = _meterUnderTestCounterBaseline;
+      if (baseline == null || counter < baseline) {
+        _meterUnderTestCounterBaseline = counter;
+        state = state.copyWith(meterUnderTestPulseCount: 0);
+        return;
+      }
+      final pulses = counter - baseline;
+      state = state.copyWith(
+        meterUnderTestPulseCount: pulses,
+        meterUnderTestFirstPulseAt:
+            pulses > 0 && state.meterUnderTestFirstPulseAt == null
+            ? DateTime.now().toUtc()
+            : state.meterUnderTestFirstPulseAt,
+      );
     });
     await source.start();
   }
@@ -1296,6 +2060,8 @@ final class AppController extends StateNotifier<AppViewState> {
     _ledReconciliationTimer?.cancel();
     await _counterSubscription?.cancel();
     _counterSubscription = null;
+    await _meterUnderTestCounterSubscription?.cancel();
+    _meterUnderTestCounterSubscription = null;
     await _bleSource?.stop();
   }
 
@@ -1344,8 +2110,11 @@ final class AppController extends StateNotifier<AppViewState> {
     await _refreshSample(sampleId);
   }
 
-  Future<void> _guard(Future<void> Function() operation) async {
-    state = state.copyWith(busy: true, clearError: true);
+  Future<void> _guard(
+    Future<void> Function() operation, {
+    bool showBusy = true,
+  }) async {
+    state = state.copyWith(busy: showBusy, clearError: true);
     try {
       await operation();
     } on ArgumentError catch (error) {
@@ -1391,4 +2160,14 @@ final class AppController extends StateNotifier<AppViewState> {
       evidenceId: existing?.evidenceId,
     );
   }
+
+  GpsCaptureState _gpsStateForFailure(LocationFailureKind kind) =>
+      switch (kind) {
+        LocationFailureKind.serviceDisabled => GpsCaptureState.serviceDisabled,
+        LocationFailureKind.denied => GpsCaptureState.denied,
+        LocationFailureKind.permanentlyDenied =>
+          GpsCaptureState.permanentlyDenied,
+        LocationFailureKind.timeout => GpsCaptureState.timeout,
+        LocationFailureKind.unavailable => GpsCaptureState.error,
+      };
 }

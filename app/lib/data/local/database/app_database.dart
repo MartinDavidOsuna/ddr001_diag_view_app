@@ -291,7 +291,7 @@ final class AppDatabase extends _$AppDatabase {
     : super(driftDatabase(name: 'ddr001', native: const DriftNativeOptions()));
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -299,6 +299,7 @@ final class AppDatabase extends _$AppDatabase {
       await migrator.createAll();
       await _createProtectionTriggers();
       await _createIndexes();
+      await _createOperationalSettingsTable();
     },
     onUpgrade: (migrator, from, to) async {
       if (from < 1) {
@@ -390,11 +391,47 @@ final class AppDatabase extends _$AppDatabase {
           }
         }
       }
+      if (from < 6) {
+        await _createOperationalSettingsTable();
+      }
+      if (from < 7) await _ensureOperationalSettingsColumns();
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
+      await _createOperationalSettingsTable();
+      await _ensureOperationalSettingsColumns();
     },
   );
+
+  Future<void> _createOperationalSettingsTable() => customStatement('''
+    CREATE TABLE IF NOT EXISTS sample_operational_settings (
+      sample_id TEXT PRIMARY KEY REFERENCES samples(id),
+      minimum_volume_liters REAL NOT NULL,
+      maximum_volume_liters REAL NOT NULL,
+      control_start_minimum_lps REAL NOT NULL DEFAULT 0,
+      control_start_maximum_lps REAL NOT NULL DEFAULT 1.0e308,
+      hydrant_liters_per_pulse REAL NOT NULL DEFAULT 1,
+      CHECK (minimum_volume_liters > 0),
+      CHECK (maximum_volume_liters >= minimum_volume_liters)
+    )
+  ''');
+
+  Future<void> _ensureOperationalSettingsColumns() async {
+    final columns = (await customSelect(
+      'PRAGMA table_info(sample_operational_settings)',
+    ).get()).map((row) => row.read<String>('name')).toSet();
+    for (final entry in <String, String>{
+      'control_start_minimum_lps': 'REAL NOT NULL DEFAULT 0',
+      'control_start_maximum_lps': 'REAL NOT NULL DEFAULT 1.0e308',
+      'hydrant_liters_per_pulse': 'REAL NOT NULL DEFAULT 1',
+    }.entries) {
+      if (!columns.contains(entry.key)) {
+        await customStatement(
+          'ALTER TABLE sample_operational_settings ADD COLUMN ${entry.key} ${entry.value}',
+        );
+      }
+    }
+  }
 
   Future<void> _createIndexes() async {
     await customStatement(

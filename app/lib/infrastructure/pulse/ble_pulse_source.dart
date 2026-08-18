@@ -38,6 +38,7 @@ final class BlePulseSource implements PulseSource {
   final _events = StreamController<PulseEvent>.broadcast();
   final _states = StreamController<PulseSourceState>.broadcast();
   final _counters = StreamController<int>.broadcast();
+  final _meterUnderTestCounters = StreamController<int>.broadcast();
   StreamSubscription<BluetoothConnectionState>? _connection;
   StreamSubscription<List<int>>? _notifications;
   BluetoothDevice? _device;
@@ -57,6 +58,7 @@ final class BlePulseSource implements PulseSource {
   @override
   PulseSourceState get currentState => _state;
   Stream<int> get counters => _counters.stream;
+  Stream<int> get meterUnderTestCounters => _meterUnderTestCounters.stream;
   int? get lastObservedCounter => _reconciler.lastObservedCounter;
 
   void _set(
@@ -147,6 +149,8 @@ final class BlePulseSource implements PulseSource {
     if (parsed == null) return;
     final observation = _reconciler.observe(parsed.counter);
     _counters.add(parsed.counter);
+    final meterCounter = parsed.meterUnderTestCounter;
+    if (meterCounter != null) _meterUnderTestCounters.add(meterCounter);
     if (observation.status == CounterObservationStatus.rollback) {
       _set(
         PulseSourceStatus.error,
@@ -208,5 +212,6 @@ final class BlePulseSource implements PulseSource {
     await _events.close();
     await _states.close();
     await _counters.close();
+    await _meterUnderTestCounters.close();
   }
 }

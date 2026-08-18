@@ -38,7 +38,7 @@ void main() {
       );
       expect(
         (properties['schema'] as Map<String, Object?>)['const'],
-        'ddr001.verification.sample/v7',
+        'ddr001.verification.sample/v8',
       );
       final definitions = sample[r'$defs'] as Map<String, Object?>;
       final reading = definitions['reading'] as Map<String, Object?>;
