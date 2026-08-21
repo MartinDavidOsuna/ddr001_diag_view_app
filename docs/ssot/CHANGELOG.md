@@ -1,5 +1,96 @@
 # CHANGELOG funcional
 
+## Versión 1.2.0+08 — banco, procedencia y reporte cronológico — 2026-08-21
+- Firmware ESP32 V1.0 incorpora filtro PCNT, estabilidad/rearme y debounce para GPIO25/GPIO27; el configurador exige `--nombre` con serie y versión y produce un nombre BLE compatible con DDR001.
+- Identificación incorpora el campo obligatorio `ID / banco de pruebas`.
+- Cada expediente congela ID de dispositivo, Android, marca y modelo disponibles; Ajustes los muestra y el reporte presentable los oculta.
+- Login fija la versión discretamente al fondo, elimina las dos leyendas auxiliares y habilita accesos maestros para Rene y Omar.
+- Reportes ordenan pruebas cronológicamente, presentan V.MEC desde GPIO25, agregan caudal mínimo/máximo/promedio y localizan etiquetas/horas al español.
+- HTML/PDF dejan de mostrar el sello DDR001 y el número interno de expediente.
+- El reporte incorpora configuración metrológica, ESP32, repetibilidad y mapa autocontenido del punto GPS con enlace opcional al detalle.
+- El resumen local despliega integridad/adquisición, duración y endpoints, trazabilidad de fotografías y zoom/regiones congeladas.
+
+## Versión 1.1.1+07 — endpoint FINAL atómico y cámara estable — 2026-08-21
+- `FINALIZAR Y CONFIRMAR LECTURAS` congela inmediatamente el endpoint, desasocia todas las entradas de la muestra y evita que GPIO27/GPIO25 o reconciliación LED alteren pulsos, volumen o caudal durante el formulario.
+- FINAL es la primera fotografía tomada después del botón; ya no se intentan reconstruir evidencias INTERMEDIAS faltantes durante el cierre.
+- La cámara permanece inicializada entre INICIO, INTERMEDIAS y FINAL, restaura periódicamente enfoque automático, exposición, punto de enfoque y zoom, y vuelve a validarlos justo antes de cada fotografía.
+- La Evidence conserva siempre el cuadro completo original; totalizador y dial se usan únicamente para generar recortes de presentación en el formulario manual.
+
+## Versión 1.1.0+06 — caudal puntual, GPS y enfoque táctil — 2026-08-20
+- Identificación elimina la captura manual de LPS Q1/Q2; ambos caudales se crean con `lps_approx` nullable y el cálculo comienza en el primer pulso, no al abrir la pantalla.
+- INICIO, cada evidencia INTERMEDIA y FINAL registran `flow_lps`; Registro y exportes incorporan la lectura puntual y las estadísticas mínima, máxima y promedio.
+- CONTINUAR sin GPS abre una confirmación explícita y, al aceptarla, avanza directamente sin fabricar coordenadas.
+- Un toque en el preview de Preparación de cámara fija enfoque y exposición como la cámara estándar de Android.
+- Al comenzar la prueba, control e hidrante reinician simultáneamente sus baselines visibles en cero.
+- SQLite avanza aditivamente a schema 10 y la aplicación a `1.1.0+06`.
+
+## Versión 1.0.5+05 — sesión BLE y verificaciones independientes — 2026-08-20
+- La conexión GATT del ESP32 queda desacoplada de pantallas y muestras: Atrás, Método, Preparación, fijación de regiones y una verificación nueva conservan el mismo transporte y keepalive; únicamente `DESCONECTAR ESP32` lo destruye explícitamente.
+- `FIJAR REGIONES` deja de reiniciar la fuente BLE y descarta mensajes vacíos durante transiciones, evitando la leyenda roja y las actualizaciones hacia widgets ya desmontados.
+- Preparación de cámara reutiliza la última geometría confirmada. Solo sugiere automáticamente cuando no existe una anterior, y `NUEVA SUGERENCIA DE REGIONES` recorre candidatos distintos antes de repetirlos.
+- Inicio crea siempre un expediente nuevo en `NUEVA VERIFICACIÓN` y limpia los datos operativos inconclusos; conserva únicamente periféricos conectados y la última geometría/zoom de totalizador y dial.
+- Fuente/Método simplifica la acción a `BUSCAR ESP32`.
+
+## Versión 1.0.4+04 — descubrimiento conectado y navegación BLE — 2026-08-20
+- BUSCAR conserva en la lista el ESP32 cuya conexión GATT sigue activa aunque el firmware deje de anunciarse mientras está conectado; los anuncios de módulos adicionales se agregan normalmente.
+- Keepalive deja de publicar contadores GPIO27/GPIO25 duplicados, evitando escrituras y reconstrucciones de UI sin cambio físico.
+- La navegación deja de retener temporalmente la pantalla anterior con `AnimatedSwitcher`, eliminando listeners Riverpod salientes que podían recibir una actualización BLE después de destruirse y producir `_ElementLifecycle.defunct`.
+
+## Versión 1.0.3+03 — continuidad BLE y preparación de cámara — 2026-08-20
+- La conexión ESP32 se inicia antes de Preparación de cámara y se reutiliza al fijar regiones; se elimina la disposición/reconexión que provocaba el corte durante esa transición.
+- Fuente/Método incorpora `DESCONECTAR ESP32`. `BUSCAR ESP32 DDR001` siempre renueva la lista, incluso con una conexión activa, y solo admite equipos que validen prefijo, servicio, característica GATT y payload DDR001.
+- Preparación de cámara incorpora `NUEVA SUGERENCIA DE REGIONES` para recalcular totalizador y diales con el zoom actual.
+- Los iconos de lupa en ambos extremos del slider ahora son botones para disminuir y aumentar zoom dentro del rango físico de la cámara.
+
+## Versión 1.0.2+02 — acceso de campo, keepalive e identidad — 2026-08-20
+- Login muestra la versión instalada y renombra la identidad visible a `VERIFICADOR FUNCIONAL`; Android publica la app como `AQ VF DDR001`.
+- La combinación `Martin Osuna` + `martinosuna@agrienlace.com` + `9999999999` funciona como llave maestra local y crea sesión sin llamar a la API. Las demás identidades conservan la autenticación configurada.
+- ESP32 ejecuta keepalive BLE mediante lectura del contador cada 10 s y solo declara desconexión tras tres intentos fallidos. El control remoto Bluetooth aplica el mismo umbral mediante sondeo del dispositivo de entrada Android.
+- Se formaliza que cada entrega funcional incrementa `version` y `build` en `pubspec.yaml`, actualiza la versión vigente de SSOT y registra sus cambios en este archivo; los nombres/versiones Android derivan de esos metadatos de compilación.
+
+## Versión 1.0.1+01 e identidad Aquafim — 2026-08-20
+- `pubspec.yaml` inicia el manejo formal de versiones en `1.0.1+01`; Inicio y Ajustes muestran la versión instalada con build de dos dígitos.
+- Todas las pantallas incorporan el símbolo Aquafim en el encabezado y el splash Flutter muestra el logo institucional, sin cambiar los recursos del icono Android.
+- Ajustes retira el acceso a Calibración visual · DEBUG y mantiene el correo completo en una sola línea.
+
+## Presentación de evidencia y registro sin pulsos — 2026-08-20
+- Prueba renombra el bloque a `CAPTURA DE EVIDENCIAS` y desplaza la vista para mantener visibles los puntos finales cuando crece el plan.
+- Registro deja vacíos Lectura L, V.MEC L y Error % cuando GPIO25 no registró pulsos en el punto.
+- Capturar lecturas abre la carátula completa desde cualquier crop INICIO/FINAL, con zoom y cierre táctil. Todas las corridas reutilizan la primera geometría congelada del expediente.
+
+## Correctivo configuración, regiones y contadores — 2026-08-19
+- Identificación aclara que GPS es informativo para validación interna; CONFIGURAR PRUEBA queda bloqueado hasta que el ESP32 esté READY.
+- Preparación incorpora escalas de odómetro/aguja y formato de enteros/decimales, congelados en cada Sample.
+- Preparación de cámara intenta una sugerencia inicial de regiones sobre un frame transitorio sin crear Evidence ni lectura.
+- Al cambiar a Q2 o repetir se cierran las suscripciones BLE anteriores y se reinicia el baseline del medidor del hidrante. Registro deriva litros y error diagnóstico del snapshot GPIO25 y su K congelado.
+
+## Continuidad Q1/Q2 y corrida controlada por operador — 2026-08-19
+- COMENZAR Q2 y REPETIR crean la corrida siguiente y abren directamente Prueba en curso, reutilizando regiones y zoom de la primera preparación.
+- El rango de caudal solo habilita el inicio; después de START ninguna caída de caudal reinicia o detiene la corrida. El operador es la única autoridad de finalización.
+- El caudal observado del hidrante aparece también antes de iniciar y se retira `CAPTURAR UN PUNTO AHORA`.
+
+## Endpoints de Evidence congelados — 2026-08-19
+- INICIO se persiste siempre en el origen relativo `0 L/0 pulsos`, aunque lleguen pulsos mientras la cámara termina la fotografía.
+- Al cerrar, el volumen y contador de la Evidence FINAL son la autoridad del endpoint congelado; pulsos posteriores no cambian el plan esperado ni invalidan una corrida completa.
+
+## Acceso local explícito de desarrollo — 2026-08-19
+- Sin `DDR001_API_BASE_URL`, el primer acceso continúa bloqueado por defecto. Para pruebas sin backend puede habilitarse deliberadamente `DDR001_ALLOW_LOCAL_FIRST_LOGIN=true`; el usuario y la sesión se guardan en la persistencia local existente.
+
+## Lectura manual al cierre y corridas Q1/Q2 — 2026-08-19
+- El flujo productivo deja de ejecutar OCR, detección de aguja o cualquier interpretación automática. Preparación de cámara solo fija las regiones normalizadas de totalizador y dial.
+- INICIO se captura automáticamente sin interrumpir la corrida. Al terminar se captura FINAL y un solo formulario presenta, en orden, los crops y valores manuales de INICIO y FINAL: totalizador, aguja y total del medidor. `Vind` es la diferencia `total FINAL − total INICIO`.
+- Una corrida se etiqueta `Q1`/`Q2`; cuando se repite se muestran `Q1-1`, `Q1-2` o `Q2-1`, `Q2-2`. Q1 ofrece repetir o comenzar Q2.
+
+- 2026-08-18: Preparación de cámara sustituye los handles de tamaño por pinch directo en totalizador/dial, retira el texto superpuesto dentro de ambos marcos, conserva una cruz central de alineación en el dial y activa durante el preview el formato provisional necesario para leer tambores mecánicos completos o en transición. Un análisis concluido sin candidato informa `NO DETECTADO` en vez de permanecer en `ANALIZANDO…`.
+
+## Correctivo Q1/Q2, cámara y navegación — 2026-08-18
+- Preparación de cámara configura regiones sobre preview vivo sin fotografía; analiza frames transitorios cada segundo, recupera candidatos de dial y actualiza totalizador/dial con fade-out/fade-in.
+- Q1 operativo utiliza MPE ±2 %; Preparación muestra K para Q1 y Q2, y PREPARAR CÁMARA siempre abre la preparación visual de una muestra editable.
+- Método evita un nuevo scan/conexión cuando el ESP32 seleccionado ya está READY y reemplaza el bloqueo circular por el aviso azul pulsante `CONECTANDO A MEDIDORES`.
+- Identificación persiste Q1 operativo/Q2 medio con LPS 1.5/1.0; el selector muestra solo BLUETOOTH y LECTURA VISUAL (visible sin sufijo, pero no seleccionable), y el scan inicial autoselecciona un único DDR001.
+- La captura previa pasa a PREPARACIÓN DE CÁMARA sin Evidence START. Se agrega zoom real persistido, START al iniciar y relación de aspecto real tanto en preview como en la fotografía con sus regiones.
+- Prueba elimina el bloque duplicado; Registro usa cuatro columnas y snapshot GPIO25 como V.MEC visual. Back/gesto conserva el workflow.
+
 ## Correctivo de interacción del selector — 2026-08-17
 - Finalizar táctil/remoto congela pulsos y Vref antes de acceder a cámara. La UI responde de inmediato con `FINALIZANDO…`; Evidence pendiente, foto FINAL y análisis continúan después sin mover el endpoint.
 - INTERMEDIATE queda evidence-only y elimina OCR/aguja síncronos que detenían visualmente la sección 4. El enlace BLE inicia después de confirmar START, evitando desconexiones mientras se fijan/analizan regiones.

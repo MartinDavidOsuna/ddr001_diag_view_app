@@ -70,10 +70,10 @@ final class RedNeedleDetector implements NeedleDetectionPort {
     }
     if (points.length < minimumRedPixels) return null;
 
-    // Treat the configured center only as a search anchor. The hub is the red
-    // cluster nearest that anchor; angles are then accumulated from the
-    // refined physical center. This keeps geometry separate from metrology and
-    // avoids a quadrant-dependent bias when the adjusted ROI is slightly off.
+    // The technician-selected ROI center is the physical pivot authority.
+    // Do not replace it with the red centroid: broad triangular pointers shift
+    // that centroid toward their tip and introduce a systematic angle bias.
+    // Red near the center is still required to reject disconnected artifacts.
     final hubSearchRadius = .12 * scale;
     final hubPoints = points.where((point) {
       final dx = point.x - centerX;
@@ -102,7 +102,7 @@ final class RedNeedleDetector implements NeedleDetectionPort {
     final outerPoints = points.where((point) {
       final dx = point.x - hubX;
       final dy = point.y - hubY;
-      return math.sqrt(dx * dx + dy * dy) >= .18 * scale;
+      return math.sqrt(dx * dx + dy * dy) >= .12 * scale;
     }).toList();
     if (outerPoints.length < math.max(4, minimumRedPixels ~/ 3)) return null;
     // Real water-meter pointers are frequently broad painted triangles rather
@@ -153,14 +153,63 @@ final class RedNeedleDetector implements NeedleDetectionPort {
         normalizeAngleDegrees((bestBin + .5) - pointAngle),
       );
       if (separation <= 8) {
-        radialBuckets.add((radius / (.05 * scale)).floor());
+        radialBuckets.add((radius / (.035 * scale)).floor());
         maximumReach = math.max(maximumReach, radius);
       }
     }
-    if (radialBuckets.length < 4 || maximumReach < .25 * scale) return null;
+    if (radialBuckets.length < 3 || maximumReach < .14 * scale) return null;
     var angle = vectorX == 0 && vectorY == 0
         ? bestBin + .5
         : normalizeAngleDegrees(math.atan2(vectorY, vectorX) * 180 / math.pi);
+    // Broad mechanical pointers commonly contain a rounded red counterweight
+    // and a narrow triangular tip. Radial mass then points backwards. Detect
+    // that asymmetric silhouette with its principal axis and choose the end
+    // having the smaller cap (the pointed end).
+    final pointWeight = points.fold<double>(0, (sum, p) => sum + p.weight);
+    final redCenterX =
+        points.fold<double>(0, (sum, p) => sum + p.x * p.weight) / pointWeight;
+    final redCenterY =
+        points.fold<double>(0, (sum, p) => sum + p.y * p.weight) / pointWeight;
+    var covarianceX = 0.0;
+    var covarianceY = 0.0;
+    var covarianceXY = 0.0;
+    for (final point in points) {
+      final dx = point.x - redCenterX;
+      final dy = point.y - redCenterY;
+      covarianceX += point.weight * dx * dx;
+      covarianceY += point.weight * dy * dy;
+      covarianceXY += point.weight * dx * dy;
+    }
+    final principalRadians =
+        .5 * math.atan2(2 * covarianceXY, covarianceX - covarianceY);
+    final axisX = math.cos(principalRadians);
+    final axisY = math.sin(principalRadians);
+    final projections = points
+        .map(
+          (point) =>
+              (point.x - redCenterX) * axisX + (point.y - redCenterY) * axisY,
+        )
+        .toList(growable: false);
+    final minimumProjection = projections.reduce(math.min);
+    final maximumProjection = projections.reduce(math.max);
+    final projectionSpan = maximumProjection - minimumProjection;
+    if (projectionSpan >= .25 * scale) {
+      final capWidth = projectionSpan * .15;
+      final negativeCap = projections
+          .where((value) => value <= minimumProjection + capWidth)
+          .length;
+      final positiveCap = projections
+          .where((value) => value >= maximumProjection - capWidth)
+          .length;
+      final smallerCap = math.min(negativeCap, positiveCap);
+      final largerCap = math.max(negativeCap, positiveCap);
+      if (smallerCap > 0 && smallerCap * 1.8 < largerCap) {
+        final pointedAxis = positiveCap < negativeCap
+            ? principalRadians
+            : principalRadians + math.pi;
+        angle = normalizeAngleDegrees(pointedAxis * 180 / math.pi);
+      }
+    }
     final zeroDistance = math.min(
       normalizeAngleDegrees(angle - config.zeroAngleDegrees),
       normalizeAngleDegrees(config.zeroAngleDegrees - angle),

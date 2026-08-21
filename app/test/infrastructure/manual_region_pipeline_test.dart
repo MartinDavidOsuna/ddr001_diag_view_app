@@ -188,6 +188,10 @@ final class _RecordingOcr implements OdometerRecognitionPort {
   }
 
   @override
+  Future<List<RecognizedTextRegion>> recognizeRegions(String imagePath) async =>
+      const [];
+
+  @override
   Future<void> dispose() async {}
 }
 
@@ -198,6 +202,10 @@ final class _SequenceOcr implements OdometerRecognitionPort {
 
   @override
   Future<String> recognize(String imagePath) async => values[index++];
+
+  @override
+  Future<List<RecognizedTextRegion>> recognizeRegions(String imagePath) async =>
+      const [];
 
   @override
   Future<void> dispose() async {}

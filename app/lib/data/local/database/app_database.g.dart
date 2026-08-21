@@ -976,6 +976,62 @@ class $VerificationCasesTable extends VerificationCases
     requiredDuringInsert: false,
     defaultValue: const Constant(1),
   );
+  static const VerificationMeta _testBenchIdMeta = const VerificationMeta(
+    'testBenchId',
+  );
+  @override
+  late final GeneratedColumn<String> testBenchId = GeneratedColumn<String>(
+    'test_bench_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _deviceIdMeta = const VerificationMeta(
+    'deviceId',
+  );
+  @override
+  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
+    'device_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _androidVersionMeta = const VerificationMeta(
+    'androidVersion',
+  );
+  @override
+  late final GeneratedColumn<String> androidVersion = GeneratedColumn<String>(
+    'android_version',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deviceBrandMeta = const VerificationMeta(
+    'deviceBrand',
+  );
+  @override
+  late final GeneratedColumn<String> deviceBrand = GeneratedColumn<String>(
+    'device_brand',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deviceModelMeta = const VerificationMeta(
+    'deviceModel',
+  );
+  @override
+  late final GeneratedColumn<String> deviceModel = GeneratedColumn<String>(
+    'device_model',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _checksumMeta = const VerificationMeta(
     'checksum',
   );
@@ -997,6 +1053,11 @@ class $VerificationCasesTable extends VerificationCases
     createdAtMs,
     closedAtMs,
     reportVersion,
+    testBenchId,
+    deviceId,
+    androidVersion,
+    deviceBrand,
+    deviceModel,
     checksum,
   ];
   @override
@@ -1078,6 +1139,48 @@ class $VerificationCasesTable extends VerificationCases
         ),
       );
     }
+    if (data.containsKey('test_bench_id')) {
+      context.handle(
+        _testBenchIdMeta,
+        testBenchId.isAcceptableOrUnknown(
+          data['test_bench_id']!,
+          _testBenchIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('device_id')) {
+      context.handle(
+        _deviceIdMeta,
+        deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    }
+    if (data.containsKey('android_version')) {
+      context.handle(
+        _androidVersionMeta,
+        androidVersion.isAcceptableOrUnknown(
+          data['android_version']!,
+          _androidVersionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('device_brand')) {
+      context.handle(
+        _deviceBrandMeta,
+        deviceBrand.isAcceptableOrUnknown(
+          data['device_brand']!,
+          _deviceBrandMeta,
+        ),
+      );
+    }
+    if (data.containsKey('device_model')) {
+      context.handle(
+        _deviceModelMeta,
+        deviceModel.isAcceptableOrUnknown(
+          data['device_model']!,
+          _deviceModelMeta,
+        ),
+      );
+    }
     if (data.containsKey('checksum')) {
       context.handle(
         _checksumMeta,
@@ -1125,6 +1228,26 @@ class $VerificationCasesTable extends VerificationCases
         DriftSqlType.int,
         data['${effectivePrefix}report_version'],
       )!,
+      testBenchId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}test_bench_id'],
+      )!,
+      deviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_id'],
+      ),
+      androidVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}android_version'],
+      ),
+      deviceBrand: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_brand'],
+      ),
+      deviceModel: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_model'],
+      ),
       checksum: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}checksum'],
@@ -1148,6 +1271,11 @@ class VerificationCaseRow extends DataClass
   final int createdAtMs;
   final int? closedAtMs;
   final int reportVersion;
+  final String testBenchId;
+  final String? deviceId;
+  final String? androidVersion;
+  final String? deviceBrand;
+  final String? deviceModel;
   final String? checksum;
   const VerificationCaseRow({
     required this.id,
@@ -1158,6 +1286,11 @@ class VerificationCaseRow extends DataClass
     required this.createdAtMs,
     this.closedAtMs,
     required this.reportVersion,
+    required this.testBenchId,
+    this.deviceId,
+    this.androidVersion,
+    this.deviceBrand,
+    this.deviceModel,
     this.checksum,
   });
   @override
@@ -1175,6 +1308,19 @@ class VerificationCaseRow extends DataClass
       map['closed_at_ms'] = Variable<int>(closedAtMs);
     }
     map['report_version'] = Variable<int>(reportVersion);
+    map['test_bench_id'] = Variable<String>(testBenchId);
+    if (!nullToAbsent || deviceId != null) {
+      map['device_id'] = Variable<String>(deviceId);
+    }
+    if (!nullToAbsent || androidVersion != null) {
+      map['android_version'] = Variable<String>(androidVersion);
+    }
+    if (!nullToAbsent || deviceBrand != null) {
+      map['device_brand'] = Variable<String>(deviceBrand);
+    }
+    if (!nullToAbsent || deviceModel != null) {
+      map['device_model'] = Variable<String>(deviceModel);
+    }
     if (!nullToAbsent || checksum != null) {
       map['checksum'] = Variable<String>(checksum);
     }
@@ -1195,6 +1341,19 @@ class VerificationCaseRow extends DataClass
           ? const Value.absent()
           : Value(closedAtMs),
       reportVersion: Value(reportVersion),
+      testBenchId: Value(testBenchId),
+      deviceId: deviceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deviceId),
+      androidVersion: androidVersion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(androidVersion),
+      deviceBrand: deviceBrand == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deviceBrand),
+      deviceModel: deviceModel == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deviceModel),
       checksum: checksum == null && nullToAbsent
           ? const Value.absent()
           : Value(checksum),
@@ -1215,6 +1374,11 @@ class VerificationCaseRow extends DataClass
       createdAtMs: serializer.fromJson<int>(json['createdAtMs']),
       closedAtMs: serializer.fromJson<int?>(json['closedAtMs']),
       reportVersion: serializer.fromJson<int>(json['reportVersion']),
+      testBenchId: serializer.fromJson<String>(json['testBenchId']),
+      deviceId: serializer.fromJson<String?>(json['deviceId']),
+      androidVersion: serializer.fromJson<String?>(json['androidVersion']),
+      deviceBrand: serializer.fromJson<String?>(json['deviceBrand']),
+      deviceModel: serializer.fromJson<String?>(json['deviceModel']),
       checksum: serializer.fromJson<String?>(json['checksum']),
     );
   }
@@ -1230,6 +1394,11 @@ class VerificationCaseRow extends DataClass
       'createdAtMs': serializer.toJson<int>(createdAtMs),
       'closedAtMs': serializer.toJson<int?>(closedAtMs),
       'reportVersion': serializer.toJson<int>(reportVersion),
+      'testBenchId': serializer.toJson<String>(testBenchId),
+      'deviceId': serializer.toJson<String?>(deviceId),
+      'androidVersion': serializer.toJson<String?>(androidVersion),
+      'deviceBrand': serializer.toJson<String?>(deviceBrand),
+      'deviceModel': serializer.toJson<String?>(deviceModel),
       'checksum': serializer.toJson<String?>(checksum),
     };
   }
@@ -1243,6 +1412,11 @@ class VerificationCaseRow extends DataClass
     int? createdAtMs,
     Value<int?> closedAtMs = const Value.absent(),
     int? reportVersion,
+    String? testBenchId,
+    Value<String?> deviceId = const Value.absent(),
+    Value<String?> androidVersion = const Value.absent(),
+    Value<String?> deviceBrand = const Value.absent(),
+    Value<String?> deviceModel = const Value.absent(),
     Value<String?> checksum = const Value.absent(),
   }) => VerificationCaseRow(
     id: id ?? this.id,
@@ -1255,6 +1429,13 @@ class VerificationCaseRow extends DataClass
     createdAtMs: createdAtMs ?? this.createdAtMs,
     closedAtMs: closedAtMs.present ? closedAtMs.value : this.closedAtMs,
     reportVersion: reportVersion ?? this.reportVersion,
+    testBenchId: testBenchId ?? this.testBenchId,
+    deviceId: deviceId.present ? deviceId.value : this.deviceId,
+    androidVersion: androidVersion.present
+        ? androidVersion.value
+        : this.androidVersion,
+    deviceBrand: deviceBrand.present ? deviceBrand.value : this.deviceBrand,
+    deviceModel: deviceModel.present ? deviceModel.value : this.deviceModel,
     checksum: checksum.present ? checksum.value : this.checksum,
   );
   VerificationCaseRow copyWithCompanion(VerificationCasesCompanion data) {
@@ -1275,6 +1456,19 @@ class VerificationCaseRow extends DataClass
       reportVersion: data.reportVersion.present
           ? data.reportVersion.value
           : this.reportVersion,
+      testBenchId: data.testBenchId.present
+          ? data.testBenchId.value
+          : this.testBenchId,
+      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      androidVersion: data.androidVersion.present
+          ? data.androidVersion.value
+          : this.androidVersion,
+      deviceBrand: data.deviceBrand.present
+          ? data.deviceBrand.value
+          : this.deviceBrand,
+      deviceModel: data.deviceModel.present
+          ? data.deviceModel.value
+          : this.deviceModel,
       checksum: data.checksum.present ? data.checksum.value : this.checksum,
     );
   }
@@ -1290,6 +1484,11 @@ class VerificationCaseRow extends DataClass
           ..write('createdAtMs: $createdAtMs, ')
           ..write('closedAtMs: $closedAtMs, ')
           ..write('reportVersion: $reportVersion, ')
+          ..write('testBenchId: $testBenchId, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('androidVersion: $androidVersion, ')
+          ..write('deviceBrand: $deviceBrand, ')
+          ..write('deviceModel: $deviceModel, ')
           ..write('checksum: $checksum')
           ..write(')'))
         .toString();
@@ -1305,6 +1504,11 @@ class VerificationCaseRow extends DataClass
     createdAtMs,
     closedAtMs,
     reportVersion,
+    testBenchId,
+    deviceId,
+    androidVersion,
+    deviceBrand,
+    deviceModel,
     checksum,
   );
   @override
@@ -1319,6 +1523,11 @@ class VerificationCaseRow extends DataClass
           other.createdAtMs == this.createdAtMs &&
           other.closedAtMs == this.closedAtMs &&
           other.reportVersion == this.reportVersion &&
+          other.testBenchId == this.testBenchId &&
+          other.deviceId == this.deviceId &&
+          other.androidVersion == this.androidVersion &&
+          other.deviceBrand == this.deviceBrand &&
+          other.deviceModel == this.deviceModel &&
           other.checksum == this.checksum);
 }
 
@@ -1331,6 +1540,11 @@ class VerificationCasesCompanion extends UpdateCompanion<VerificationCaseRow> {
   final Value<int> createdAtMs;
   final Value<int?> closedAtMs;
   final Value<int> reportVersion;
+  final Value<String> testBenchId;
+  final Value<String?> deviceId;
+  final Value<String?> androidVersion;
+  final Value<String?> deviceBrand;
+  final Value<String?> deviceModel;
   final Value<String?> checksum;
   final Value<int> rowid;
   const VerificationCasesCompanion({
@@ -1342,6 +1556,11 @@ class VerificationCasesCompanion extends UpdateCompanion<VerificationCaseRow> {
     this.createdAtMs = const Value.absent(),
     this.closedAtMs = const Value.absent(),
     this.reportVersion = const Value.absent(),
+    this.testBenchId = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.androidVersion = const Value.absent(),
+    this.deviceBrand = const Value.absent(),
+    this.deviceModel = const Value.absent(),
     this.checksum = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -1354,6 +1573,11 @@ class VerificationCasesCompanion extends UpdateCompanion<VerificationCaseRow> {
     required int createdAtMs,
     this.closedAtMs = const Value.absent(),
     this.reportVersion = const Value.absent(),
+    this.testBenchId = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.androidVersion = const Value.absent(),
+    this.deviceBrand = const Value.absent(),
+    this.deviceModel = const Value.absent(),
     this.checksum = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -1370,6 +1594,11 @@ class VerificationCasesCompanion extends UpdateCompanion<VerificationCaseRow> {
     Expression<int>? createdAtMs,
     Expression<int>? closedAtMs,
     Expression<int>? reportVersion,
+    Expression<String>? testBenchId,
+    Expression<String>? deviceId,
+    Expression<String>? androidVersion,
+    Expression<String>? deviceBrand,
+    Expression<String>? deviceModel,
     Expression<String>? checksum,
     Expression<int>? rowid,
   }) {
@@ -1382,6 +1611,11 @@ class VerificationCasesCompanion extends UpdateCompanion<VerificationCaseRow> {
       if (createdAtMs != null) 'created_at_ms': createdAtMs,
       if (closedAtMs != null) 'closed_at_ms': closedAtMs,
       if (reportVersion != null) 'report_version': reportVersion,
+      if (testBenchId != null) 'test_bench_id': testBenchId,
+      if (deviceId != null) 'device_id': deviceId,
+      if (androidVersion != null) 'android_version': androidVersion,
+      if (deviceBrand != null) 'device_brand': deviceBrand,
+      if (deviceModel != null) 'device_model': deviceModel,
       if (checksum != null) 'checksum': checksum,
       if (rowid != null) 'rowid': rowid,
     });
@@ -1396,6 +1630,11 @@ class VerificationCasesCompanion extends UpdateCompanion<VerificationCaseRow> {
     Value<int>? createdAtMs,
     Value<int?>? closedAtMs,
     Value<int>? reportVersion,
+    Value<String>? testBenchId,
+    Value<String?>? deviceId,
+    Value<String?>? androidVersion,
+    Value<String?>? deviceBrand,
+    Value<String?>? deviceModel,
     Value<String?>? checksum,
     Value<int>? rowid,
   }) {
@@ -1408,6 +1647,11 @@ class VerificationCasesCompanion extends UpdateCompanion<VerificationCaseRow> {
       createdAtMs: createdAtMs ?? this.createdAtMs,
       closedAtMs: closedAtMs ?? this.closedAtMs,
       reportVersion: reportVersion ?? this.reportVersion,
+      testBenchId: testBenchId ?? this.testBenchId,
+      deviceId: deviceId ?? this.deviceId,
+      androidVersion: androidVersion ?? this.androidVersion,
+      deviceBrand: deviceBrand ?? this.deviceBrand,
+      deviceModel: deviceModel ?? this.deviceModel,
       checksum: checksum ?? this.checksum,
       rowid: rowid ?? this.rowid,
     );
@@ -1440,6 +1684,21 @@ class VerificationCasesCompanion extends UpdateCompanion<VerificationCaseRow> {
     if (reportVersion.present) {
       map['report_version'] = Variable<int>(reportVersion.value);
     }
+    if (testBenchId.present) {
+      map['test_bench_id'] = Variable<String>(testBenchId.value);
+    }
+    if (deviceId.present) {
+      map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (androidVersion.present) {
+      map['android_version'] = Variable<String>(androidVersion.value);
+    }
+    if (deviceBrand.present) {
+      map['device_brand'] = Variable<String>(deviceBrand.value);
+    }
+    if (deviceModel.present) {
+      map['device_model'] = Variable<String>(deviceModel.value);
+    }
     if (checksum.present) {
       map['checksum'] = Variable<String>(checksum.value);
     }
@@ -1460,6 +1719,11 @@ class VerificationCasesCompanion extends UpdateCompanion<VerificationCaseRow> {
           ..write('createdAtMs: $createdAtMs, ')
           ..write('closedAtMs: $closedAtMs, ')
           ..write('reportVersion: $reportVersion, ')
+          ..write('testBenchId: $testBenchId, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('androidVersion: $androidVersion, ')
+          ..write('deviceBrand: $deviceBrand, ')
+          ..write('deviceModel: $deviceModel, ')
           ..write('checksum: $checksum, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -2429,6 +2693,28 @@ class $TestPointsTable extends TestPoints
     type: DriftSqlType.double,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _meterUnderTestPulseCountMeta =
+      const VerificationMeta('meterUnderTestPulseCount');
+  @override
+  late final GeneratedColumn<int> meterUnderTestPulseCount =
+      GeneratedColumn<int>(
+        'meter_under_test_pulse_count',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _flowLpsMeta = const VerificationMeta(
+    'flowLps',
+  );
+  @override
+  late final GeneratedColumn<double> flowLps = GeneratedColumn<double>(
+    'flow_lps',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _capturedAtMsMeta = const VerificationMeta(
     'capturedAtMs',
   );
@@ -2451,6 +2737,8 @@ class $TestPointsTable extends TestPoints
     indicatedLiters,
     diagnosticErrorPct,
     needleLiters,
+    meterUnderTestPulseCount,
+    flowLps,
     capturedAtMs,
   ];
   @override
@@ -2537,6 +2825,21 @@ class $TestPointsTable extends TestPoints
         ),
       );
     }
+    if (data.containsKey('meter_under_test_pulse_count')) {
+      context.handle(
+        _meterUnderTestPulseCountMeta,
+        meterUnderTestPulseCount.isAcceptableOrUnknown(
+          data['meter_under_test_pulse_count']!,
+          _meterUnderTestPulseCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('flow_lps')) {
+      context.handle(
+        _flowLpsMeta,
+        flowLps.isAcceptableOrUnknown(data['flow_lps']!, _flowLpsMeta),
+      );
+    }
     if (data.containsKey('captured_at_ms')) {
       context.handle(
         _capturedAtMsMeta,
@@ -2593,6 +2896,14 @@ class $TestPointsTable extends TestPoints
         DriftSqlType.double,
         data['${effectivePrefix}needle_liters'],
       ),
+      meterUnderTestPulseCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}meter_under_test_pulse_count'],
+      ),
+      flowLps: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}flow_lps'],
+      ),
       capturedAtMs: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}captured_at_ms'],
@@ -2616,6 +2927,8 @@ class PointRow extends DataClass implements Insertable<PointRow> {
   final double? indicatedLiters;
   final double? diagnosticErrorPct;
   final double? needleLiters;
+  final int? meterUnderTestPulseCount;
+  final double? flowLps;
   final int capturedAtMs;
   const PointRow({
     required this.id,
@@ -2627,6 +2940,8 @@ class PointRow extends DataClass implements Insertable<PointRow> {
     this.indicatedLiters,
     this.diagnosticErrorPct,
     this.needleLiters,
+    this.meterUnderTestPulseCount,
+    this.flowLps,
     required this.capturedAtMs,
   });
   @override
@@ -2652,6 +2967,14 @@ class PointRow extends DataClass implements Insertable<PointRow> {
     }
     if (!nullToAbsent || needleLiters != null) {
       map['needle_liters'] = Variable<double>(needleLiters);
+    }
+    if (!nullToAbsent || meterUnderTestPulseCount != null) {
+      map['meter_under_test_pulse_count'] = Variable<int>(
+        meterUnderTestPulseCount,
+      );
+    }
+    if (!nullToAbsent || flowLps != null) {
+      map['flow_lps'] = Variable<double>(flowLps);
     }
     map['captured_at_ms'] = Variable<int>(capturedAtMs);
     return map;
@@ -2680,6 +3003,12 @@ class PointRow extends DataClass implements Insertable<PointRow> {
       needleLiters: needleLiters == null && nullToAbsent
           ? const Value.absent()
           : Value(needleLiters),
+      meterUnderTestPulseCount: meterUnderTestPulseCount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(meterUnderTestPulseCount),
+      flowLps: flowLps == null && nullToAbsent
+          ? const Value.absent()
+          : Value(flowLps),
       capturedAtMs: Value(capturedAtMs),
     );
   }
@@ -2701,6 +3030,10 @@ class PointRow extends DataClass implements Insertable<PointRow> {
         json['diagnosticErrorPct'],
       ),
       needleLiters: serializer.fromJson<double?>(json['needleLiters']),
+      meterUnderTestPulseCount: serializer.fromJson<int?>(
+        json['meterUnderTestPulseCount'],
+      ),
+      flowLps: serializer.fromJson<double?>(json['flowLps']),
       capturedAtMs: serializer.fromJson<int>(json['capturedAtMs']),
     );
   }
@@ -2717,6 +3050,10 @@ class PointRow extends DataClass implements Insertable<PointRow> {
       'indicatedLiters': serializer.toJson<double?>(indicatedLiters),
       'diagnosticErrorPct': serializer.toJson<double?>(diagnosticErrorPct),
       'needleLiters': serializer.toJson<double?>(needleLiters),
+      'meterUnderTestPulseCount': serializer.toJson<int?>(
+        meterUnderTestPulseCount,
+      ),
+      'flowLps': serializer.toJson<double?>(flowLps),
       'capturedAtMs': serializer.toJson<int>(capturedAtMs),
     };
   }
@@ -2731,6 +3068,8 @@ class PointRow extends DataClass implements Insertable<PointRow> {
     Value<double?> indicatedLiters = const Value.absent(),
     Value<double?> diagnosticErrorPct = const Value.absent(),
     Value<double?> needleLiters = const Value.absent(),
+    Value<int?> meterUnderTestPulseCount = const Value.absent(),
+    Value<double?> flowLps = const Value.absent(),
     int? capturedAtMs,
   }) => PointRow(
     id: id ?? this.id,
@@ -2750,6 +3089,10 @@ class PointRow extends DataClass implements Insertable<PointRow> {
         ? diagnosticErrorPct.value
         : this.diagnosticErrorPct,
     needleLiters: needleLiters.present ? needleLiters.value : this.needleLiters,
+    meterUnderTestPulseCount: meterUnderTestPulseCount.present
+        ? meterUnderTestPulseCount.value
+        : this.meterUnderTestPulseCount,
+    flowLps: flowLps.present ? flowLps.value : this.flowLps,
     capturedAtMs: capturedAtMs ?? this.capturedAtMs,
   );
   PointRow copyWithCompanion(TestPointsCompanion data) {
@@ -2775,6 +3118,10 @@ class PointRow extends DataClass implements Insertable<PointRow> {
       needleLiters: data.needleLiters.present
           ? data.needleLiters.value
           : this.needleLiters,
+      meterUnderTestPulseCount: data.meterUnderTestPulseCount.present
+          ? data.meterUnderTestPulseCount.value
+          : this.meterUnderTestPulseCount,
+      flowLps: data.flowLps.present ? data.flowLps.value : this.flowLps,
       capturedAtMs: data.capturedAtMs.present
           ? data.capturedAtMs.value
           : this.capturedAtMs,
@@ -2793,6 +3140,8 @@ class PointRow extends DataClass implements Insertable<PointRow> {
           ..write('indicatedLiters: $indicatedLiters, ')
           ..write('diagnosticErrorPct: $diagnosticErrorPct, ')
           ..write('needleLiters: $needleLiters, ')
+          ..write('meterUnderTestPulseCount: $meterUnderTestPulseCount, ')
+          ..write('flowLps: $flowLps, ')
           ..write('capturedAtMs: $capturedAtMs')
           ..write(')'))
         .toString();
@@ -2809,6 +3158,8 @@ class PointRow extends DataClass implements Insertable<PointRow> {
     indicatedLiters,
     diagnosticErrorPct,
     needleLiters,
+    meterUnderTestPulseCount,
+    flowLps,
     capturedAtMs,
   );
   @override
@@ -2824,6 +3175,8 @@ class PointRow extends DataClass implements Insertable<PointRow> {
           other.indicatedLiters == this.indicatedLiters &&
           other.diagnosticErrorPct == this.diagnosticErrorPct &&
           other.needleLiters == this.needleLiters &&
+          other.meterUnderTestPulseCount == this.meterUnderTestPulseCount &&
+          other.flowLps == this.flowLps &&
           other.capturedAtMs == this.capturedAtMs);
 }
 
@@ -2837,6 +3190,8 @@ class TestPointsCompanion extends UpdateCompanion<PointRow> {
   final Value<double?> indicatedLiters;
   final Value<double?> diagnosticErrorPct;
   final Value<double?> needleLiters;
+  final Value<int?> meterUnderTestPulseCount;
+  final Value<double?> flowLps;
   final Value<int> capturedAtMs;
   final Value<int> rowid;
   const TestPointsCompanion({
@@ -2849,6 +3204,8 @@ class TestPointsCompanion extends UpdateCompanion<PointRow> {
     this.indicatedLiters = const Value.absent(),
     this.diagnosticErrorPct = const Value.absent(),
     this.needleLiters = const Value.absent(),
+    this.meterUnderTestPulseCount = const Value.absent(),
+    this.flowLps = const Value.absent(),
     this.capturedAtMs = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -2862,6 +3219,8 @@ class TestPointsCompanion extends UpdateCompanion<PointRow> {
     this.indicatedLiters = const Value.absent(),
     this.diagnosticErrorPct = const Value.absent(),
     this.needleLiters = const Value.absent(),
+    this.meterUnderTestPulseCount = const Value.absent(),
+    this.flowLps = const Value.absent(),
     required int capturedAtMs,
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -2878,6 +3237,8 @@ class TestPointsCompanion extends UpdateCompanion<PointRow> {
     Expression<double>? indicatedLiters,
     Expression<double>? diagnosticErrorPct,
     Expression<double>? needleLiters,
+    Expression<int>? meterUnderTestPulseCount,
+    Expression<double>? flowLps,
     Expression<int>? capturedAtMs,
     Expression<int>? rowid,
   }) {
@@ -2892,6 +3253,9 @@ class TestPointsCompanion extends UpdateCompanion<PointRow> {
       if (diagnosticErrorPct != null)
         'diagnostic_error_pct': diagnosticErrorPct,
       if (needleLiters != null) 'needle_liters': needleLiters,
+      if (meterUnderTestPulseCount != null)
+        'meter_under_test_pulse_count': meterUnderTestPulseCount,
+      if (flowLps != null) 'flow_lps': flowLps,
       if (capturedAtMs != null) 'captured_at_ms': capturedAtMs,
       if (rowid != null) 'rowid': rowid,
     });
@@ -2907,6 +3271,8 @@ class TestPointsCompanion extends UpdateCompanion<PointRow> {
     Value<double?>? indicatedLiters,
     Value<double?>? diagnosticErrorPct,
     Value<double?>? needleLiters,
+    Value<int?>? meterUnderTestPulseCount,
+    Value<double?>? flowLps,
     Value<int>? capturedAtMs,
     Value<int>? rowid,
   }) {
@@ -2920,6 +3286,9 @@ class TestPointsCompanion extends UpdateCompanion<PointRow> {
       indicatedLiters: indicatedLiters ?? this.indicatedLiters,
       diagnosticErrorPct: diagnosticErrorPct ?? this.diagnosticErrorPct,
       needleLiters: needleLiters ?? this.needleLiters,
+      meterUnderTestPulseCount:
+          meterUnderTestPulseCount ?? this.meterUnderTestPulseCount,
+      flowLps: flowLps ?? this.flowLps,
       capturedAtMs: capturedAtMs ?? this.capturedAtMs,
       rowid: rowid ?? this.rowid,
     );
@@ -2955,6 +3324,14 @@ class TestPointsCompanion extends UpdateCompanion<PointRow> {
     if (needleLiters.present) {
       map['needle_liters'] = Variable<double>(needleLiters.value);
     }
+    if (meterUnderTestPulseCount.present) {
+      map['meter_under_test_pulse_count'] = Variable<int>(
+        meterUnderTestPulseCount.value,
+      );
+    }
+    if (flowLps.present) {
+      map['flow_lps'] = Variable<double>(flowLps.value);
+    }
     if (capturedAtMs.present) {
       map['captured_at_ms'] = Variable<int>(capturedAtMs.value);
     }
@@ -2976,6 +3353,8 @@ class TestPointsCompanion extends UpdateCompanion<PointRow> {
           ..write('indicatedLiters: $indicatedLiters, ')
           ..write('diagnosticErrorPct: $diagnosticErrorPct, ')
           ..write('needleLiters: $needleLiters, ')
+          ..write('meterUnderTestPulseCount: $meterUnderTestPulseCount, ')
+          ..write('flowLps: $flowLps, ')
           ..write('capturedAtMs: $capturedAtMs, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -3866,6 +4245,17 @@ class $SamplesTable extends Samples with TableInfo<$SamplesTable, SampleRow> {
         type: DriftSqlType.double,
         requiredDuringInsert: true,
       );
+  static const VerificationMeta _cameraZoomLevelMeta = const VerificationMeta(
+    'cameraZoomLevel',
+  );
+  @override
+  late final GeneratedColumn<double> cameraZoomLevel = GeneratedColumn<double>(
+    'camera_zoom_level',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _totalizerLeftMeta = const VerificationMeta(
     'totalizerLeft',
   );
@@ -4598,6 +4988,7 @@ class $SamplesTable extends Samples with TableInfo<$SamplesTable, SampleRow> {
     lpsApprox,
     litersPerOdometerUnit,
     needleLitersPerRevolution,
+    cameraZoomLevel,
     totalizerLeft,
     totalizerTop,
     totalizerWidth,
@@ -4800,6 +5191,15 @@ class $SamplesTable extends Samples with TableInfo<$SamplesTable, SampleRow> {
       );
     } else if (isInserting) {
       context.missing(_needleLitersPerRevolutionMeta);
+    }
+    if (data.containsKey('camera_zoom_level')) {
+      context.handle(
+        _cameraZoomLevelMeta,
+        cameraZoomLevel.isAcceptableOrUnknown(
+          data['camera_zoom_level']!,
+          _cameraZoomLevelMeta,
+        ),
+      );
     }
     if (data.containsKey('totalizer_left')) {
       context.handle(
@@ -5425,6 +5825,10 @@ class $SamplesTable extends Samples with TableInfo<$SamplesTable, SampleRow> {
         DriftSqlType.double,
         data['${effectivePrefix}needle_liters_per_revolution'],
       )!,
+      cameraZoomLevel: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}camera_zoom_level'],
+      ),
       totalizerLeft: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}totalizer_left'],
@@ -5704,6 +6108,7 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
   final double? lpsApprox;
   final double litersPerOdometerUnit;
   final double needleLitersPerRevolution;
+  final double? cameraZoomLevel;
   final double? totalizerLeft;
   final double? totalizerTop;
   final double? totalizerWidth;
@@ -5782,6 +6187,7 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
     this.lpsApprox,
     required this.litersPerOdometerUnit,
     required this.needleLitersPerRevolution,
+    this.cameraZoomLevel,
     this.totalizerLeft,
     this.totalizerTop,
     this.totalizerWidth,
@@ -5869,6 +6275,9 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
     map['needle_liters_per_revolution'] = Variable<double>(
       needleLitersPerRevolution,
     );
+    if (!nullToAbsent || cameraZoomLevel != null) {
+      map['camera_zoom_level'] = Variable<double>(cameraZoomLevel);
+    }
     if (!nullToAbsent || totalizerLeft != null) {
       map['totalizer_left'] = Variable<double>(totalizerLeft);
     }
@@ -6103,6 +6512,9 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
           : Value(lpsApprox),
       litersPerOdometerUnit: Value(litersPerOdometerUnit),
       needleLitersPerRevolution: Value(needleLitersPerRevolution),
+      cameraZoomLevel: cameraZoomLevel == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cameraZoomLevel),
       totalizerLeft: totalizerLeft == null && nullToAbsent
           ? const Value.absent()
           : Value(totalizerLeft),
@@ -6325,6 +6737,7 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
       needleLitersPerRevolution: serializer.fromJson<double>(
         json['needleLitersPerRevolution'],
       ),
+      cameraZoomLevel: serializer.fromJson<double?>(json['cameraZoomLevel']),
       totalizerLeft: serializer.fromJson<double?>(json['totalizerLeft']),
       totalizerTop: serializer.fromJson<double?>(json['totalizerTop']),
       totalizerWidth: serializer.fromJson<double?>(json['totalizerWidth']),
@@ -6468,6 +6881,7 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
       'needleLitersPerRevolution': serializer.toJson<double>(
         needleLitersPerRevolution,
       ),
+      'cameraZoomLevel': serializer.toJson<double?>(cameraZoomLevel),
       'totalizerLeft': serializer.toJson<double?>(totalizerLeft),
       'totalizerTop': serializer.toJson<double?>(totalizerTop),
       'totalizerWidth': serializer.toJson<double?>(totalizerWidth),
@@ -6577,6 +6991,7 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
     Value<double?> lpsApprox = const Value.absent(),
     double? litersPerOdometerUnit,
     double? needleLitersPerRevolution,
+    Value<double?> cameraZoomLevel = const Value.absent(),
     Value<double?> totalizerLeft = const Value.absent(),
     Value<double?> totalizerTop = const Value.absent(),
     Value<double?> totalizerWidth = const Value.absent(),
@@ -6657,6 +7072,9 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
     litersPerOdometerUnit: litersPerOdometerUnit ?? this.litersPerOdometerUnit,
     needleLitersPerRevolution:
         needleLitersPerRevolution ?? this.needleLitersPerRevolution,
+    cameraZoomLevel: cameraZoomLevel.present
+        ? cameraZoomLevel.value
+        : this.cameraZoomLevel,
     totalizerLeft: totalizerLeft.present
         ? totalizerLeft.value
         : this.totalizerLeft,
@@ -6841,6 +7259,9 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
       needleLitersPerRevolution: data.needleLitersPerRevolution.present
           ? data.needleLitersPerRevolution.value
           : this.needleLitersPerRevolution,
+      cameraZoomLevel: data.cameraZoomLevel.present
+          ? data.cameraZoomLevel.value
+          : this.cameraZoomLevel,
       totalizerLeft: data.totalizerLeft.present
           ? data.totalizerLeft.value
           : this.totalizerLeft,
@@ -7042,6 +7463,7 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
           ..write('lpsApprox: $lpsApprox, ')
           ..write('litersPerOdometerUnit: $litersPerOdometerUnit, ')
           ..write('needleLitersPerRevolution: $needleLitersPerRevolution, ')
+          ..write('cameraZoomLevel: $cameraZoomLevel, ')
           ..write('totalizerLeft: $totalizerLeft, ')
           ..write('totalizerTop: $totalizerTop, ')
           ..write('totalizerWidth: $totalizerWidth, ')
@@ -7131,6 +7553,7 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
     lpsApprox,
     litersPerOdometerUnit,
     needleLitersPerRevolution,
+    cameraZoomLevel,
     totalizerLeft,
     totalizerTop,
     totalizerWidth,
@@ -7213,6 +7636,7 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
           other.lpsApprox == this.lpsApprox &&
           other.litersPerOdometerUnit == this.litersPerOdometerUnit &&
           other.needleLitersPerRevolution == this.needleLitersPerRevolution &&
+          other.cameraZoomLevel == this.cameraZoomLevel &&
           other.totalizerLeft == this.totalizerLeft &&
           other.totalizerTop == this.totalizerTop &&
           other.totalizerWidth == this.totalizerWidth &&
@@ -7296,6 +7720,7 @@ class SamplesCompanion extends UpdateCompanion<SampleRow> {
   final Value<double?> lpsApprox;
   final Value<double> litersPerOdometerUnit;
   final Value<double> needleLitersPerRevolution;
+  final Value<double?> cameraZoomLevel;
   final Value<double?> totalizerLeft;
   final Value<double?> totalizerTop;
   final Value<double?> totalizerWidth;
@@ -7375,6 +7800,7 @@ class SamplesCompanion extends UpdateCompanion<SampleRow> {
     this.lpsApprox = const Value.absent(),
     this.litersPerOdometerUnit = const Value.absent(),
     this.needleLitersPerRevolution = const Value.absent(),
+    this.cameraZoomLevel = const Value.absent(),
     this.totalizerLeft = const Value.absent(),
     this.totalizerTop = const Value.absent(),
     this.totalizerWidth = const Value.absent(),
@@ -7455,6 +7881,7 @@ class SamplesCompanion extends UpdateCompanion<SampleRow> {
     this.lpsApprox = const Value.absent(),
     required double litersPerOdometerUnit,
     required double needleLitersPerRevolution,
+    this.cameraZoomLevel = const Value.absent(),
     this.totalizerLeft = const Value.absent(),
     this.totalizerTop = const Value.absent(),
     this.totalizerWidth = const Value.absent(),
@@ -7548,6 +7975,7 @@ class SamplesCompanion extends UpdateCompanion<SampleRow> {
     Expression<double>? lpsApprox,
     Expression<double>? litersPerOdometerUnit,
     Expression<double>? needleLitersPerRevolution,
+    Expression<double>? cameraZoomLevel,
     Expression<double>? totalizerLeft,
     Expression<double>? totalizerTop,
     Expression<double>? totalizerWidth,
@@ -7632,6 +8060,7 @@ class SamplesCompanion extends UpdateCompanion<SampleRow> {
         'liters_per_odometer_unit': litersPerOdometerUnit,
       if (needleLitersPerRevolution != null)
         'needle_liters_per_revolution': needleLitersPerRevolution,
+      if (cameraZoomLevel != null) 'camera_zoom_level': cameraZoomLevel,
       if (totalizerLeft != null) 'totalizer_left': totalizerLeft,
       if (totalizerTop != null) 'totalizer_top': totalizerTop,
       if (totalizerWidth != null) 'totalizer_width': totalizerWidth,
@@ -7741,6 +8170,7 @@ class SamplesCompanion extends UpdateCompanion<SampleRow> {
     Value<double?>? lpsApprox,
     Value<double>? litersPerOdometerUnit,
     Value<double>? needleLitersPerRevolution,
+    Value<double?>? cameraZoomLevel,
     Value<double?>? totalizerLeft,
     Value<double?>? totalizerTop,
     Value<double?>? totalizerWidth,
@@ -7824,6 +8254,7 @@ class SamplesCompanion extends UpdateCompanion<SampleRow> {
           litersPerOdometerUnit ?? this.litersPerOdometerUnit,
       needleLitersPerRevolution:
           needleLitersPerRevolution ?? this.needleLitersPerRevolution,
+      cameraZoomLevel: cameraZoomLevel ?? this.cameraZoomLevel,
       totalizerLeft: totalizerLeft ?? this.totalizerLeft,
       totalizerTop: totalizerTop ?? this.totalizerTop,
       totalizerWidth: totalizerWidth ?? this.totalizerWidth,
@@ -7955,6 +8386,9 @@ class SamplesCompanion extends UpdateCompanion<SampleRow> {
       map['needle_liters_per_revolution'] = Variable<double>(
         needleLitersPerRevolution.value,
       );
+    }
+    if (cameraZoomLevel.present) {
+      map['camera_zoom_level'] = Variable<double>(cameraZoomLevel.value);
     }
     if (totalizerLeft.present) {
       map['totalizer_left'] = Variable<double>(totalizerLeft.value);
@@ -8212,6 +8646,7 @@ class SamplesCompanion extends UpdateCompanion<SampleRow> {
           ..write('lpsApprox: $lpsApprox, ')
           ..write('litersPerOdometerUnit: $litersPerOdometerUnit, ')
           ..write('needleLitersPerRevolution: $needleLitersPerRevolution, ')
+          ..write('cameraZoomLevel: $cameraZoomLevel, ')
           ..write('totalizerLeft: $totalizerLeft, ')
           ..write('totalizerTop: $totalizerTop, ')
           ..write('totalizerWidth: $totalizerWidth, ')
@@ -9616,6 +10051,11 @@ typedef $$VerificationCasesTableCreateCompanionBuilder =
       required int createdAtMs,
       Value<int?> closedAtMs,
       Value<int> reportVersion,
+      Value<String> testBenchId,
+      Value<String?> deviceId,
+      Value<String?> androidVersion,
+      Value<String?> deviceBrand,
+      Value<String?> deviceModel,
       Value<String?> checksum,
       Value<int> rowid,
     });
@@ -9629,6 +10069,11 @@ typedef $$VerificationCasesTableUpdateCompanionBuilder =
       Value<int> createdAtMs,
       Value<int?> closedAtMs,
       Value<int> reportVersion,
+      Value<String> testBenchId,
+      Value<String?> deviceId,
+      Value<String?> androidVersion,
+      Value<String?> deviceBrand,
+      Value<String?> deviceModel,
       Value<String?> checksum,
       Value<int> rowid,
     });
@@ -9735,6 +10180,31 @@ class $$VerificationCasesTableFilterComposer
 
   ColumnFilters<int> get reportVersion => $composableBuilder(
     column: $table.reportVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get testBenchId => $composableBuilder(
+    column: $table.testBenchId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get androidVersion => $composableBuilder(
+    column: $table.androidVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceBrand => $composableBuilder(
+    column: $table.deviceBrand,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceModel => $composableBuilder(
+    column: $table.deviceModel,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -9854,6 +10324,31 @@ class $$VerificationCasesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get testBenchId => $composableBuilder(
+    column: $table.testBenchId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get androidVersion => $composableBuilder(
+    column: $table.androidVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceBrand => $composableBuilder(
+    column: $table.deviceBrand,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceModel => $composableBuilder(
+    column: $table.deviceModel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get checksum => $composableBuilder(
     column: $table.checksum,
     builder: (column) => ColumnOrderings(column),
@@ -9938,6 +10433,29 @@ class $$VerificationCasesTableAnnotationComposer
 
   GeneratedColumn<int> get reportVersion => $composableBuilder(
     column: $table.reportVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get testBenchId => $composableBuilder(
+    column: $table.testBenchId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get deviceId =>
+      $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  GeneratedColumn<String> get androidVersion => $composableBuilder(
+    column: $table.androidVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get deviceBrand => $composableBuilder(
+    column: $table.deviceBrand,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get deviceModel => $composableBuilder(
+    column: $table.deviceModel,
     builder: (column) => column,
   );
 
@@ -10061,6 +10579,11 @@ class $$VerificationCasesTableTableManager
                 Value<int> createdAtMs = const Value.absent(),
                 Value<int?> closedAtMs = const Value.absent(),
                 Value<int> reportVersion = const Value.absent(),
+                Value<String> testBenchId = const Value.absent(),
+                Value<String?> deviceId = const Value.absent(),
+                Value<String?> androidVersion = const Value.absent(),
+                Value<String?> deviceBrand = const Value.absent(),
+                Value<String?> deviceModel = const Value.absent(),
                 Value<String?> checksum = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => VerificationCasesCompanion(
@@ -10072,6 +10595,11 @@ class $$VerificationCasesTableTableManager
                 createdAtMs: createdAtMs,
                 closedAtMs: closedAtMs,
                 reportVersion: reportVersion,
+                testBenchId: testBenchId,
+                deviceId: deviceId,
+                androidVersion: androidVersion,
+                deviceBrand: deviceBrand,
+                deviceModel: deviceModel,
                 checksum: checksum,
                 rowid: rowid,
               ),
@@ -10085,6 +10613,11 @@ class $$VerificationCasesTableTableManager
                 required int createdAtMs,
                 Value<int?> closedAtMs = const Value.absent(),
                 Value<int> reportVersion = const Value.absent(),
+                Value<String> testBenchId = const Value.absent(),
+                Value<String?> deviceId = const Value.absent(),
+                Value<String?> androidVersion = const Value.absent(),
+                Value<String?> deviceBrand = const Value.absent(),
+                Value<String?> deviceModel = const Value.absent(),
                 Value<String?> checksum = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => VerificationCasesCompanion.insert(
@@ -10096,6 +10629,11 @@ class $$VerificationCasesTableTableManager
                 createdAtMs: createdAtMs,
                 closedAtMs: closedAtMs,
                 reportVersion: reportVersion,
+                testBenchId: testBenchId,
+                deviceId: deviceId,
+                androidVersion: androidVersion,
+                deviceBrand: deviceBrand,
+                deviceModel: deviceModel,
                 checksum: checksum,
                 rowid: rowid,
               ),
@@ -10814,6 +11352,8 @@ typedef $$TestPointsTableCreateCompanionBuilder =
       Value<double?> indicatedLiters,
       Value<double?> diagnosticErrorPct,
       Value<double?> needleLiters,
+      Value<int?> meterUnderTestPulseCount,
+      Value<double?> flowLps,
       required int capturedAtMs,
       Value<int> rowid,
     });
@@ -10828,6 +11368,8 @@ typedef $$TestPointsTableUpdateCompanionBuilder =
       Value<double?> indicatedLiters,
       Value<double?> diagnosticErrorPct,
       Value<double?> needleLiters,
+      Value<int?> meterUnderTestPulseCount,
+      Value<double?> flowLps,
       Value<int> capturedAtMs,
       Value<int> rowid,
     });
@@ -10918,6 +11460,16 @@ class $$TestPointsTableFilterComposer
 
   ColumnFilters<double> get needleLiters => $composableBuilder(
     column: $table.needleLiters,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get meterUnderTestPulseCount => $composableBuilder(
+    column: $table.meterUnderTestPulseCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get flowLps => $composableBuilder(
+    column: $table.flowLps,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -11024,6 +11576,16 @@ class $$TestPointsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get meterUnderTestPulseCount => $composableBuilder(
+    column: $table.meterUnderTestPulseCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get flowLps => $composableBuilder(
+    column: $table.flowLps,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get capturedAtMs => $composableBuilder(
     column: $table.capturedAtMs,
     builder: (column) => ColumnOrderings(column),
@@ -11097,6 +11659,14 @@ class $$TestPointsTableAnnotationComposer
     column: $table.needleLiters,
     builder: (column) => column,
   );
+
+  GeneratedColumn<int> get meterUnderTestPulseCount => $composableBuilder(
+    column: $table.meterUnderTestPulseCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get flowLps =>
+      $composableBuilder(column: $table.flowLps, builder: (column) => column);
 
   GeneratedColumn<int> get capturedAtMs => $composableBuilder(
     column: $table.capturedAtMs,
@@ -11189,6 +11759,8 @@ class $$TestPointsTableTableManager
                 Value<double?> indicatedLiters = const Value.absent(),
                 Value<double?> diagnosticErrorPct = const Value.absent(),
                 Value<double?> needleLiters = const Value.absent(),
+                Value<int?> meterUnderTestPulseCount = const Value.absent(),
+                Value<double?> flowLps = const Value.absent(),
                 Value<int> capturedAtMs = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TestPointsCompanion(
@@ -11201,6 +11773,8 @@ class $$TestPointsTableTableManager
                 indicatedLiters: indicatedLiters,
                 diagnosticErrorPct: diagnosticErrorPct,
                 needleLiters: needleLiters,
+                meterUnderTestPulseCount: meterUnderTestPulseCount,
+                flowLps: flowLps,
                 capturedAtMs: capturedAtMs,
                 rowid: rowid,
               ),
@@ -11215,6 +11789,8 @@ class $$TestPointsTableTableManager
                 Value<double?> indicatedLiters = const Value.absent(),
                 Value<double?> diagnosticErrorPct = const Value.absent(),
                 Value<double?> needleLiters = const Value.absent(),
+                Value<int?> meterUnderTestPulseCount = const Value.absent(),
+                Value<double?> flowLps = const Value.absent(),
                 required int capturedAtMs,
                 Value<int> rowid = const Value.absent(),
               }) => TestPointsCompanion.insert(
@@ -11227,6 +11803,8 @@ class $$TestPointsTableTableManager
                 indicatedLiters: indicatedLiters,
                 diagnosticErrorPct: diagnosticErrorPct,
                 needleLiters: needleLiters,
+                meterUnderTestPulseCount: meterUnderTestPulseCount,
+                flowLps: flowLps,
                 capturedAtMs: capturedAtMs,
                 rowid: rowid,
               ),
@@ -12094,6 +12672,7 @@ typedef $$SamplesTableCreateCompanionBuilder =
       Value<double?> lpsApprox,
       required double litersPerOdometerUnit,
       required double needleLitersPerRevolution,
+      Value<double?> cameraZoomLevel,
       Value<double?> totalizerLeft,
       Value<double?> totalizerTop,
       Value<double?> totalizerWidth,
@@ -12175,6 +12754,7 @@ typedef $$SamplesTableUpdateCompanionBuilder =
       Value<double?> lpsApprox,
       Value<double> litersPerOdometerUnit,
       Value<double> needleLitersPerRevolution,
+      Value<double?> cameraZoomLevel,
       Value<double?> totalizerLeft,
       Value<double?> totalizerTop,
       Value<double?> totalizerWidth,
@@ -12408,6 +12988,11 @@ class $$SamplesTableFilterComposer
 
   ColumnFilters<double> get needleLitersPerRevolution => $composableBuilder(
     column: $table.needleLitersPerRevolution,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get cameraZoomLevel => $composableBuilder(
+    column: $table.cameraZoomLevel,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -12910,6 +13495,11 @@ class $$SamplesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get cameraZoomLevel => $composableBuilder(
+    column: $table.cameraZoomLevel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<double> get totalizerLeft => $composableBuilder(
     column: $table.totalizerLeft,
     builder: (column) => ColumnOrderings(column),
@@ -13350,6 +13940,11 @@ class $$SamplesTableAnnotationComposer
 
   GeneratedColumn<double> get needleLitersPerRevolution => $composableBuilder(
     column: $table.needleLitersPerRevolution,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get cameraZoomLevel => $composableBuilder(
+    column: $table.cameraZoomLevel,
     builder: (column) => column,
   );
 
@@ -13822,6 +14417,7 @@ class $$SamplesTableTableManager
                 Value<double?> lpsApprox = const Value.absent(),
                 Value<double> litersPerOdometerUnit = const Value.absent(),
                 Value<double> needleLitersPerRevolution = const Value.absent(),
+                Value<double?> cameraZoomLevel = const Value.absent(),
                 Value<double?> totalizerLeft = const Value.absent(),
                 Value<double?> totalizerTop = const Value.absent(),
                 Value<double?> totalizerWidth = const Value.absent(),
@@ -13907,6 +14503,7 @@ class $$SamplesTableTableManager
                 lpsApprox: lpsApprox,
                 litersPerOdometerUnit: litersPerOdometerUnit,
                 needleLitersPerRevolution: needleLitersPerRevolution,
+                cameraZoomLevel: cameraZoomLevel,
                 totalizerLeft: totalizerLeft,
                 totalizerTop: totalizerTop,
                 totalizerWidth: totalizerWidth,
@@ -13988,6 +14585,7 @@ class $$SamplesTableTableManager
                 Value<double?> lpsApprox = const Value.absent(),
                 required double litersPerOdometerUnit,
                 required double needleLitersPerRevolution,
+                Value<double?> cameraZoomLevel = const Value.absent(),
                 Value<double?> totalizerLeft = const Value.absent(),
                 Value<double?> totalizerTop = const Value.absent(),
                 Value<double?> totalizerWidth = const Value.absent(),
@@ -14073,6 +14671,7 @@ class $$SamplesTableTableManager
                 lpsApprox: lpsApprox,
                 litersPerOdometerUnit: litersPerOdometerUnit,
                 needleLitersPerRevolution: needleLitersPerRevolution,
+                cameraZoomLevel: cameraZoomLevel,
                 totalizerLeft: totalizerLeft,
                 totalizerTop: totalizerTop,
                 totalizerWidth: totalizerWidth,

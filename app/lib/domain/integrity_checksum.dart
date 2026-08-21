@@ -174,14 +174,27 @@ String calculateCaseChecksum({
 }) {
   final sortedFlows = [...flows]..sort((a, b) => a.code.compareTo(b.code));
   final sortedRequired = requiredFlowCodes.toList()..sort();
+  final hasDeviceProvenance =
+      verificationCase.testBenchId.isNotEmpty ||
+      verificationCase.deviceId != null ||
+      verificationCase.androidVersion != null ||
+      verificationCase.deviceBrand != null ||
+      verificationCase.deviceModel != null;
   final fields = <String>[
-    _field('canonicalVersion', 1),
+    _field('canonicalVersion', hasDeviceProvenance ? 2 : 1),
     _field('caseId', verificationCase.id),
     _field('meterId', verificationCase.meterId),
     _field('userId', verificationCase.userId),
     _field('createdAt', verificationCase.createdAt),
     _field('closedAt', closedAt),
     _field('reportVersion', verificationCase.reportVersion),
+    if (hasDeviceProvenance) ...[
+      _field('testBenchId', verificationCase.testBenchId),
+      _field('deviceId', verificationCase.deviceId),
+      _field('androidVersion', verificationCase.androidVersion),
+      _field('deviceBrand', verificationCase.deviceBrand),
+      _field('deviceModel', verificationCase.deviceModel),
+    ],
     _field('verdict', verdict.name),
     for (final code in sortedRequired) _field('requiredFlow', code),
     for (final flow in sortedFlows) ...[

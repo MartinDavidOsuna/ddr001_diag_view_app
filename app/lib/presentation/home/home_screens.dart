@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme/app_theme.dart';
 import '../../domain/models.dart';
 import '../app_controller.dart';
 import '../common/app_scaffold.dart';
+import '../common/app_version_label.dart';
 
 final class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -18,6 +18,9 @@ final class HomeScreen extends ConsumerWidget {
     return AppScaffold(
       title: 'DDR001 · Verificador de medidores',
       showBack: false,
+      bottomOverlay: const AppVersionLabel(
+        style: TextStyle(color: Color(0xFF31445D), fontSize: 12),
+      ),
       actions: [
         IconButton(
           onPressed: controller.showSettings,
@@ -207,11 +210,25 @@ final class SettingsScreen extends ConsumerWidget {
                 _Info(label: 'Nombre', value: state.user?.displayName ?? '—'),
                 _Info(label: 'Correo', value: state.user?.email ?? '—'),
                 _Info(label: 'Teléfono', value: state.user?.phone ?? '—'),
-                const SizedBox(height: 16),
-                const Text(
-                  'Versión V1 · offline-first',
-                  style: TextStyle(color: AppColors.muted),
+                const SizedBox(height: 12),
+                _Info(
+                  label: 'ID del teléfono',
+                  value: state.deviceMetadata.id ?? 'No disponible',
                 ),
+                _Info(
+                  label: 'Android',
+                  value: state.deviceMetadata.androidVersion ?? 'No disponible',
+                ),
+                _Info(
+                  label: 'Marca',
+                  value: state.deviceMetadata.brand ?? 'No disponible',
+                ),
+                _Info(
+                  label: 'Modelo',
+                  value: state.deviceMetadata.model ?? 'No disponible',
+                ),
+                const SizedBox(height: 16),
+                const AppVersionLabel(style: TextStyle(color: AppColors.muted)),
                 const SizedBox(height: 18),
                 OutlinedButton.icon(
                   key: const Key('manual-de-uso'),
@@ -222,17 +239,6 @@ final class SettingsScreen extends ConsumerWidget {
                   label: const Text('MANUAL DE USO  >'),
                 ),
                 const SizedBox(height: 10),
-                if (kDebugMode) ...[
-                  FilledButton.tonalIcon(
-                    key: const Key('visual-calibration-debug'),
-                    onPressed: ref
-                        .read(appControllerProvider.notifier)
-                        .showDebugCalibration,
-                    icon: const Icon(Icons.science_outlined),
-                    label: const Text('CALIBRACIÓN VISUAL · DEBUG'),
-                  ),
-                  const SizedBox(height: 10),
-                ],
                 OutlinedButton.icon(
                   key: const Key('logout'),
                   onPressed: ref.read(appControllerProvider.notifier).logout,
@@ -297,7 +303,7 @@ final class _OperationalSettingsState
         _field(_uncertainty, 'Incertidumbre de lectura ±L'),
         const SizedBox(height: 8),
         const Text(
-          'El MPE se deriva de Q1–Q4. Los valores quedan congelados al crear cada muestra.',
+          'El MPE se deriva de Q1 y Q2. Los valores quedan congelados al crear cada muestra.',
           style: TextStyle(color: AppColors.muted),
         ),
         const SizedBox(height: 12),
@@ -347,10 +353,15 @@ final class _Info extends StatelessWidget {
           child: Text(label, style: const TextStyle(color: AppColors.muted)),
         ),
         Expanded(
-          child: Text(
-            value,
-            textAlign: TextAlign.end,
-            style: const TextStyle(fontWeight: FontWeight.w700),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: Text(
+              value,
+              maxLines: 1,
+              textAlign: TextAlign.end,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
           ),
         ),
       ],

@@ -1,5 +1,8 @@
 # PROJECT_TRUTH — DDR001 Verificador de Medidores
 
+- Versión de aplicación vigente: `1.2.0+08`. Login, Inicio y Ajustes muestran la versión instalada. La identidad funcional visible es **VERIFICADOR FUNCIONAL** y Android muestra **AQ VF DDR001**; el encabezado común y el splash Flutter conservan la identidad Aquafim.
+- Política de incrementos y archivos coordinados: `VERSIONING.md`.
+
 > **Estado:** SSOT consolidada — Etapa 0 cerrada el 2026-08-08.
 > Este archivo es la referencia principal para ChatGPT/Codex. Ante discrepancias entre prototipo, capturas, código o documentos anteriores, prevalece `docs/ssot/`.
 
@@ -37,6 +40,7 @@ Migrar el verificador web legado a una aplicación **Flutter nativa para Android
 - Primer login: si el usuario no existe en DDR001 Verificador, se da de alta automáticamente con el nombre capturado y se cargan sus datos. Un usuario local legado sin nombre conserva su mismo ID y recibe el nombre capturado al volver a acceder.
 - Sesión persistente: no caduca para el usuario durante la operación normal. Solo termina cuando el usuario ejecuta explícitamente **Cerrar sesión**.
 - El backend emite credenciales/token persistentes apropiados para esta política; la app almacena la sesión de forma segura.
+- Las identidades maestras documentadas para Martin Osuna, Rene y Omar pueden crear una sesión local persistente sin consultar la API. Cualquier otra identidad conserva el flujo normal contra backend.
 
 ## 6. Identificación del medidor y sistema de hidrantes
 - Se permite capturar **cualquier ID/número de cuenta**.
@@ -52,9 +56,9 @@ Jerarquía principal:
 `Usuario → Medidor → Expediente → Caudal → Muestras → Puntos/Evidencias`
 
 - Un **expediente** agrupa toda la verificación de un mismo medidor.
-- Un expediente puede contener pruebas en Q1, Q2, Q3 y Q4.
+- La V1 vigente crea obligatoriamente Q1 (Caudal operativo) y Q2 (Caudal medio), sin pedir LPS aproximado en Identificación; el modelo histórico continúa pudiendo leer Q1–Q4 y valores `lps_approx` legados.
 - Cada caudal puede contener **muestras ilimitadas** hasta que el técnico finaliza la verificación.
-- `LPS aprox.` es un dato manual.
+- El caudal se calcula desde el primer pulso. INICIO, cada evidencia INTERMEDIA y FINAL persisten una lectura puntual LPS; mínimo, máximo y promedio se derivan exclusivamente de esos snapshots.
 - Cada muestra se calcula y cierra individualmente.
 - Al finalizar el expediente se genera un **veredicto global del medidor** según los caudales evaluados.
 
@@ -65,17 +69,19 @@ Jerarquía principal:
 - La funcionalidad que el prototipo/simulador identifica como simulación se conserva en producción bajo el nombre **LECTURA VISUAL**: se utilizará con medidores reales en campo, usando la cámara/visión para obtener la lectura del medidor y derivar el avance observado. El archivo web legado sigue siendo únicamente una herramienta externa de validación y no se integra ni se modifica.
 - Todas las fuentes implementan una abstracción común `PulseSource`.
 - En ESP32 v2, GPIO27 recibe el flujómetro 1 de control calibrado y gobierna Vref/integridad; GPIO25 recibe pulsos opcionales del flujómetro 2 bajo prueba. La ausencia de pulsos GPIO25 no es una falla y el medidor 2 continúa documentándose mediante fotografías y lecturas.
+- Firmware ESP32 V1.0 filtra GPIO25/GPIO27 con PCNT integrado, exige un pulso LOW de al menos 17 ms, rearme HIGH y debounce. Cada unidad se configura con serie/versión; `--nombre ESP32-NS1001-V1.0` anuncia `DDR001-PULSE-NS1001-V1.0` para conservar el contrato de descubrimiento.
+- ESP32 y control remoto mantienen presencia mediante keepalive cada 10 s. Una falta de respuesta no declara desconexión hasta agotar tres reintentos; una respuesta válida restablece el ciclo.
+- La conexión BLE física persiste entre Método, Preparación y Preparación de cámara, incluso al navegar con Atrás o comenzar una verificación nueva. Cambiar o fijar regiones no recrea ni desconecta la fuente; solamente `DESCONECTAR ESP32` destruye el transporte durante la vida de la app. En Fuente/Método, BUSCAR siempre renueva la lista con dispositivos que acrediten nombre, servicio, característica y payload DDR001.
+- Un ESP32 con GATT activo puede dejar de anunciarse y aun así permanece conectado: BUSCAR combina anuncios válidos con la conexión DDR001 activa y nunca elimina el módulo confirmado por lecturas exitosas. Keepalive duplicado no publica cambios de UI ni persistencia.
 
-## 9. Cámara, visión y OCR
-- Cada captura obligatoria sigue siendo una sola fotografía completa de la carátula. Esa Evidence original se conserva sin filtros y produce derivados separados para TOTALIZADOR y DIAL; ajustar derivados no crea otra Evidence.
-- El flujo productivo es **manual-first**: tras START el técnico coloca y redimensiona un rectángulo sobre los únicos dígitos del totalizador, coloca un círculo sobre el dial que utilizará y confirma formato/escala antes de `ANALIZAR LECTURA`. No existe una plantilla universal ni una selección automática autoritativa entre diales.
-- El técnico selecciona el dial de menor cantidad de volumen por vuelta/división entre los disponibles (mayor resolución metrológica), no el de mayor tamaño físico. La app no decide qué dial corresponde.
-- La geometría relativa y escala confirmadas en START se congelan para la Sample y se reutilizan en INTERMEDIATE y FINAL.
-- OCR recibe exclusivamente el crop rectangular y el detector de aguja exclusivamente el crop circular confirmados. Una detección de aguja válida requiere componente rojo, geometría radial y confianza mínima; nunca se sustituye por la mejor anomalía no roja.
-- Si no detecta la aguja, informa explícitamente al técnico y permite continuar hacia captura/confirmación manual cuando proceda.
-- Si OCR falla, solicita lectura manual.
-- Tras una lectura automática exitosa siempre muestra la lectura detectada y pide confirmación: **¿Es correcta?**
-- Antes del cierre de la muestra el técnico puede corregir la propuesta automática; después del cierre, la lectura queda inmutable.
+## 9. Cámara y lectura manual
+- Cada captura obligatoria sigue siendo una sola fotografía completa de la carátula. La Evidence original permanece intacta y produce derivados TOTALIZADOR/DIAL únicamente para presentación.
+- Preparación de cámara ocurre sobre preview vivo y fija zoom y regiones. Reutiliza la última geometría confirmada sin sugerir otra automáticamente; si no existe geometría previa realiza una sugerencia inicial. Cada pulsación de `NUEVA SUGERENCIA DE REGIONES` prueba un candidato distinto antes de repetir el ciclo. No toma Evidence ni obtiene una lectura.
+- La app productiva no ejecuta OCR, detección de aguja ni otro método automático.
+- INICIO se captura al iniciar sin pedir valores. INTERMEDIATE permanece automática. FINAL se captura al terminar y presenta ambos crops.
+- El técnico captura manualmente en FINAL el totalizador, la aguja y el total del medidor (`Vind`). No se fabrica lectura INICIO.
+- Geometría y zoom se congelan por Sample y se recuperan durante RUNNING.
+- Preparación permite solicitar nuevamente las sugerencias geométricas después de modificar zoom. Las lupas de ambos extremos son botones de zoom además del slider.
 
 ## 10. Evidencia obligatoria
 - Evidencia fotográfica obligatoria: inicio, capturas intermedias según paso configurado (por defecto 25 L) y final.
@@ -83,7 +89,7 @@ Jerarquía principal:
 - Cada archivo se guarda con hash y metadata de captura.
 
 ## 11. Metrología
-- Nomenclatura correcta: Q1 mínimo, Q2 transición, Q3 permanente, Q4 sobrecarga.
+- Nomenclatura V1: Q1 operativo hereda todas las reglas de la antigua Q3 permanente; Q2 conserva sus reglas. Q3/Q4 permanecen para compatibilidad histórica.
 - MPE por zona y fórmula endpoint: `METROLOGY_RULES.md`.
 - La regla de decisión considera la incertidumbre mediante banda de guarda y contempla resultado **NO CONCLUYENTE**.
 - El conteo/reconstrucción de vueltas de la aguja se conserva como protección contra ambigüedad de 100 L/vuelta y puede adaptarse técnicamente en Flutter siempre que entregue el mismo `V_ind` correcto.
@@ -107,6 +113,9 @@ Las muestras cerradas no se editan. Una corrección requiere una nueva muestra. 
 - Debe usar cálculos y veredictos del nuevo motor, aunque difieran del ejemplo legado.
 - Incluye botón **Descargar PDF** y el PDF conserva el contenido/orden visual.
 - Incluye error, incertidumbre, MPE, regla aplicada y veredicto para trazabilidad.
+- Presenta muestras en orden cronológico, vocabulario español, fecha en el encabezado y hora local en cada punto. Incluye V.MEC real y caudal puntual mínimo, máximo y promedio.
+- Cada expediente congela el ID del banco de pruebas y, como metadata interna no visible en el reporte, ID del teléfono, Android, marca y modelo cuando Android los proporciona.
+- El reporte incluye configuración metrológica, ESP32, repetibilidad y mapa del GPS. Integridad/adquisición, endpoints, trazabilidad de evidencias y geometría de cámara permanecen consultables en el resumen local de pruebas finalizadas.
 
 ## 14. Backend y almacenamiento
 - PostgreSQL + Prisma.

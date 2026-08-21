@@ -17,6 +17,12 @@ Para un primer login real compile configurando el backend; una sesión ya guarda
 flutter build apk --debug --dart-define=DDR001_API_BASE_URL=http://servidor:3000
 ```
 
+Para pruebas de campo sin backend se puede habilitar expresamente el primer acceso local. La bandera es `false` por defecto y no sustituye el alta remota productiva:
+
+```powershell
+flutter run -d 27301FDH3004R7 --dart-define=DDR001_ALLOW_LOCAL_FIRST_LOGIN=true
+```
+
 El backend está en `backend/`. Consulte su README y `docs/deployment/WINDOWS_SERVER_2018.md` para crear PostgreSQL, aplicar migraciones y configurar filesystem de evidencia.
 
 Migración del verificador de medidores a **Flutter Android** con backend **Node.js + TypeScript + Express + Prisma + PostgreSQL**.

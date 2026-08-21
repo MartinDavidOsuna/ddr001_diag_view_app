@@ -28,9 +28,9 @@ void main() {
   });
 
   test(
-    'schema version 6 creates domain and operational settings tables',
+    'schema version 10 creates domain and operational settings tables',
     () async {
-      expect(database.schemaVersion, 7);
+      expect(database.schemaVersion, 11);
       final rows = await database
           .customSelect(
             "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
@@ -49,6 +49,13 @@ void main() {
           'sync_items',
           'sample_operational_settings',
         }),
+      );
+      final pointColumns = await database
+          .customSelect('PRAGMA table_info(test_points)')
+          .get();
+      expect(
+        pointColumns.map((row) => row.read<String>('name')),
+        contains('flow_lps'),
       );
       final sampleColumns = await database
           .customSelect('PRAGMA table_info(samples)')
@@ -146,7 +153,7 @@ void main() {
       );
     }
     final values = await fixture.flows.listByCase('case-1');
-    expect(values.map((f) => f.mpePct), containsAll([5, 2, 2, 2]));
+    expect(values.map((f) => f.mpePct), everyElement(2));
     expect(() => fixture.flows.create(values.first), throwsA(anything));
   });
 

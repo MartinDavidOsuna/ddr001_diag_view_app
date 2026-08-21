@@ -34,7 +34,8 @@ final class SampleResultScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 14),
           SectionCard(
-            title: 'Resultado metrológico',
+            title:
+                'Resultado ${sample.configuration.flowPoint.name.toUpperCase()}',
             child: Column(
               children: [
                 _value(
@@ -45,12 +46,13 @@ final class SampleResultScreen extends ConsumerWidget {
                   'Vind',
                   '${result.indicatedLiters.toStringAsFixed(2)} L',
                 ),
+                if (sample.initialReading != null)
+                  _value(
+                    'Lectura inicial',
+                    '${_readingLiters(sample.initialReading!).toStringAsFixed(3)} L',
+                  ),
                 _value(
-                  'Lectura inicial',
-                  '${_readingLiters(sample.initialReading!).toStringAsFixed(3)} L',
-                ),
-                _value(
-                  'Lectura final',
+                  'Lectura FINAL capturada',
                   '${_readingLiters(sample.finalReading!).toStringAsFixed(3)} L',
                 ),
                 _value(
@@ -96,21 +98,28 @@ final class SampleResultScreen extends ConsumerWidget {
           ],
           const SizedBox(height: 14),
           FilledButton(
-            key: const Key('another-sample'),
-            onPressed: controller.anotherSample,
-            child: const Text('INICIAR OTRA MUESTRA'),
+            key: const Key('repeat-sample'),
+            onPressed: controller.repeatSample,
+            child: Text(
+              'REPETIR PRUEBA ${sample.configuration.flowPoint.name.toUpperCase()}',
+            ),
           ),
-          const SizedBox(height: 8),
-          OutlinedButton(
-            onPressed: controller.changeFlow,
-            child: const Text('CAMBIAR CAUDAL'),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton(
-            key: const Key('case-summary'),
-            onPressed: controller.showCaseSummary,
-            child: const Text('TERMINAR / RESUMEN DEL EXPEDIENTE'),
-          ),
+          if (sample.configuration.flowPoint == FlowPoint.q1) ...[
+            const SizedBox(height: 8),
+            OutlinedButton(
+              key: const Key('start-q2'),
+              onPressed: controller.anotherSample,
+              child: const Text('COMENZAR Q2'),
+            ),
+          ],
+          if (sample.configuration.flowPoint == FlowPoint.q2) ...[
+            const SizedBox(height: 8),
+            OutlinedButton(
+              key: const Key('case-summary'),
+              onPressed: controller.showCaseSummary,
+              child: const Text('TERMINAR / RESUMEN DEL EXPEDIENTE'),
+            ),
+          ],
         ],
       ),
     );
@@ -229,6 +238,8 @@ final class CaseSummaryScreen extends ConsumerWidget {
                 samples: entry.value,
                 selectedSampleIds: state.reportSampleIds,
                 onSelectionChanged: controller.toggleReportSample,
+                pointsBySample: state.casePointsBySample,
+                evidenceBySample: state.caseEvidenceBySample,
               ),
               const SizedBox(height: 10),
             ],
@@ -350,11 +361,15 @@ final class _FlowSummary extends StatelessWidget {
     required this.samples,
     required this.selectedSampleIds,
     required this.onSelectionChanged,
+    required this.pointsBySample,
+    required this.evidenceBySample,
   });
   final FlowPoint flow;
   final List<Sample> samples;
   final Set<String> selectedSampleIds;
   final void Function(String sampleId, bool selected) onSelectionChanged;
+  final Map<String, List<TestPoint>> pointsBySample;
+  final Map<String, List<Evidence>> evidenceBySample;
   @override
   Widget build(BuildContext context) {
     final results = samples.map((sample) => sample.result!).toList();
@@ -369,7 +384,7 @@ final class _FlowSummary extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          for (final sample in samples)
+          for (final sample in samples) ...[
             CheckboxListTile(
               contentPadding: EdgeInsets.zero,
               value: selectedSampleIds.contains(sample.id),
@@ -377,7 +392,7 @@ final class _FlowSummary extends StatelessWidget {
                   onSelectionChanged(sample.id, value ?? false),
               controlAffinity: ListTileControlAffinity.leading,
               title: Text(
-                'Muestra ${sample.sampleNumber} · ${methodLabel(sample.configuration.measurementMethod)}',
+                '${flow.name.toUpperCase()}${samples.length == 1 ? '' : '-${sample.sampleNumber}'} · ${methodLabel(sample.configuration.measurementMethod)}',
               ),
               subtitle: Text('${sample.endedAt?.toLocal() ?? ''}'),
               secondary: Text(
@@ -388,6 +403,12 @@ final class _FlowSummary extends StatelessWidget {
                 ),
               ),
             ),
+            _LocalSampleDetails(
+              sample: sample,
+              points: pointsBySample[sample.id] ?? const [],
+              evidence: evidenceBySample[sample.id] ?? const [],
+            ),
+          ],
           const Divider(),
           Text(
             'n: ${stats.n} · media: ${stats.meanErrorPct.toStringAsFixed(3)} %',
@@ -406,6 +427,175 @@ final class _FlowSummary extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+final class _LocalSampleDetails extends StatelessWidget {
+  const _LocalSampleDetails({
+    required this.sample,
+    required this.points,
+    required this.evidence,
+  });
+
+  final Sample sample;
+  final List<TestPoint> points;
+  final List<Evidence> evidence;
+
+  @override
+  Widget build(BuildContext context) {
+    final acquisition = sample.pulseAcquisitionConfiguration;
+    final firstPoint = points.isEmpty
+        ? null
+        : ([
+            ...points,
+          ]..sort((a, b) => a.capturedAt.compareTo(b.capturedAt))).first;
+    final lastPoint = points.isEmpty
+        ? null
+        : ([
+            ...points,
+          ]..sort((a, b) => a.capturedAt.compareTo(b.capturedAt))).last;
+    final hashedEvidence = evidence.where((item) => item.sha256 != null).length;
+    return ExpansionTile(
+      tilePadding: EdgeInsets.zero,
+      childrenPadding: const EdgeInsets.only(bottom: 12),
+      title: const Text('INFORMACIÓN TÉCNICA LOCAL'),
+      subtitle: const Text(
+        'Adquisición, tiempos, evidencias y cámara',
+        style: TextStyle(color: AppColors.muted, fontSize: 12),
+      ),
+      children: [
+        _detail(
+          'Integridad',
+          _integrityLabel(sample.acquisitionIntegrity.status),
+        ),
+        _detail(
+          'Detalle de integridad',
+          sample.acquisitionIntegrity.reason ?? 'Sin incidencias',
+        ),
+        _detail('ESP32', acquisition?.bleDeviceName ?? 'No registrado'),
+        _detail('ID ESP32', acquisition?.bleDeviceId ?? 'No registrado'),
+        _detail(
+          'Protocolo',
+          '${acquisition?.bleProtocolVersion ?? 'No registrado'}',
+        ),
+        _detail(
+          'Origen de incidencia',
+          _sourceLabel(sample.acquisitionIntegrity.source),
+        ),
+        _detail(
+          'Momento de incidencia',
+          sample.acquisitionIntegrity.occurredAt == null
+              ? '—'
+              : _localDateTime(sample.acquisitionIntegrity.occurredAt!),
+        ),
+        _detail(
+          'Contador inicial ESP32',
+          '${acquisition?.esp32CounterAtStart ?? '—'}',
+        ),
+        _detail(
+          'Contador final ESP32',
+          '${acquisition?.lastObservedEsp32Counter ?? '—'}',
+        ),
+        _detail(
+          'Primer punto',
+          firstPoint == null ? '—' : _localDateTime(firstPoint.capturedAt),
+        ),
+        _detail(
+          'Último punto',
+          lastPoint == null ? '—' : _localDateTime(lastPoint.capturedAt),
+        ),
+        _detail('Duración efectiva', _sampleDuration(sample)),
+        _detail('Pulsos patrón', '${sample.pulseCount}'),
+        _detail('Evidencias', '${evidence.length}'),
+        _detail(
+          'Evidencias con integridad SHA-256',
+          '$hashedEvidence de ${evidence.length}',
+        ),
+        _detail(
+          'Zoom congelado',
+          '${sample.configuration.cameraZoomLevel.toStringAsFixed(2)}×',
+        ),
+        _detail(
+          'Regiones de cámara',
+          sample.meterFaceConfiguration == null
+              ? 'No registradas'
+              : 'Totalizador y dial congelados; fotografía completa conservada',
+        ),
+        if (sample.meterFaceConfiguration case final face?) ...[
+          _detail(
+            'Región totalizador',
+            'x ${face.totalizerLeft.toStringAsFixed(4)}, y ${face.totalizerTop.toStringAsFixed(4)}, ancho ${face.totalizerWidth.toStringAsFixed(4)}, alto ${face.totalizerHeight.toStringAsFixed(4)}',
+          ),
+          _detail(
+            'Región dial',
+            'centro ${face.dialCenterX.toStringAsFixed(4)}, ${face.dialCenterY.toStringAsFixed(4)}; radio ${face.dialRadius.toStringAsFixed(4)}',
+          ),
+        ],
+        if (evidence.isNotEmpty) ...[
+          const Divider(),
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'TRAZABILIDAD DE EVIDENCIAS',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+          for (final item in ([
+            ...evidence,
+          ]..sort((a, b) => a.capturedAt.compareTo(b.capturedAt))))
+            _detail(
+              _evidenceLabel(item.type),
+              '${item.volumeRefLiters?.toStringAsFixed(2) ?? '—'} L · ${_localDateTime(item.capturedAt)} · ${item.sha256 == null ? 'sin hash' : 'integridad registrada'}',
+            ),
+        ],
+      ],
+    );
+  }
+
+  Widget _detail(String label, String value) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 3),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Text(label, style: const TextStyle(color: AppColors.muted)),
+        ),
+        const SizedBox(width: 12),
+        Flexible(child: Text(value, textAlign: TextAlign.right)),
+      ],
+    ),
+  );
+
+  String _integrityLabel(AcquisitionIntegrityStatus status) => switch (status) {
+    AcquisitionIntegrityStatus.ok => 'ÍNTEGRA',
+    AcquisitionIntegrityStatus.compromised => 'COMPROMETIDA',
+  };
+
+  String _evidenceLabel(EvidenceType type) => switch (type) {
+    EvidenceType.start => 'INICIO',
+    EvidenceType.intermediate => 'INTERMEDIA',
+    EvidenceType.finalEvidence => 'FINAL',
+    EvidenceType.extra => 'ADICIONAL',
+  };
+
+  String _sourceLabel(MeasurementMethod? source) => switch (source) {
+    null => 'Sin incidencias',
+    MeasurementMethod.ble => 'BLUETOOTH',
+    MeasurementMethod.led => 'LED',
+    MeasurementMethod.manual => 'MANUAL',
+    MeasurementMethod.visual => 'LECTURA VISUAL',
+  };
+
+  String _sampleDuration(Sample value) {
+    if (value.startedAt == null || value.endedAt == null) return '—';
+    final duration = value.endedAt!.difference(value.startedAt!);
+    return '${duration.inMinutes.toString().padLeft(2, '0')}:${duration.inSeconds.remainder(60).toString().padLeft(2, '0')}';
+  }
+
+  String _localDateTime(DateTime value) {
+    final local = value.toLocal();
+    String two(int number) => number.toString().padLeft(2, '0');
+    return '${two(local.day)}/${two(local.month)}/${local.year} ${two(local.hour)}:${two(local.minute)}:${two(local.second)}';
   }
 }
 

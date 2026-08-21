@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:ddr001_diag_view_app/app/app_dependencies.dart';
 import 'package:ddr001_diag_view_app/core/metrology/metrology.dart';
@@ -8,6 +9,7 @@ import 'package:ddr001_diag_view_app/domain/models.dart';
 import 'package:ddr001_diag_view_app/presentation/app_controller.dart';
 import 'package:ddr001_diag_view_app/infrastructure/camera/camera_models.dart';
 import 'package:ddr001_diag_view_app/infrastructure/camera/camera_port.dart';
+import 'package:ddr001_diag_view_app/infrastructure/pulse/ble_discovery.dart';
 import 'package:ddr001_diag_view_app/infrastructure/vision/vision_models.dart';
 import 'package:ddr001_diag_view_app/infrastructure/vision/vision_pipeline.dart';
 import 'package:ddr001_diag_view_app/infrastructure/remote/remote_api.dart';
@@ -35,6 +37,47 @@ void main() {
     expect(controller.state.page, AppPage.login);
   });
 
+  test(
+    'manual ESP32 disconnect clears selection outside an active sample',
+    () async {
+      const device = BleDeviceCandidate(
+        id: 'AA:BB:CC:DD:EE:FF',
+        name: 'DDR001-PULSE-TEST',
+        rssi: -42,
+      );
+      controller.selectBleDevice(device);
+      expect(controller.state.selectedBleDevice, device);
+      expect(controller.state.hardwareState, HardwareState.ready);
+
+      await controller.disconnectBleDevice();
+
+      expect(controller.state.selectedBleDevice, isNull);
+      expect(controller.state.hardwareState, HardwareState.notConnected);
+    },
+  );
+
+  test('Rene and Omar are accepted as local master identities', () async {
+    final service = MasterAccessAuthService(
+      primary: ExistingSessionOnlyAuthService(
+        fixture.dependencies.users,
+        fixture.session,
+      ),
+      local: LocalAuthService(fixture.dependencies.users, fixture.session),
+      users: fixture.dependencies.users,
+      sessionStore: fixture.session,
+      tokens: _FakeTokenStore(),
+    );
+    for (final identity in MasterAccessIdentity.identities.skip(1)) {
+      final user = await service.login(
+        displayName: identity.displayName,
+        email: identity.email,
+        phone: identity.phone,
+      );
+      expect(user.displayName, identity.displayName);
+      expect(user.email, identity.email);
+    }
+  });
+
   test('local login normalizes, auto-creates and persists session', () async {
     await controller.initialize();
     await controller.login(
@@ -49,6 +92,55 @@ void main() {
     await second.initialize();
     expect(second.state.page, AppPage.home);
     expect(second.state.user?.displayName, 'María José López');
+  });
+
+  test(
+    'master identity creates a local session without primary auth',
+    () async {
+      final service = MasterAccessAuthService(
+        primary: ExistingSessionOnlyAuthService(
+          fixture.dependencies.users,
+          fixture.session,
+        ),
+        local: LocalAuthService(fixture.dependencies.users, fixture.session),
+        users: fixture.dependencies.users,
+        sessionStore: fixture.session,
+        tokens: _FakeTokenStore(),
+      );
+
+      final user = await service.login(
+        displayName: ' Martin Osuna ',
+        email: ' MARTINOSUNA@AGRIENLACE.COM ',
+        phone: '999 999 9999',
+      );
+
+      expect(user.displayName, MasterAccessIdentity.displayName);
+      expect(user.email, MasterAccessIdentity.email);
+      expect(user.phone, MasterAccessIdentity.phone);
+      expect(fixture.session.userId, user.id);
+    },
+  );
+
+  test('non-master identity still uses primary auth policy', () async {
+    final service = MasterAccessAuthService(
+      primary: ExistingSessionOnlyAuthService(
+        fixture.dependencies.users,
+        fixture.session,
+      ),
+      local: LocalAuthService(fixture.dependencies.users, fixture.session),
+      users: fixture.dependencies.users,
+      sessionStore: fixture.session,
+      tokens: _FakeTokenStore(),
+    );
+
+    expect(
+      () => service.login(
+        displayName: 'Otro Usuario',
+        email: 'otro@agrienlace.com',
+        phone: '9999999999',
+      ),
+      throwsStateError,
+    );
   });
 
   test('existing named user keeps identity and is not duplicated', () async {
@@ -113,21 +205,58 @@ void main() {
     expect(await fixture.dependencies.cases.listLocalCases(), hasLength(1));
   });
 
-  test('identification accepts unlocated meter and all flow points', () async {
+  test('identification persists mandatory Q1 and Q2 flow points', () async {
     await controller.login('Martín Osuna', 'field@aquafim.mx', '4491234567');
-    for (final flow in FlowPoint.values) {
-      controller.selectFlow(flow);
-      await controller.identifyMeter(
-        meterId: 'meter-${flow.name}',
-        lpsApprox: 2.5,
-      );
-      expect(
-        controller.state.meter?.externalStatus,
-        ExternalMeterStatus.unknownOffline,
-      );
-      expect(controller.state.flow?.code, flow);
-    }
+    await controller.identifyMeter(
+      meterId: 'meter-q1-q2',
+      q1LpsApprox: 1.5,
+      q2LpsApprox: 1.0,
+    );
+    final flows = await fixture.dependencies.flows.listByCase(
+      controller.state.activeCase!.id,
+    );
+    expect(
+      flows.map((flow) => flow.code),
+      containsAll([FlowPoint.q1, FlowPoint.q2]),
+    );
+    expect(
+      flows.singleWhere((flow) => flow.code == FlowPoint.q1).lpsApprox,
+      isNull,
+    );
+    expect(
+      flows.singleWhere((flow) => flow.code == FlowPoint.q2).lpsApprox,
+      isNull,
+    );
+    expect(controller.state.flow?.code, FlowPoint.q1);
   });
+
+  test(
+    'new verification creates another case and preserves BLE selection',
+    () async {
+      await controller.login('Martín Osuna', 'field@aquafim.mx', '4491234567');
+      const device = BleDeviceCandidate(
+        id: 'AA:BB:CC:DD:EE:FF',
+        name: 'DDR001-PULSE-TEST',
+        rssi: -42,
+      );
+      controller.selectBleDevice(device);
+      await controller.identifyMeter(meterId: 'meter-new-case', lpsApprox: 20);
+      final firstCaseId = controller.state.activeCase!.id;
+
+      await controller.startIdentification();
+
+      expect(controller.state.activeCase, isNull);
+      expect(controller.state.meter, isNull);
+      expect(controller.state.sample, isNull);
+      expect(controller.state.selectedBleDevice, device);
+      expect(controller.state.hardwareState, HardwareState.ready);
+
+      await controller.identifyMeter(meterId: 'meter-new-case', lpsApprox: 20);
+
+      expect(controller.state.activeCase!.id, isNot(firstCaseId));
+      expect(await fixture.dependencies.cases.listLocalCases(), hasLength(2));
+    },
+  );
 
   test('method selector exposes only productive domain methods', () {
     expect(MeasurementMethod.values, [
@@ -144,6 +273,10 @@ void main() {
       litersPerPulse: 2,
       evidenceStepLiters: 20,
       uncertaintyLiters: .5,
+      litersPerOdometerUnit: 100,
+      needleLitersPerRevolution: 1,
+      totalizerIntegerDigits: 5,
+      totalizerDecimalPlaces: 2,
     );
     await controller.startSample();
     final frozen = controller.state.sample!.configuration;
@@ -154,6 +287,8 @@ void main() {
     );
     expect(frozen.litersPerPulse, 2);
     expect(frozen.evidenceStepLiters, 20);
+    expect(frozen.litersPerOdometerUnit, 100);
+    expect(frozen.needleLitersPerRevolution, 1);
     expect(controller.state.sample!.configuration.litersPerPulse, 2);
   });
 
@@ -194,21 +329,11 @@ void main() {
         uncertaintyLiters: 1,
       );
       await controller.startSample();
-      final start = File('${fixture.directory.path}/threshold-start.jpg');
-      await start.writeAsBytes(List<int>.filled(900, 9));
-      await controller.processCapturedPhoto(start.path);
-      await controller.reanalyzeRegions(
+      await controller.confirmLiveCameraPreparation(
         const DialVisionConfiguration(
-          totalizerConfiguration: TotalizerConfiguration(
-            digitCount: 3,
-            decimalPlaces: 1,
-          ),
+          totalizerRegion: TotalizerRegion(NormalizedRect(.1, .1, .5, .2)),
+          selectedDial: NormalizedCircle(.6, .6, .15),
         ),
-      );
-      await controller.confirmCameraReading(
-        odometer: 1,
-        needle: 0,
-        corrected: true,
       );
       await controller.addManualPulse();
       expect(controller.state.page, AppPage.run);
@@ -248,9 +373,6 @@ void main() {
       controller = AppController(dependencies);
       await _prepare(controller, method: MeasurementMethod.visual);
       await controller.startSample();
-      final photo = File('${fixture.directory.path}/recovery-start.jpg');
-      await photo.writeAsBytes(List<int>.filled(900, 7));
-      await controller.processCapturedPhoto(photo.path);
       const selected = DialVisionConfiguration(
         totalizerRegion: TotalizerRegion(NormalizedRect(.08, .72, .44, .16)),
         selectedDial: NormalizedCircle(.78, .22, .14),
@@ -261,156 +383,77 @@ void main() {
           decimalPlaces: 2,
         ),
       );
-      await controller.reanalyzeRegions(selected);
-      final evidenceId = controller.state.readingProposal!.evidenceId;
+      await controller.confirmLiveCameraPreparation(selected);
       final restarted = AppController(dependencies);
       await restarted.initialize();
       await restarted.resumeSample();
-      expect(restarted.state.page, AppPage.camera);
-      expect(restarted.state.readingProposal!.evidenceId, evidenceId);
-      expect(restarted.state.readingProposal!.analysisCompleted, isFalse);
-      final restored = restarted.state.readingProposal!.configuration;
-      expect(restored.totalizerRegion.geometry.left, .08);
-      expect(restored.totalizerRegion.geometry.top, .72);
-      expect(restored.selectedDial.centerX, .78);
-      expect(restored.selectedDial.centerY, .22);
+      expect(restarted.state.page, AppPage.run);
+      final restored = restarted.state.sample!.meterFaceConfiguration!;
+      expect(restored.totalizerLeft, .08);
+      expect(restored.totalizerTop, .72);
+      expect(restored.dialCenterX, .78);
+      expect(restored.dialCenterY, .22);
       expect(restored.multiplier, .01);
       expect(restored.totalizerConfiguration?.decimalPlaces, 2);
-      expect(restarted.state.evidence, hasLength(1));
+      expect(restarted.state.evidence, isEmpty);
     },
   );
 
+  test('camera zoom is frozen and recovered for the running sample', () async {
+    final dependencies = fixture.dependencies.copyWith(
+      camera: _FakeCameraPort(),
+      visualPipeline: _FakeVisualPipeline(),
+    );
+    controller = AppController(dependencies);
+    await _prepare(controller, method: MeasurementMethod.visual);
+    await controller.startSample();
+    await controller.setCameraZoom(2.5);
+    expect(controller.state.sample!.configuration.cameraZoomLevel, 2.5);
+
+    final restarted = AppController(dependencies);
+    await restarted.initialize();
+    expect(restarted.state.sample!.configuration.cameraZoomLevel, 2.5);
+    expect(restarted.state.cameraZoomLevel, 2.5);
+    await restarted.resumeSample();
+    expect(restarted.state.cameraZoomLevel, 2.5);
+  });
+
+  test('live camera preparation freezes regions without a photo', () async {
+    final dependencies = fixture.dependencies.copyWith(
+      camera: _FakeCameraPort(),
+      visualPipeline: _FakeVisualPipeline(),
+    );
+    controller = AppController(dependencies);
+    await _prepare(controller, method: MeasurementMethod.visual);
+    await controller.startSample();
+    const configuration = DialVisionConfiguration(
+      totalizerRegion: TotalizerRegion(NormalizedRect(.18, .22, .42, .12)),
+      selectedDial: NormalizedCircle(.7, .62, .11),
+    );
+
+    await controller.confirmLiveCameraPreparation(configuration);
+
+    expect(controller.state.page, AppPage.run);
+    expect(controller.state.evidence, isEmpty);
+    expect(controller.state.points, isEmpty);
+    expect(controller.state.sample!.meterFaceConfiguration!.totalizerLeft, .18);
+    expect(controller.state.sample!.meterFaceConfiguration!.dialCenterX, .7);
+  });
+
   test(
-    'real capture flow associates START and FINAL evidence with readings',
+    'workflow back returns one step without discarding case state',
     () async {
-      final pipeline = _FakeVisualPipeline();
-      final cameraDependencies = fixture.dependencies.copyWith(
-        camera: _FakeCameraPort(),
-        visualPipeline: pipeline,
+      await controller.login('Martín Osuna', 'field@aquafim.mx', '4491234567');
+      await controller.identifyMeter(
+        meterId: 'BACK-1',
+        q1LpsApprox: 1.7,
+        q2LpsApprox: 1.1,
       );
-      controller = AppController(cameraDependencies);
-      await _prepare(controller, method: MeasurementMethod.visual);
-      await controller.startSample();
-      expect(controller.state.page, AppPage.camera);
-      expect(controller.state.capturePurpose, CapturePurpose.start);
-
-      final start = File('${fixture.directory.path}/start.jpg');
-      await start.writeAsBytes(List<int>.generate(900, (index) => index % 255));
-      await controller.processCapturedPhoto(start.path);
-      expect(controller.state.readingProposal!.analysisCompleted, isFalse);
-      final discarded = controller.state.readingProposal!;
-      await controller.recapturePhoto();
-      expect(
-        await cameraDependencies.points.listBySample(
-          controller.state.sample!.id,
-        ),
-        isEmpty,
-      );
-      expect(
-        await cameraDependencies.evidence.getById(discarded.evidenceId),
-        isNull,
-      );
-      expect(
-        await cameraDependencies.fileStore.exists(discarded.evidencePath),
-        isFalse,
-      );
-      await controller.processCapturedPhoto(start.path);
-      final startEvidenceId = controller.state.readingProposal!.evidenceId;
-      final countBeforeAdjustment = controller.state.evidence.length;
-      const adjusted = DialVisionConfiguration(
-        totalizerRegion: TotalizerRegion(NormalizedRect(.2, .1, .5, .2)),
-        selectedDial: NormalizedCircle(.45, .6, .18),
-        multiplier: .01,
-        litersPerRevolution: 1,
-        totalizerConfiguration: TotalizerConfiguration(
-          digitCount: 3,
-          decimalPlaces: 1,
-          source: DialConfigurationSource.autoConfirmed,
-        ),
-      );
-      await controller.reanalyzeRegions(adjusted);
-      expect(controller.state.readingProposal!.evidenceId, startEvidenceId);
-      expect(controller.state.evidence, hasLength(countBeforeAdjustment));
-      await controller.confirmCameraReading(
-        odometer: 47,
-        needle: .1,
-        corrected: false,
-      );
-      expect(
-        controller.state.sample!.initialReading!.evidenceId,
-        startEvidenceId,
-      );
-      expect(
-        controller.state.sample!.initialReading!.source,
-        ReadingSource.autoConfirmed,
-      );
-      expect(
-        controller.state.points
-            .singleWhere((point) => point.type == PointType.start)
-            .readingLiters,
-        47000.1,
-      );
-      expect(controller.state.sample!.meterFaceConfiguration!.dialRadius, .18);
-      expect(
-        controller.state.sample!.configuration.needleLitersPerRevolution,
-        1,
-      );
-
-      final recovered = AppController(cameraDependencies);
-      await recovered.initialize();
-      expect(recovered.state.sample!.meterFaceConfiguration!.multiplier, .01);
-      expect(
-        recovered
-            .state
-            .sample!
-            .meterFaceConfiguration!
-            .totalizerConfiguration!
-            .decimalPlaces,
-        1,
-      );
-
-      await controller.setDevelopmentVisualReference(10);
-      await controller.requestFinalEvidence();
-      final finalEvidenceId = controller.state.readingProposal!.evidenceId;
-      expect(controller.state.page, AppPage.camera);
-      expect(controller.state.busy, isFalse);
-      await controller.confirmCameraReading(
-        odometer: 47,
-        needle: .2,
-        corrected: true,
-      );
-      expect(
-        controller.state.sample!.finalReading!.evidenceId,
-        finalEvidenceId,
-      );
-      expect(
-        controller.state.sample!.finalReading!.source,
-        ReadingSource.manual,
-      );
-      final finalPointBeforeClosure = controller.state.points.singleWhere(
-        (point) => point.type == PointType.finalPoint,
-      );
-      expect(finalPointBeforeClosure.readingLiters, 47000.2);
-      expect(finalPointBeforeClosure.indicatedLiters, closeTo(10.1, 1e-9));
-      expect(controller.state.page, AppPage.readings);
-      await controller.closeSample(
-        initialOdometer: 47,
-        initialNeedle: .1,
-        finalOdometer: 47,
-        finalNeedle: .21,
-        visualReferenceLiters: 10,
-        createDevelopmentEvidence: false,
-      );
-      expect(controller.state.sample!.status, SampleStatus.closedValid);
-      expect(controller.state.sample!.finalReading!.reading.needleLiters, .21);
-      expect(
-        controller.state.sample!.finalReading!.source,
-        ReadingSource.manual,
-      );
-      expect(
-        controller.state.sample!.finalReading!.evidenceId,
-        finalEvidenceId,
-      );
+      expect(controller.state.page, AppPage.method);
+      controller.goBack();
+      expect(controller.state.page, AppPage.identification);
+      expect(controller.state.activeCase, isNotNull);
+      expect(controller.state.identificationMeterId, 'BACK-1');
     },
   );
 
@@ -429,17 +472,110 @@ void main() {
     await _prepare(controller, method: MeasurementMethod.visual);
     await controller.startSample();
     await controller.closeSample(
-      initialOdometer: 47,
-      initialNeedle: 0,
-      finalOdometer: 47,
-      finalNeedle: 25,
+      initialTotalizer: 47,
+      initialNeedle: 25,
+      initialMeterTotalLiters: 100,
+      finalTotalizer: 47,
+      finalNeedle: 50,
+      finalMeterTotalLiters: 125,
       visualReferenceLiters: 125,
     );
     expect(controller.state.page, AppPage.result);
     expect(controller.state.sample?.status, SampleStatus.closedValid);
     expect(controller.state.sample?.result?.referenceLiters, 125);
+    expect(controller.state.sample?.initialReading?.reading.odometerUnits, 47);
+    expect(controller.state.sample?.initialReading?.reading.needleLiters, 25);
+    expect(controller.state.sample?.finalReading?.reading.odometerUnits, 47);
+    expect(controller.state.sample?.finalReading?.reading.needleLiters, 50);
+    expect(controller.state.sample?.manualIndicatedLiters, 25);
+    expect(controller.state.sample?.result?.indicatedLiters, 25);
     expect(controller.state.sample?.checksum, isNotEmpty);
   });
+
+  test('FINAL evidence freezes pulse endpoint used by closure', () async {
+    await _prepare(controller, method: MeasurementMethod.manual);
+    await controller.startSample();
+    for (var index = 0; index < 27; index++) {
+      await controller.addManualPulse();
+    }
+    final sample = controller.state.sample!;
+    final capture = fixture.dependencies.evidenceCapture;
+    await capture.capture(
+      caseId: controller.state.activeCase!.id,
+      sample: sample,
+      type: EvidenceType.start,
+      volumeRefLiters: 0,
+      pulseCount: 0,
+    );
+    await capture.capture(
+      caseId: controller.state.activeCase!.id,
+      sample: sample,
+      type: EvidenceType.intermediate,
+      volumeRefLiters: 25,
+      pulseCount: 25,
+    );
+    await capture.capture(
+      caseId: controller.state.activeCase!.id,
+      sample: sample,
+      type: EvidenceType.finalEvidence,
+      volumeRefLiters: 26,
+      pulseCount: 26,
+    );
+
+    await controller.closeSample(
+      initialTotalizer: 1,
+      initialNeedle: 0,
+      initialMeterTotalLiters: 100,
+      finalTotalizer: 1,
+      finalNeedle: 26,
+      finalMeterTotalLiters: 126,
+      createDevelopmentEvidence: false,
+    );
+
+    expect(controller.state.sample?.status, SampleStatus.closedValid);
+    expect(controller.state.sample?.pulseCount, 26);
+    expect(controller.state.sample?.result?.referenceLiters, 26);
+  });
+
+  test(
+    'final action captures FINAL first and rejects subsequent pulses',
+    () async {
+      final camera = _FakeCameraPort();
+      final dependencies = fixture.dependencies.copyWith(
+        camera: camera,
+        visualPipeline: _FakeVisualPipeline(),
+      );
+      controller = AppController(dependencies);
+      await _prepare(controller, method: MeasurementMethod.manual);
+      controller.updateSetup(
+        litersPerPulse: 1,
+        evidenceStepLiters: 1,
+        uncertaintyLiters: 1,
+      );
+      await controller.startSample();
+      await controller.confirmLiveCameraPreparation(
+        const DialVisionConfiguration(
+          totalizerRegion: TotalizerRegion(NormalizedRect(.1, .1, .5, .2)),
+          selectedDial: NormalizedCircle(.6, .6, .15),
+        ),
+      );
+      await controller.addManualPulse();
+      await controller.addManualPulse();
+      final capturesBeforeFinal = camera.captureCount;
+
+      await controller.requestFinalEvidence();
+      final frozenPulses = controller.state.sample!.pulseCount;
+      await controller.addManualPulse();
+
+      final evidence = await dependencies.evidence.listBySample(
+        controller.state.sample!.id,
+      );
+      expect(camera.captureCount, capturesBeforeFinal + 1);
+      expect(evidence.last.type, EvidenceType.finalEvidence);
+      expect(controller.state.sample!.pulseCount, frozenPulses);
+      expect(controller.state.measurementStarted, isFalse);
+    },
+  );
 
   test(
     'missing development evidence retains INVALID_EVIDENCE sample',
@@ -447,10 +583,12 @@ void main() {
       await _prepare(controller, method: MeasurementMethod.visual);
       await controller.startSample();
       await controller.closeSample(
-        initialOdometer: 47,
-        initialNeedle: 0,
-        finalOdometer: 47,
-        finalNeedle: 25,
+        initialTotalizer: 47,
+        initialNeedle: 25,
+        initialMeterTotalLiters: 100,
+        finalTotalizer: 47,
+        finalNeedle: 50,
+        finalMeterTotalLiters: 125,
         visualReferenceLiters: 125,
         createDevelopmentEvidence: false,
       );
@@ -466,10 +604,12 @@ void main() {
       await controller.startSample();
       final oldId = controller.state.sample!.id;
       await controller.closeSample(
-        initialOdometer: 47,
-        initialNeedle: 0,
-        finalOdometer: 47,
-        finalNeedle: 25,
+        initialTotalizer: 47,
+        initialNeedle: 25,
+        initialMeterTotalLiters: 100,
+        finalTotalizer: 47,
+        finalNeedle: 50,
+        finalMeterTotalLiters: 125,
         visualReferenceLiters: 125,
         createDevelopmentEvidence: false,
       );
@@ -484,6 +624,61 @@ void main() {
       expect(samples.last.sampleNumber, 2);
     },
   );
+
+  test('Q2 starts directly and inherits Q1 camera configuration', () async {
+    await _prepare(controller, method: MeasurementMethod.visual);
+    await controller.startSample();
+    const face = DialVisionConfiguration(
+      totalizerRegion: TotalizerRegion(NormalizedRect(.12, .2, .48, .14)),
+      selectedDial: NormalizedCircle(.72, .65, .13),
+    );
+    await controller.confirmLiveCameraPreparation(face);
+    await controller.setDevelopmentVisualReference(125);
+    await controller.closeSample(
+      initialTotalizer: 1,
+      initialNeedle: 0,
+      initialMeterTotalLiters: 100,
+      finalTotalizer: 1,
+      finalNeedle: 25,
+      finalMeterTotalLiters: 225,
+      visualReferenceLiters: 125,
+    );
+
+    await controller.anotherSample();
+
+    expect(controller.state.page, AppPage.run);
+    expect(controller.state.sample?.configuration.flowPoint, FlowPoint.q2);
+    expect(controller.state.sample?.meterFaceConfiguration?.totalizerLeft, .12);
+    expect(controller.state.sample?.meterFaceConfiguration?.dialCenterX, .72);
+    expect(controller.state.evidence, isEmpty);
+  });
+
+  test('repeat starts directly and reuses frozen camera regions', () async {
+    await _prepare(controller, method: MeasurementMethod.visual);
+    await controller.startSample();
+    const face = DialVisionConfiguration(
+      totalizerRegion: TotalizerRegion(NormalizedRect(.15, .25, .45, .12)),
+      selectedDial: NormalizedCircle(.68, .6, .12),
+    );
+    await controller.confirmLiveCameraPreparation(face);
+    await controller.setDevelopmentVisualReference(125);
+    await controller.closeSample(
+      initialTotalizer: 1,
+      initialNeedle: 0,
+      initialMeterTotalLiters: 100,
+      finalTotalizer: 1,
+      finalNeedle: 25,
+      finalMeterTotalLiters: 225,
+      visualReferenceLiters: 125,
+    );
+
+    await controller.repeatSample();
+
+    expect(controller.state.page, AppPage.run);
+    expect(controller.state.sample?.sampleNumber, 2);
+    expect(controller.state.sample?.meterFaceConfiguration?.totalizerLeft, .15);
+    expect(controller.state.sample?.meterFaceConfiguration?.dialCenterX, .68);
+  });
 
   test('GPS success is captured without a network dependency', () async {
     final gps = GpsSnapshot(
@@ -606,6 +801,16 @@ final class _FakeTokenStore implements TokenStore {
 final class _FakeCameraPort implements CameraPort {
   int captureCount = 0;
   @override
+  double get previewAspectRatio => 3 / 4;
+  @override
+  Future<double> getMinZoomLevel() async => 1;
+  @override
+  Future<double> getMaxZoomLevel() async => 8;
+  @override
+  Future<void> setZoomLevel(double zoomLevel) async {}
+  @override
+  Future<void> focusAt({required double x, required double y}) async {}
+  @override
   Widget buildPreview() => const SizedBox();
   @override
   Future<CapturedPhoto> capture() async {
@@ -633,6 +838,26 @@ final class _FakeCameraPort implements CameraPort {
 }
 
 final class _FakeVisualPipeline implements VisualReadingPipeline {
+  @override
+  Future<VisualReadingProposal> extractRegions({
+    required String evidenceId,
+    required String evidencePath,
+    required DialVisionConfiguration configuration,
+  }) async => VisualReadingProposal(
+    evidenceId: evidenceId,
+    evidencePath: evidencePath,
+    odometerRaw: '',
+    odometerValue: null,
+    needleLiters: null,
+    needleAngle: null,
+    warnings: const [],
+    createdAt: DateTime.utc(2026, 8, 10),
+    configuration: configuration,
+    totalizerCrop: Uint8List.fromList(const [1, 2, 3]),
+    dialCrop: Uint8List.fromList(const [4, 5, 6]),
+    analysisCompleted: true,
+  );
+
   @override
   Future<VisualReadingProposal> prepare({
     required String evidenceId,

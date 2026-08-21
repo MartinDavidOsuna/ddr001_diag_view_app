@@ -1,0 +1,3 @@
+#pragma once
+
+#define DDR001_DEVICE_NAME "DDR001-PULSE-NS1002-V1.0"

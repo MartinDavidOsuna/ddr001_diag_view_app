@@ -4,8 +4,12 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('Class 2 MPE policy', () {
     const policy = Class2WaterMpePolicy();
+    test('current Q1 inherits the former Q3 rule source', () {
+      expect(FlowPoint.q1.metrologyRuleSource, FlowPoint.q3);
+      expect(FlowPoint.q1.technicalName, FlowPoint.q3.technicalName);
+    });
     for (final entry in {
-      FlowPoint.q1: 5.0,
+      FlowPoint.q1: 2.0,
       FlowPoint.q2: 2.0,
       FlowPoint.q3: 2.0,
       FlowPoint.q4: 2.0,

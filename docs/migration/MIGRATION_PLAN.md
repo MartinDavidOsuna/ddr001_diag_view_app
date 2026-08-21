@@ -123,3 +123,15 @@ Estado: correctivo imprescindible antes de cerrar Stage 5; ver `STAGE_5_ESP32_PU
 - Panel web UI.
 - Modificaciones a API de hidrantes.
 - Simulador web integrado en Flutter. **Esto no excluye LECTURA VISUAL**, que sí es funcionalidad productiva obligatoria.
+
+## Correctivo V1 — dos corridas y preparación de cámara
+
+- [x] Identificación conserva Q1 caudal operativo y Q2 caudal medio con sus LPS.
+- [x] BLUETOOTH es el método inicial y LECTURA VISUAL permanece visible, desactivada temporalmente.
+- [x] La fotografía de preparación configura regiones y zoom, pero no crea Evidence START.
+- [x] Evidence START se captura al iniciar efectivamente la corrida.
+- [x] La preparación de cámara solo fija regiones; no ejecuta OCR ni lectura automática.
+- [x] START no interrumpe la corrida; al cierre se presentan crops INICIO/FINAL y se capturan manualmente ambos endpoints. Vind es total FINAL menos total INICIO.
+- [x] Q1/Q2 admiten repeticiones conservadas como Q1-1, Q1-2, Q2-1, Q2-2 cuando hay más de una corrida.
+- [x] Zoom óptico persistente y navegación Atrás dentro del workflow editable.
+- [x] Registro portrait compacto en cuatro columnas; V.mec presenta pulsos del medidor del hidrante.

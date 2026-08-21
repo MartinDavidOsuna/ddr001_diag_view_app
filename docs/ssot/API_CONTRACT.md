@@ -25,6 +25,8 @@ Revoca la sesión actual explícitamente.
 ### `GET /auth/me`
 Devuelve perfil de la sesión.
 
+La llave maestra de campo es una capacidad local de la app y no modifica ni evita controles dentro de estos endpoints: cuando coincide, la app no invoca `POST /auth/login` ni fabrica un token remoto.
+
 ## 2. Consulta de padrón externo
 ### `GET /external/hydrants/accounts/:meterId`
 Endpoint **de nuestro backend/adaptador**, no del sistema legado. Internamente consume la ruta real existente de la API de hidrantes en modo solo lectura.
@@ -40,6 +42,7 @@ Contrato externo inspeccionado el 2026-08-15 en `ddr001_api_rv`: `GET /api/v1/hy
 
 ## 3. Expedientes
 - `POST /cases` crea/ingesta expediente idempotente.
+- El payload de expediente incluye `test_bench_id` y un objeto interno `device` nullable con `id`, `android_version`, `brand` y `model`.
 - `GET /cases/:id` devuelve expediente completo o vista expandible.
 - `GET /cases?meter_id=&user_id=&status=&verdict=&from=&to=&limit=&cursor=` lista para app/panel.
 - `POST /cases/:id/close` registra cierre y veredicto calculado; nunca recalcula con reglas distintas sin versionar.
@@ -55,6 +58,8 @@ Contrato externo inspeccionado el 2026-08-15 en `ddr001_api_rv`: `GET /api/v1/hy
 - `GET /samples?case_id=&flow_point=&meter_id=&from=&to=&limit=&cursor=`.
 
 Idempotencia: mismo `sample_id + checksum` → `exists`; mismo ID con checksum distinto → `409 CONFLICT`. Una muestra cerrada existente **no se sobrescribe**.
+
+Los puntos serializados de una muestra pueden incluir `flow_lps` nullable para INICIO, INTERMEDIA y FINAL. El servidor conserva el valor calculado y congelado por la app; no lo sustituye con una estimación propia.
 
 ## 6. Evidencias
 - `POST /evidence` multipart + metadata + SHA-256. Idempotente por hash/storage key.

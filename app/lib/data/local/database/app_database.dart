@@ -42,6 +42,11 @@ class VerificationCases extends Table {
   IntColumn get createdAtMs => integer()();
   IntColumn get closedAtMs => integer().nullable()();
   IntColumn get reportVersion => integer().withDefault(const Constant(1))();
+  TextColumn get testBenchId => text().withDefault(const Constant(''))();
+  TextColumn get deviceId => text().nullable()();
+  TextColumn get androidVersion => text().nullable()();
+  TextColumn get deviceBrand => text().nullable()();
+  TextColumn get deviceModel => text().nullable()();
   TextColumn get checksum => text().nullable()();
 
   @override
@@ -102,6 +107,7 @@ class Samples extends Table {
   RealColumn get lpsApprox => real().nullable()();
   RealColumn get litersPerOdometerUnit => real()();
   RealColumn get needleLitersPerRevolution => real()();
+  RealColumn get cameraZoomLevel => real().nullable()();
   RealColumn get totalizerLeft => real().nullable()();
   RealColumn get totalizerTop => real().nullable()();
   RealColumn get totalizerWidth => real().nullable()();
@@ -206,6 +212,8 @@ class TestPoints extends Table {
   RealColumn get indicatedLiters => real().nullable()();
   RealColumn get diagnosticErrorPct => real().nullable()();
   RealColumn get needleLiters => real().nullable()();
+  IntColumn get meterUnderTestPulseCount => integer().nullable()();
+  RealColumn get flowLps => real().nullable()();
   IntColumn get capturedAtMs => integer()();
 
   @override
@@ -291,7 +299,7 @@ final class AppDatabase extends _$AppDatabase {
     : super(driftDatabase(name: 'ddr001', native: const DriftNativeOptions()));
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -395,6 +403,50 @@ final class AppDatabase extends _$AppDatabase {
         await _createOperationalSettingsTable();
       }
       if (from < 7) await _ensureOperationalSettingsColumns();
+      if (from < 8) {
+        final existingColumns = (await customSelect(
+          'PRAGMA table_info(samples)',
+        ).get()).map((row) => row.read<String>('name')).toSet();
+        if (!existingColumns.contains('camera_zoom_level')) {
+          await migrator.addColumn(samples, samples.cameraZoomLevel);
+        }
+      }
+      if (from < 9) {
+        final existingColumns = (await customSelect(
+          'PRAGMA table_info(test_points)',
+        ).get()).map((row) => row.read<String>('name')).toSet();
+        if (!existingColumns.contains('meter_under_test_pulse_count')) {
+          await migrator.addColumn(
+            testPoints,
+            testPoints.meterUnderTestPulseCount,
+          );
+        }
+      }
+      if (from < 10) {
+        final existingColumns = (await customSelect(
+          'PRAGMA table_info(test_points)',
+        ).get()).map((row) => row.read<String>('name')).toSet();
+        if (!existingColumns.contains('flow_lps')) {
+          await migrator.addColumn(testPoints, testPoints.flowLps);
+        }
+      }
+      if (from < 11) {
+        final existingColumns = (await customSelect(
+          'PRAGMA table_info(verification_cases)',
+        ).get()).map((row) => row.read<String>('name')).toSet();
+        final columns = <GeneratedColumn<Object>>[
+          verificationCases.testBenchId,
+          verificationCases.deviceId,
+          verificationCases.androidVersion,
+          verificationCases.deviceBrand,
+          verificationCases.deviceModel,
+        ];
+        for (final column in columns) {
+          if (!existingColumns.contains(column.$name)) {
+            await migrator.addColumn(verificationCases, column);
+          }
+        }
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');

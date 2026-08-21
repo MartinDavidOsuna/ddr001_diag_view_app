@@ -5,6 +5,7 @@ Estado al 2026-08-16. La app es local-first y ninguna capability descrita aquí 
 | Capability | Presentación sin configuración | Requisito para reactivar | Implementación preparada |
 |---|---|---|---|
 | Login/alta remota y sync DDR001 | Botones/estado remoto ocultos; sesión existente y cola local se conservan | Compilar con `--dart-define=DDR001_API_BASE_URL=https://servidor` y backend accesible | `RemoteApiClient`, `ServerBackedAuthService`, `SyncQueueRepository`, `AppController.syncCurrentCase` |
+| Primer acceso local de prueba | Deshabilitado por defecto; se habilita con `--dart-define=DDR001_ALLOW_LOCAL_FIRST_LOGIN=true` | Solo para pruebas mientras no exista backend | `LocalAuthService`, `AppDependencies.createLocal` |
 | Consulta de cuenta/hidrantes | No se muestra `Pendiente de consulta`; el ID sigue libre | Backend DDR001 configurado y, en servidor, `HYDRANTS_API_BASE_URL` + `HYDRANTS_API_TOKEN` reales | `RemoteApiClient.lookupMeter` y proxy read-only del backend |
 
 El backend usa además `DATABASE_URL`, `JWT_SECRET`, `PORT` y `EVIDENCE_STORAGE_PATH`, documentados en `backend/.env.example`. No se incluyen secretos reales.

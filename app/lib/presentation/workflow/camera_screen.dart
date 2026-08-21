@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme/app_theme.dart';
 import '../../infrastructure/camera/camera_models.dart';
+import '../../infrastructure/camera/camera_port.dart';
 import '../../infrastructure/vision/vision_models.dart';
 import '../../domain/models.dart';
 import '../app_controller.dart';
@@ -22,7 +23,7 @@ final class CameraCaptureScreen extends ConsumerStatefulWidget {
 }
 
 final class _CameraCaptureScreenState extends ConsumerState<CameraCaptureScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   CameraPermissionState? _permission;
   bool _ready = false;
   bool _initializing = false;
@@ -32,15 +33,47 @@ final class _CameraCaptureScreenState extends ConsumerState<CameraCaptureScreen>
   bool _manualCorrection = false;
   bool _adjustingRegions = false;
   bool _editingRegions = false;
+  Timer? _liveReadingTimer;
+  bool _liveReadingInProgress = false;
+  late final AnimationController _liveValueFade;
   MeterFaceEditTarget _editTarget = MeterFaceEditTarget.totalizer;
   DateTime? _loadedProposalAt;
   late DialVisionConfiguration _visionConfiguration;
-  int _digitCount = 5;
-  int _decimalPlaces = 1;
+  int _digitCount = 6;
+  int _decimalPlaces = 0;
+  double _minimumZoom = 1;
+  double _maximumZoom = 1;
+  double _zoomLevel = 1;
+  double _zoomAtGestureStart = 1;
+  Offset? _focusPoint;
+  final GlobalKey _previewKey = GlobalKey();
+  bool _automaticRegionAttempted = false;
+  bool _automaticRegionInProgress = false;
+  final Set<String> _triedSuggestionIds = <String>{};
+  List<DialCandidate> _suggestedDials = const [];
 
   @override
   void initState() {
     super.initState();
+    final face = ref.read(appControllerProvider).sample?.meterFaceConfiguration;
+    final appState = ref.read(appControllerProvider);
+    _digitCount =
+        appState.totalizerIntegerDigits + appState.totalizerDecimalPlaces;
+    _decimalPlaces = appState.totalizerDecimalPlaces;
+    _visionConfiguration = face == null
+        ? DialVisionConfiguration(
+            litersPerRevolution: appState.needleLitersPerRevolution,
+            totalizerConfiguration: TotalizerConfiguration(
+              digitCount: _digitCount,
+              decimalPlaces: _decimalPlaces,
+            ),
+          )
+        : DialVisionConfiguration.fromDomain(face);
+    _automaticRegionAttempted = face != null;
+    _liveValueFade = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 650),
+    );
     WidgetsBinding.instance.addObserver(this);
     _initialize();
   }
@@ -59,7 +92,19 @@ final class _CameraCaptureScreenState extends ConsumerState<CameraCaptureScreen>
       setState(() => _permission = permission);
       if (permission != CameraPermissionState.granted) return;
       await camera.initialize();
-      if (mounted) setState(() => _ready = true);
+      _minimumZoom = await camera.getMinZoomLevel();
+      _maximumZoom = await camera.getMaxZoomLevel();
+      _zoomLevel = ref
+          .read(appControllerProvider)
+          .cameraZoomLevel
+          .clamp(_minimumZoom, _maximumZoom);
+      await camera.setZoomLevel(_zoomLevel);
+      if (mounted) {
+        setState(() => _ready = true);
+        WidgetsBinding.instance.addPostFrameCallback(
+          (_) => _attemptAutomaticRegions(),
+        );
+      }
     } catch (_) {
       if (mounted) {
         setState(() => _cameraError = 'No fue posible iniciar la cámara.');
@@ -67,6 +112,21 @@ final class _CameraCaptureScreenState extends ConsumerState<CameraCaptureScreen>
     } finally {
       _initializing = false;
     }
+  }
+
+  Future<void> _setZoom(double value) async {
+    final next = value.clamp(_minimumZoom, _maximumZoom).toDouble();
+    if ((next - _zoomLevel).abs() < .001) return;
+    setState(() => _zoomLevel = next);
+    final camera = ref.read(appDependenciesProvider).camera;
+    await camera?.setZoomLevel(next);
+    await ref.read(appControllerProvider.notifier).setCameraZoom(next);
+  }
+
+  Future<void> _stepZoom(int direction) async {
+    final range = _maximumZoom - _minimumZoom;
+    final step = math.max(.1, range / 20);
+    await _setZoom(_zoomLevel + direction * step);
   }
 
   @override
@@ -102,6 +162,8 @@ final class _CameraCaptureScreenState extends ConsumerState<CameraCaptureScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _liveReadingTimer?.cancel();
+    _liveValueFade.dispose();
     _odometer.dispose();
     _needle.dispose();
     // AppDependencies owns the shared camera. Evidence releases it so the LED
@@ -146,6 +208,8 @@ final class _CameraCaptureScreenState extends ConsumerState<CameraCaptureScreen>
   Widget build(BuildContext context) {
     final state = ref.watch(appControllerProvider);
     final proposal = state.readingProposal;
+    final livePreparation =
+        state.capturePurpose == CapturePurpose.cameraPreparation;
     if (proposal != null && _loadedProposalAt != proposal.createdAt) {
       _loadedProposalAt = proposal.createdAt;
       _visionConfiguration = proposal.configuration;
@@ -155,7 +219,7 @@ final class _CameraCaptureScreenState extends ConsumerState<CameraCaptureScreen>
               ? 5
               : proposal.odometerCandidates.first.digits.length);
       _decimalPlaces =
-          proposal.configuration.totalizerConfiguration?.decimalPlaces ?? 1;
+          proposal.configuration.totalizerConfiguration?.decimalPlaces ?? 0;
       final odometerText = proposal.odometerValue?.toString() ?? '';
       final needleText = proposal.needleLiters?.toStringAsFixed(2) ?? '';
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -172,10 +236,18 @@ final class _CameraCaptureScreenState extends ConsumerState<CameraCaptureScreen>
       _adjustingRegions = !proposal.analysisCompleted;
       _editingRegions = !proposal.analysisCompleted;
     }
+    if (!livePreparation && _editingRegions && proposal != null) {
+      _ensureLiveReadingTimer();
+    } else {
+      _liveReadingTimer?.cancel();
+      _liveReadingTimer = null;
+    }
     return AppScaffold(
       title: _captureTitle(state.capturePurpose),
-      scrollable: !_editingRegions,
-      child: _editingRegions && proposal != null
+      scrollable: !livePreparation && !_editingRegions,
+      child: livePreparation
+          ? _buildLiveCameraPreparation(state)
+          : _editingRegions && proposal != null
           ? _buildRegionEditingMode(proposal, state)
           : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -197,13 +269,49 @@ final class _CameraCaptureScreenState extends ConsumerState<CameraCaptureScreen>
                       : Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const Text(
-                              'Centre la carátula dentro de la guía. La misma fotografía se guardará como evidencia y se analizará.',
-                              style: TextStyle(color: AppColors.muted),
+                            Text(
+                              state.capturePurpose ==
+                                      CapturePurpose.cameraPreparation
+                                  ? 'Centre la carátula dentro de la guía. Esta fotografía configura zoom y regiones; no es la evidencia INICIO.'
+                                  : 'Centre la carátula dentro de la guía. La fotografía se guardará como evidencia y se analizará.',
+                              style: const TextStyle(color: AppColors.muted),
                             ),
+                            if (_ready && _maximumZoom > _minimumZoom)
+                              Row(
+                                children: [
+                                  IconButton(
+                                    key: const Key('camera-zoom-out'),
+                                    tooltip: 'Disminuir zoom',
+                                    onPressed: _zoomLevel <= _minimumZoom
+                                        ? null
+                                        : () => _stepZoom(-1),
+                                    icon: const Icon(Icons.zoom_out, size: 18),
+                                  ),
+                                  Expanded(
+                                    child: Slider(
+                                      key: const Key('camera-zoom'),
+                                      value: _zoomLevel,
+                                      min: _minimumZoom,
+                                      max: _maximumZoom,
+                                      onChanged: _setZoom,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    key: const Key('camera-zoom-in'),
+                                    tooltip: 'Aumentar zoom',
+                                    onPressed: _zoomLevel >= _maximumZoom
+                                        ? null
+                                        : () => _stepZoom(1),
+                                    icon: const Icon(Icons.zoom_in, size: 18),
+                                  ),
+                                ],
+                              ),
                             const SizedBox(height: 12),
                             AspectRatio(
-                              aspectRatio: 3 / 4,
+                              aspectRatio: ref
+                                  .read(appDependenciesProvider)
+                                  .camera!
+                                  .previewAspectRatio,
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(
                                   AppRadius.card,
@@ -212,13 +320,107 @@ final class _CameraCaptureScreenState extends ConsumerState<CameraCaptureScreen>
                                   fit: StackFit.expand,
                                   children: [
                                     if (_ready)
-                                      ref
-                                          .read(appDependenciesProvider)
-                                          .camera!
-                                          .buildPreview()
+                                      GestureDetector(
+                                        key: _previewKey,
+                                        behavior: HitTestBehavior.opaque,
+                                        onTapDown: (details) async {
+                                          final box = _previewKey.currentContext
+                                              ?.findRenderObject();
+                                          if (box is! RenderBox) return;
+                                          final size = box.size;
+                                          final normalized = Offset(
+                                            (details.localPosition.dx /
+                                                    size.width)
+                                                .clamp(0.0, 1.0),
+                                            (details.localPosition.dy /
+                                                    size.height)
+                                                .clamp(0.0, 1.0),
+                                          );
+                                          setState(
+                                            () => _focusPoint = normalized,
+                                          );
+                                          await ref
+                                              .read(appDependenciesProvider)
+                                              .camera!
+                                              .focusAt(
+                                                x: normalized.dx,
+                                                y: normalized.dy,
+                                              );
+                                          await Future<void>.delayed(
+                                            const Duration(milliseconds: 900),
+                                          );
+                                          if (mounted &&
+                                              _focusPoint == normalized) {
+                                            setState(() => _focusPoint = null);
+                                          }
+                                        },
+                                        onScaleStart: (_) =>
+                                            _zoomAtGestureStart = _zoomLevel,
+                                        onScaleUpdate: (details) async {
+                                          final next =
+                                              (_zoomAtGestureStart *
+                                                      details.scale)
+                                                  .clamp(
+                                                    _minimumZoom,
+                                                    _maximumZoom,
+                                                  );
+                                          if ((next - _zoomLevel).abs() < .02) {
+                                            return;
+                                          }
+                                          setState(() => _zoomLevel = next);
+                                          await ref
+                                              .read(appDependenciesProvider)
+                                              .camera!
+                                              .setZoomLevel(next);
+                                        },
+                                        onScaleEnd: (_) => ref
+                                            .read(
+                                              appControllerProvider.notifier,
+                                            )
+                                            .setCameraZoom(_zoomLevel),
+                                        child: ref
+                                            .read(appDependenciesProvider)
+                                            .camera!
+                                            .buildPreview(),
+                                      )
                                     else
                                       const ColoredBox(color: Colors.black),
                                     const _DialGuide(),
+                                    if (_focusPoint case final point?)
+                                      Align(
+                                        alignment: Alignment(
+                                          point.dx * 2 - 1,
+                                          point.dy * 2 - 1,
+                                        ),
+                                        child: const IgnorePointer(
+                                          child: Icon(
+                                            Icons.filter_center_focus,
+                                            color: Colors.amber,
+                                            size: 48,
+                                          ),
+                                        ),
+                                      ),
+                                    Positioned(
+                                      right: 8,
+                                      top: 8,
+                                      child: DecoratedBox(
+                                        decoration: BoxDecoration(
+                                          color: const Color(0x99000000),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          child: Text(
+                                            '${_zoomLevel.toStringAsFixed(1)}×',
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                     if (state.cameraState ==
                                         CameraOperationState.processing)
                                       const ColoredBox(
@@ -433,7 +635,7 @@ final class _CameraCaptureScreenState extends ConsumerState<CameraCaptureScreen>
                               fit: BoxFit.contain,
                             ),
                           Text(
-                            'OCR: ${proposal.odometerRaw.isEmpty ? '<no detectado>' : proposal.odometerRaw}',
+                            'Lectura: ${proposal.totalizerReadingProposal?.candidate.digits ?? proposal.odometerCandidates.firstOrNull?.digits ?? '<no detectado>'}',
                           ),
                           Text(
                             'Dígitos: ${proposal.odometerCandidates.isEmpty ? '<ninguno>' : proposal.odometerCandidates.first.digits}',
@@ -830,6 +1032,277 @@ final class _CameraCaptureScreenState extends ConsumerState<CameraCaptureScreen>
     );
   }
 
+  void _ensureLiveReadingTimer() {
+    if (_liveReadingTimer != null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final livePreparation =
+          ref.read(appControllerProvider).capturePurpose ==
+          CapturePurpose.cameraPreparation;
+      if (!mounted ||
+          (!livePreparation && !_editingRegions) ||
+          _liveReadingTimer != null) {
+        return;
+      }
+      _runLiveReading();
+      _liveReadingTimer = Timer.periodic(
+        const Duration(seconds: 1),
+        (_) => _runLiveReading(),
+      );
+    });
+  }
+
+  Future<void> _runLiveReading() async {
+    if (!mounted || _liveReadingInProgress) return;
+    final livePreparation =
+        ref.read(appControllerProvider).capturePurpose ==
+        CapturePurpose.cameraPreparation;
+    if (livePreparation) {
+      await _runLiveCameraReading();
+      return;
+    }
+    if (!_editingRegions) return;
+    _liveReadingInProgress = true;
+    if (mounted) setState(() {});
+    try {
+      await ref
+          .read(appControllerProvider.notifier)
+          .previewRegionReadings(_visionConfiguration);
+      _loadedProposalAt = ref
+          .read(appControllerProvider)
+          .readingProposal
+          ?.createdAt;
+    } catch (_) {
+      // Live preview is advisory and must never interrupt region editing.
+    } finally {
+      _liveReadingInProgress = false;
+      if (mounted) setState(() {});
+    }
+  }
+
+  Future<void> _runLiveCameraReading() async {
+    // Live image interpretation is intentionally disabled. Camera preparation
+    // only stores technician-positioned regions.
+  }
+
+  Future<void> _attemptAutomaticRegions({bool force = false}) async {
+    if (!mounted ||
+        (_automaticRegionAttempted && !force) ||
+        _automaticRegionInProgress ||
+        ref.read(appControllerProvider).capturePurpose !=
+            CapturePurpose.cameraPreparation) {
+      return;
+    }
+    final dependencies = ref.read(appDependenciesProvider);
+    final camera = dependencies.camera;
+    final pipeline = dependencies.visualPipeline;
+    if (camera is! LiveCameraAnalysisPort || pipeline == null) return;
+    final liveCamera = camera as LiveCameraAnalysisPort;
+    _automaticRegionAttempted = true;
+    _automaticRegionInProgress = true;
+    if (mounted) setState(() {});
+    String? framePath;
+    try {
+      final capturedPath = await liveCamera.captureAnalysisFrame();
+      framePath = capturedPath;
+      final suggestion = await pipeline.prepare(
+        evidenceId: 'camera-region-suggestion',
+        evidencePath: capturedPath,
+      );
+      if (!mounted) return;
+      final candidates = suggestion.dialCandidates;
+      var suggestedDial = suggestion.configuration.selectedDial;
+      if (force && candidates.isNotEmpty) {
+        var alternatives = candidates
+            .where(
+              (candidate) =>
+                  !_triedSuggestionIds.contains(candidate.id) &&
+                  !_sameCircle(
+                    candidate.geometry,
+                    _visionConfiguration.selectedDial,
+                  ),
+            )
+            .toList();
+        if (alternatives.isEmpty) {
+          _triedSuggestionIds.clear();
+          alternatives = candidates
+              .where(
+                (candidate) => !_sameCircle(
+                  candidate.geometry,
+                  _visionConfiguration.selectedDial,
+                ),
+              )
+              .toList();
+        }
+        if (alternatives.isNotEmpty) {
+          final next = alternatives.first;
+          _triedSuggestionIds.add(next.id);
+          suggestedDial = next.geometry;
+        }
+      }
+      setState(() {
+        _visionConfiguration = DialVisionConfiguration(
+          totalizerRegion: suggestion.configuration.totalizerRegion,
+          selectedDial: suggestedDial,
+          zeroAngleDegrees: _visionConfiguration.zeroAngleDegrees,
+          clockwise: _visionConfiguration.clockwise,
+          litersPerRevolution: _visionConfiguration.litersPerRevolution,
+          multiplier: _visionConfiguration.multiplier,
+          source: DialConfigurationSource.manual,
+          totalizerConfiguration: _visionConfiguration.totalizerConfiguration,
+        );
+        _suggestedDials = suggestion.dialCandidates;
+      });
+    } catch (_) {
+      // La sugerencia es opcional; la selecciÃ³n manual siempre permanece.
+    } finally {
+      await liveCamera.stopAnalysisFrames();
+      if (framePath != null) {
+        try {
+          await File(framePath).delete();
+        } catch (_) {
+          // Archivo temporal ya retirado por el sistema.
+        }
+      }
+      _automaticRegionInProgress = false;
+      if (mounted) setState(() {});
+    }
+  }
+
+  bool _sameCircle(NormalizedCircle a, NormalizedCircle b) =>
+      (a.centerX - b.centerX).abs() < .01 &&
+      (a.centerY - b.centerY).abs() < .01 &&
+      (a.radius - b.radius).abs() < .01;
+
+  Widget _buildLiveCameraPreparation(AppViewState state) {
+    final camera = ref.read(appDependenciesProvider).camera;
+    if (camera == null || !_ready) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return Column(
+      key: const Key('live-camera-preparation'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'Ajuste las guías directamente sobre la cámara. Esta etapa no toma ni guarda una fotografía.',
+          style: TextStyle(color: AppColors.muted),
+        ),
+        if (_maximumZoom > _minimumZoom)
+          Row(
+            children: [
+              IconButton(
+                key: const Key('live-camera-zoom-out'),
+                tooltip: 'Disminuir zoom',
+                onPressed: _zoomLevel <= _minimumZoom
+                    ? null
+                    : () => _stepZoom(-1),
+                icon: const Icon(Icons.zoom_out, size: 18),
+              ),
+              Expanded(
+                child: Slider(
+                  key: const Key('live-camera-zoom'),
+                  value: _zoomLevel,
+                  min: _minimumZoom,
+                  max: _maximumZoom,
+                  onChanged: _setZoom,
+                ),
+              ),
+              IconButton(
+                key: const Key('live-camera-zoom-in'),
+                tooltip: 'Aumentar zoom',
+                onPressed: _zoomLevel >= _maximumZoom
+                    ? null
+                    : () => _stepZoom(1),
+                icon: const Icon(Icons.zoom_in, size: 18),
+              ),
+            ],
+          ),
+        const Text(
+          'Las regiones se usarán para presentar los recortes al terminar la prueba. No se realizará lectura automática.',
+          style: TextStyle(color: AppColors.heading),
+        ),
+        const SizedBox(height: 8),
+        SegmentedButton<MeterFaceEditTarget>(
+          segments: const [
+            ButtonSegment(
+              value: MeterFaceEditTarget.totalizer,
+              label: Text('TOTALIZADOR'),
+            ),
+            ButtonSegment(value: MeterFaceEditTarget.dial, label: Text('DIAL')),
+          ],
+          selected: {_editTarget},
+          onSelectionChanged: (value) =>
+              setState(() => _editTarget = value.single),
+        ),
+        const SizedBox(height: 8),
+        if (_automaticRegionInProgress)
+          const Text(
+            'Buscando regiones sugeridas…',
+            style: TextStyle(color: AppColors.muted, fontSize: 12),
+          ),
+        OutlinedButton.icon(
+          key: const Key('refresh-camera-region-suggestions'),
+          onPressed: _automaticRegionInProgress
+              ? null
+              : () => _attemptAutomaticRegions(force: true),
+          icon: const Icon(Icons.auto_fix_high),
+          label: const Text('NUEVA SUGERENCIA DE REGIONES'),
+        ),
+        const SizedBox(height: 8),
+        if (_suggestedDials.isNotEmpty)
+          Wrap(
+            spacing: 6,
+            children: _suggestedDials
+                .map(
+                  (candidate) => ActionChip(
+                    key: Key('live-dial-candidate-${candidate.id}'),
+                    label: Text('DIAL ${candidate.id.split('-').last}'),
+                    onPressed: () => setState(() {
+                      _editTarget = MeterFaceEditTarget.dial;
+                      _visionConfiguration = DialVisionConfiguration(
+                        totalizerRegion: _visionConfiguration.totalizerRegion,
+                        selectedDial: candidate.geometry,
+                        zeroAngleDegrees: _visionConfiguration.zeroAngleDegrees,
+                        clockwise: _visionConfiguration.clockwise,
+                        litersPerRevolution:
+                            _visionConfiguration.litersPerRevolution,
+                        multiplier: _visionConfiguration.multiplier,
+                        source: DialConfigurationSource.manual,
+                        totalizerConfiguration:
+                            _visionConfiguration.totalizerConfiguration,
+                      );
+                    }),
+                  ),
+                )
+                .toList(),
+          ),
+        if (_suggestedDials.isNotEmpty) const SizedBox(height: 8),
+        Expanded(
+          child: Center(
+            child: MeterFaceRegionEditor.live(
+              preview: camera.buildPreview(),
+              aspectRatio: camera.previewAspectRatio,
+              configuration: _visionConfiguration,
+              target: _editTarget,
+              onChanged: (value) =>
+                  setState(() => _visionConfiguration = value),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        FilledButton.icon(
+          key: const Key('finish-live-camera-preparation'),
+          onPressed: state.busy
+              ? null
+              : () => ref
+                    .read(appControllerProvider.notifier)
+                    .confirmLiveCameraPreparation(_visionConfiguration),
+          icon: const Icon(Icons.check),
+          label: const Text('FIJAR REGIONES'),
+        ),
+      ],
+    );
+  }
+
   Widget _buildRegionEditingMode(
     VisualReadingProposal proposal,
     AppViewState state,
@@ -849,6 +1322,39 @@ final class _CameraCaptureScreenState extends ConsumerState<CameraCaptureScreen>
         style: TextStyle(color: AppColors.muted),
       ),
       const SizedBox(height: 8),
+      Container(
+        key: const Key('live-region-readings'),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.heading.withValues(alpha: .12),
+          border: Border.all(color: AppColors.heading.withValues(alpha: .7)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: _LiveReadingValue(
+                label: 'TOTALIZADOR',
+                value: _liveTotalizerValue(proposal),
+              ),
+            ),
+            Container(
+              width: 1,
+              height: 38,
+              color: AppColors.heading.withValues(alpha: .45),
+            ),
+            Expanded(
+              child: _LiveReadingValue(
+                label: 'DIAL',
+                value: proposal.needleLiters == null
+                    ? 'NO DETECTADO'
+                    : '${proposal.needleLiters!.toStringAsFixed(2)} L',
+              ),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 8),
       SegmentedButton<MeterFaceEditTarget>(
         segments: const [
           ButtonSegment(
@@ -861,6 +1367,35 @@ final class _CameraCaptureScreenState extends ConsumerState<CameraCaptureScreen>
         onSelectionChanged: (value) =>
             setState(() => _editTarget = value.single),
       ),
+      if (proposal.dialCandidates.isNotEmpty) ...[
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 6,
+          children: proposal.dialCandidates
+              .map(
+                (candidate) => ActionChip(
+                  key: Key('dial-candidate-${candidate.id}'),
+                  label: Text('DIAL ${candidate.id.split('-').last}'),
+                  onPressed: () => setState(() {
+                    _editTarget = MeterFaceEditTarget.dial;
+                    _visionConfiguration = DialVisionConfiguration(
+                      totalizerRegion: _visionConfiguration.totalizerRegion,
+                      selectedDial: candidate.geometry,
+                      zeroAngleDegrees: _visionConfiguration.zeroAngleDegrees,
+                      clockwise: _visionConfiguration.clockwise,
+                      litersPerRevolution:
+                          _visionConfiguration.litersPerRevolution,
+                      multiplier: _visionConfiguration.multiplier,
+                      source: DialConfigurationSource.manual,
+                      totalizerConfiguration:
+                          _visionConfiguration.totalizerConfiguration,
+                    );
+                  }),
+                ),
+              )
+              .toList(),
+        ),
+      ],
       const SizedBox(height: 8),
       Expanded(
         child: Center(
@@ -903,6 +1438,99 @@ final class _CameraCaptureScreenState extends ConsumerState<CameraCaptureScreen>
       ),
     ],
   );
+
+  String _liveTotalizerValue(VisualReadingProposal proposal) {
+    final digits =
+        proposal.totalizerReadingProposal?.candidate.digits ??
+        proposal.odometerCandidates.firstOrNull?.digits;
+    if (digits != null && digits.isNotEmpty) return digits;
+    final value = proposal.odometerValue;
+    return value == null ? 'NO DETECTADO' : value.toString();
+  }
+}
+
+final class _LiveReadingValue extends StatelessWidget {
+  const _LiveReadingValue({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Text(
+        label,
+        style: const TextStyle(
+          color: AppColors.muted,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      const SizedBox(height: 3),
+      Text(
+        value,
+        key: Key('live-reading-value-$label'),
+        textAlign: TextAlign.center,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          color: AppColors.heading,
+          fontSize: 18,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    ],
+  );
+}
+
+// Legacy display retained for historical photo review only.
+// ignore: unused_element
+final class _LiveReadingsPanel extends StatelessWidget {
+  const _LiveReadingsPanel({required this.proposal});
+
+  final VisualReadingProposal? proposal;
+
+  @override
+  Widget build(BuildContext context) {
+    final current = proposal;
+    final configuredValue = current?.totalizerReadingProposal?.value;
+    final digits = current?.odometerCandidates.firstOrNull?.digits;
+    final totalizer = configuredValue != null
+        ? '${configuredValue.toStringAsFixed(current!.totalizerReadingProposal!.configuration.decimalPlaces)} m³'
+        : digits?.isNotEmpty == true
+        ? digits!
+        : current == null
+        ? 'ANALIZANDO…'
+        : 'NO DETECTADO';
+    final dial = current?.needleLiters == null
+        ? (current == null ? 'ANALIZANDO…' : 'NO DETECTADO')
+        : '${current!.needleLiters!.toStringAsFixed(2)} L';
+    return Container(
+      key: const Key('live-camera-readings'),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.heading.withValues(alpha: .12),
+        border: Border.all(color: AppColors.heading.withValues(alpha: .7)),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _LiveReadingValue(label: 'TOTALIZADOR', value: totalizer),
+          ),
+          Container(
+            width: 1,
+            height: 38,
+            color: AppColors.heading.withValues(alpha: .45),
+          ),
+          Expanded(
+            child: _LiveReadingValue(label: 'DIAL', value: dial),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // Kept temporarily as the Stage 4 reference implementation while the shared
@@ -930,7 +1558,7 @@ final class _RegionEditor extends StatelessWidget {
         return Stack(
           fit: StackFit.expand,
           children: [
-            Image.file(File(imagePath), fit: BoxFit.fill),
+            Image.file(File(imagePath), fit: BoxFit.contain),
             Positioned(
               left: rect.left * box.maxWidth,
               top: rect.top * box.maxHeight,
@@ -1143,6 +1771,7 @@ final class _DialGuide extends StatelessWidget {
 }
 
 String _captureTitle(CapturePurpose? purpose) => switch (purpose) {
+  CapturePurpose.cameraPreparation => 'PREPARACIÓN DE CÁMARA',
   CapturePurpose.start => 'Evidencia START',
   CapturePurpose.intermediate => 'Evidencia INTERMEDIATE',
   CapturePurpose.manualDiagnostic => 'Punto diagnóstico manual',

@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:android_id/android_id.dart';
 import 'package:uuid/uuid.dart';
 
 import '../data/local/database/app_database.dart' hide User;
@@ -61,6 +63,24 @@ abstract interface class AuthService {
 
 abstract interface class LocationPort {
   Future<GpsSnapshot> capture();
+}
+
+abstract interface class DeviceMetadataPort {
+  Future<DeviceMetadata> read();
+}
+
+final class AndroidDeviceMetadataAdapter implements DeviceMetadataPort {
+  @override
+  Future<DeviceMetadata> read() async {
+    if (!Platform.isAndroid) return const DeviceMetadata();
+    final info = await DeviceInfoPlugin().androidInfo;
+    return DeviceMetadata(
+      id: await const AndroidId().getId(),
+      androidVersion: info.version.release,
+      brand: info.brand,
+      model: info.model,
+    );
+  }
 }
 
 enum LocationFailureKind {
@@ -235,6 +255,110 @@ final class ServerBackedAuthService implements AuthService {
     }
     await tokens.clear();
     await sessionStore.clear();
+  }
+}
+
+abstract final class MasterAccessIdentity {
+  static const displayName = 'Martin Osuna';
+  static const email = 'martinosuna@agrienlace.com';
+  static const phone = '9999999999';
+  static const identities =
+      <({String displayName, String email, String phone})>[
+        (displayName: displayName, email: email, phone: phone),
+        (
+          displayName: 'Rene',
+          email: 'renelopez@agrienlace.com',
+          phone: '9999999999',
+        ),
+        (
+          displayName: 'Omar',
+          email: 'omarpizano@aquafim.com',
+          phone: '9999999999',
+        ),
+      ];
+
+  static ({String displayName, String email, String phone})? find({
+    required String displayName,
+    required String email,
+    required String phone,
+  }) {
+    final name = normalizeDisplayName(displayName).toLowerCase();
+    final normalizedEmail = normalizeEmail(email);
+    final normalizedPhone = normalizePhone(phone);
+    for (final identity in identities) {
+      if (identity.displayName.toLowerCase() == name &&
+          identity.email == normalizedEmail &&
+          identity.phone == normalizedPhone) {
+        return identity;
+      }
+    }
+    return null;
+  }
+
+  static bool matches({
+    required String displayName,
+    required String email,
+    required String phone,
+  }) => find(displayName: displayName, email: email, phone: phone) != null;
+}
+
+/// Allows the documented field master identity to establish a local session
+/// without making an API request. Every other identity follows the configured
+/// production authentication path unchanged.
+final class MasterAccessAuthService implements AuthService {
+  MasterAccessAuthService({
+    required this.primary,
+    required this.local,
+    required this.users,
+    required this.sessionStore,
+    required this.tokens,
+  });
+
+  final AuthService primary;
+  final LocalAuthService local;
+  final UserRepository users;
+  final SessionStore sessionStore;
+  final TokenStore tokens;
+
+  @override
+  Future<User?> restoreSession() => primary.restoreSession();
+
+  @override
+  Future<User> login({
+    required String displayName,
+    required String email,
+    required String phone,
+  }) {
+    final identity = MasterAccessIdentity.find(
+      displayName: displayName,
+      email: email,
+      phone: phone,
+    );
+    if (identity != null) {
+      return local.login(
+        displayName: identity.displayName,
+        email: identity.email,
+        phone: identity.phone,
+      );
+    }
+    return primary.login(displayName: displayName, email: email, phone: phone);
+  }
+
+  @override
+  Future<void> logout() async {
+    final userId = await sessionStore.readActiveUserId();
+    final user = userId == null ? null : await users.getById(userId);
+    if (user != null &&
+        MasterAccessIdentity.matches(
+          displayName: user.displayName ?? '',
+          email: user.email,
+          phone: user.phone,
+        )) {
+      await tokens.clear();
+      await local.logout();
+      return;
+    }
+    await primary.logout();
   }
 }
 
@@ -415,6 +539,7 @@ final class AppDependencies {
     required this.caseExport,
     this.bleDiscovery,
     this.location,
+    this.deviceMetadata,
     this.remoteApi,
     this.tokenStore,
     this.camera,
@@ -430,10 +555,24 @@ final class AppDependencies {
       sessionStore: SharedPreferencesSessionStore(),
     );
     const apiBaseUrl = String.fromEnvironment('DDR001_API_BASE_URL');
+    const allowLocalFirstLogin = bool.fromEnvironment(
+      'DDR001_ALLOW_LOCAL_FIRST_LOGIN',
+      defaultValue: false,
+    );
     final tokenStore = const SecureTokenStore();
     final remoteApi = apiBaseUrl.isEmpty
         ? null
         : RemoteApiClient(baseUrl: apiBaseUrl);
+    final primaryAuth = remoteApi == null
+        ? allowLocalFirstLogin
+              ? LocalAuthService(base.users, base.sessionStore)
+              : ExistingSessionOnlyAuthService(base.users, base.sessionStore)
+        : ServerBackedAuthService(
+            users: base.users,
+            sessionStore: base.sessionStore,
+            tokens: tokenStore,
+            api: remoteApi,
+          );
     return base.copyWith(
       evidenceCapture: CameraEvidenceCaptureAdapter(fileStore, base.evidence),
       camera: FlutterCameraAdapter(),
@@ -443,14 +582,14 @@ final class AppDependencies {
       ),
       bleDiscovery: BleDiscoveryService(),
       location: GeolocatorLocationAdapter(),
-      auth: remoteApi == null
-          ? ExistingSessionOnlyAuthService(base.users, base.sessionStore)
-          : ServerBackedAuthService(
-              users: base.users,
-              sessionStore: base.sessionStore,
-              tokens: tokenStore,
-              api: remoteApi,
-            ),
+      deviceMetadata: AndroidDeviceMetadataAdapter(),
+      auth: MasterAccessAuthService(
+        primary: primaryAuth,
+        local: LocalAuthService(base.users, base.sessionStore),
+        users: base.users,
+        sessionStore: base.sessionStore,
+        tokens: tokenStore,
+      ),
       remoteApi: remoteApi,
       tokenStore: tokenStore,
     );
@@ -509,6 +648,7 @@ final class AppDependencies {
   final CaseExportService caseExport;
   final BleDiscoveryService? bleDiscovery;
   final LocationPort? location;
+  final DeviceMetadataPort? deviceMetadata;
   final RemoteApiClient? remoteApi;
   final TokenStore? tokenStore;
   final CameraPort? camera;
@@ -525,6 +665,7 @@ final class AppDependencies {
     PulseProgressPort? pulseProgress,
     BleDiscoveryService? bleDiscovery,
     LocationPort? location,
+    DeviceMetadataPort? deviceMetadata,
     AuthService? auth,
     RemoteApiClient? remoteApi,
     TokenStore? tokenStore,
@@ -548,6 +689,7 @@ final class AppDependencies {
     caseExport: caseExport,
     bleDiscovery: bleDiscovery ?? this.bleDiscovery,
     location: location ?? this.location,
+    deviceMetadata: deviceMetadata ?? this.deviceMetadata,
     remoteApi: remoteApi ?? this.remoteApi,
     tokenStore: tokenStore ?? this.tokenStore,
     camera: camera ?? this.camera,

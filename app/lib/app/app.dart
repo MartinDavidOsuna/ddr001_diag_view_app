@@ -15,6 +15,7 @@ import '../presentation/workflow/camera_screen.dart';
 import '../presentation/workflow/run_screens.dart';
 import '../presentation/workflow/setup_screens.dart';
 import '../presentation/debug/visual_calibration_screen.dart';
+import '../presentation/common/app_brand_logo.dart';
 import 'theme/app_theme.dart';
 
 final class Ddr001App extends ConsumerStatefulWidget {
@@ -55,33 +56,30 @@ final class _Ddr001AppState extends ConsumerState<Ddr001App> {
       _setNativeRemoteSuppressed(state.sample?.status == SampleStatus.running),
     );
     return MaterialApp(
-      title: 'DDR001 VERIFICADOR VISUAL',
+      title: 'AQ VF DDR001',
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
-      home: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 180),
-        child: KeyedSubtree(
-          key: ValueKey(state.page),
-          child: switch (state.page) {
-            AppPage.loading => const _LoadingScreen(),
-            AppPage.login => const LoginScreen(),
-            AppPage.recovery => const RecoveryScreen(),
-            AppPage.home => const HomeScreen(),
-            AppPage.identification => const IdentificationScreen(),
-            AppPage.method => const MethodScreen(),
-            AppPage.setup => const TestSetupScreen(),
-            AppPage.run => const TestRunScreen(),
-            AppPage.readings => const ReadingsScreen(),
-            AppPage.result => const SampleResultScreen(),
-            AppPage.caseSummary => const CaseSummaryScreen(),
-            AppPage.history => const HistoryScreen(),
-            AppPage.settings => const SettingsScreen(),
-            AppPage.manual => const ManualScreen(),
-            AppPage.invalidEvidence => const InvalidEvidenceScreen(),
-            AppPage.camera => const CameraCaptureScreen(),
-            AppPage.debugCalibration => const VisualCalibrationScreen(),
-          },
-        ),
+      home: KeyedSubtree(
+        key: ValueKey(state.page),
+        child: switch (state.page) {
+          AppPage.loading => const _LoadingScreen(),
+          AppPage.login => const LoginScreen(),
+          AppPage.recovery => const RecoveryScreen(),
+          AppPage.home => const HomeScreen(),
+          AppPage.identification => const IdentificationScreen(),
+          AppPage.method => const MethodScreen(),
+          AppPage.setup => const TestSetupScreen(),
+          AppPage.run => const TestRunScreen(),
+          AppPage.readings => const ReadingsScreen(),
+          AppPage.result => const SampleResultScreen(),
+          AppPage.caseSummary => const CaseSummaryScreen(),
+          AppPage.history => const HistoryScreen(),
+          AppPage.settings => const SettingsScreen(),
+          AppPage.manual => const ManualScreen(),
+          AppPage.invalidEvidence => const InvalidEvidenceScreen(),
+          AppPage.camera => const CameraCaptureScreen(),
+          AppPage.debugCalibration => const VisualCalibrationScreen(),
+        },
       ),
     );
   }
@@ -95,8 +93,12 @@ final class _LoadingScreen extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.water_drop_rounded, size: 58, color: AppColors.heading),
-          SizedBox(height: 18),
+          AppBrandLogo(
+            variant: AppBrandLogoVariant.splash,
+            width: 230,
+            height: 100,
+          ),
+          SizedBox(height: 22),
           CircularProgressIndicator(),
           SizedBox(height: 14),
           Text('Preparando almacenamiento offline…'),

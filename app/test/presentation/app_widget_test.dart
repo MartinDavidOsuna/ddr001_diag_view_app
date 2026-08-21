@@ -15,7 +15,16 @@ import '../support/presentation_fixture.dart';
 void main() {
   late PresentationFixture fixture;
 
-  setUp(() async => fixture = await PresentationFixture.create());
+  setUp(() async {
+    PackageInfo.setMockInitialValues(
+      appName: 'DDR001',
+      packageName: 'mx.aquafim.ddr001',
+      version: '1.2.0',
+      buildNumber: '08',
+      buildSignature: '',
+    );
+    fixture = await PresentationFixture.create();
+  });
   tearDown(() async => fixture.dispose());
 
   testWidgets('bootstrap navigates to login without session', (tester) async {
@@ -23,6 +32,8 @@ void main() {
     expect(find.text('Acceso de técnico'), findsOneWidget);
     expect(find.byKey(const Key('login-display-name')), findsOneWidget);
     expect(find.byKey(const Key('login-email')), findsOneWidget);
+    expect(find.text('VERIFICADOR FUNCIONAL'), findsOneWidget);
+    expect(find.text('Versión: 1.2.0+08'), findsOneWidget);
   });
 
   testWidgets('bootstrap navigates home with persistent session', (
@@ -33,6 +44,8 @@ void main() {
     expect(find.text('NUEVA VERIFICACIÓN'), findsOneWidget);
     expect(find.text('Hola, Técnico de Campo'), findsOneWidget);
     expect(find.textContaining('Modo offline'), findsOneWidget);
+    expect(find.text('Versión: 1.2.0+08'), findsOneWidget);
+    expect(find.byKey(const Key('aquafim-logo-symbol')), findsOneWidget);
   });
 
   testWidgets('login validates required name email and phone', (tester) async {
@@ -62,34 +75,48 @@ void main() {
     expect(fixture.session.userId, isNotNull);
   });
 
-  testWidgets('identification displays Q1 Q2 Q3 Q4 semantics', (tester) async {
-    await fixture.seedSession();
-    await _pump(tester, fixture);
-    await tester.tap(find.byKey(const Key('new-verification')));
-    await _settle(tester);
-    await tester.tap(find.byKey(const Key('flow-selector')));
-    await _settle(tester);
-    expect(find.text('Q1 — Caudal mínimo'), findsOneWidget);
-    expect(find.text('Q2 — Caudal de transición'), findsOneWidget);
-    expect(find.text('Q3 — Caudal permanente'), findsWidgets);
-    expect(find.text('Q4 — Caudal de sobrecarga'), findsOneWidget);
-  });
-
-  testWidgets('method UI exposes VISUAL MANUAL LED BLE and no legacy method', (
+  testWidgets('identification omits manually entered Q1 and Q2 flow', (
     tester,
   ) async {
     await fixture.seedSession();
     await _pump(tester, fixture);
     await tester.tap(find.byKey(const Key('new-verification')));
     await _settle(tester);
+    expect(find.byKey(const Key('flow-selector')), findsNothing);
+    expect(find.byKey(const Key('q1-lps-input')), findsNothing);
+    expect(find.byKey(const Key('q2-lps-input')), findsNothing);
+    expect(find.byKey(const Key('capture-gps')), findsOneWidget);
+    expect(
+      find.text('* Dato informativo para validación interna'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('method UI exposes only BLE and disabled VISUAL', (tester) async {
+    await fixture.seedSession();
+    await _pump(tester, fixture);
+    await tester.tap(find.byKey(const Key('new-verification')));
+    await _settle(tester);
     await tester.enterText(find.byKey(const Key('meter-id')), 'M-UI');
+    await tester.enterText(find.byKey(const Key('test-bench-id')), 'BANCO-UI');
+    await tester.ensureVisible(find.byKey(const Key('identify-continue')));
     await tester.tap(find.byKey(const Key('identify-continue')));
     await _settle(tester);
+    expect(find.text('Ubicación no registrada'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('confirm-without-gps')));
+    await _settle(tester);
     expect(find.text('LECTURA VISUAL'), findsOneWidget);
-    expect(find.text('MANUAL'), findsOneWidget);
-    expect(find.text('LED'), findsOneWidget);
+    expect(find.text('LECTURA VISUAL · DESACTIVADA'), findsNothing);
+    expect(find.byKey(const Key('method-manual')), findsNothing);
+    expect(find.byKey(const Key('method-led')), findsNothing);
     expect(find.text('BLUETOOTH'), findsOneWidget);
     expect(find.text('Simulación'), findsNothing);
+    expect(
+      tester
+          .widget<FilledButton>(find.byKey(const Key('method-continue')))
+          .onPressed,
+      isNull,
+    );
   });
 
   testWidgets('settings logout returns login and does not expose password', (
@@ -104,6 +131,8 @@ void main() {
     expect(find.text('Correo'), findsOneWidget);
     expect(find.text('Teléfono'), findsOneWidget);
     expect(find.byKey(const Key('manual-de-uso')), findsOneWidget);
+    expect(find.text('Versión: 1.2.0+08'), findsOneWidget);
+    expect(find.byKey(const Key('visual-calibration-debug')), findsNothing);
     expect(find.textContaining('Contraseña'), findsNothing);
     await tester.tap(find.byKey(const Key('logout')));
     await _settle(tester);
@@ -211,7 +240,7 @@ void main() {
     await tester.runAsync(() async {
       await fixture.seedSession();
       await controller.initialize();
-      controller.startIdentification();
+      await controller.startIdentification();
       await controller.identifyMeter(meterId: 'REC-1', lpsApprox: 20);
       controller.selectMethod(MeasurementMethod.manual);
       await controller.startSample();

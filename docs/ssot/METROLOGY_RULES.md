@@ -7,16 +7,16 @@ La implementación toma como referencia técnica la familia ISO 4064 / OIML R49 
 
 | Zona | Intervalo | MPE |
 |---|---|---:|
-| Inferior | Q1 ≤ Q < Q2 | ±5 % |
+| Corrida Q1 — caudal operativo | Configuración operativa DDR001 | ±2 % |
 | Superior | Q2 ≤ Q ≤ Q4 | ±2 % |
 
-La app usa la nomenclatura correcta:
-- **Q1:** caudal mínimo.
-- **Q2:** caudal de transición.
-- **Q3:** caudal permanente.
-- **Q4:** caudal de sobrecarga/máximo.
+La V1 usa una nomenclatura operativa de dos corridas:
+- **Q1 — Caudal operativo:** sustituye a la antigua etapa Q3 y hereda todas sus reglas de caudal permanente, incluido MPE ±2 %.
+- **Q2 — Caudal medio:** conserva las reglas que ya correspondían a Q2, incluido MPE ±2 %.
 
-`LPS aprox.` se captura manualmente y no determina por sí solo el veredicto.
+Q3 y Q4 permanecen únicamente para compatibilidad con expedientes históricos; no son corridas nuevas del flujo V1.
+
+No se captura `LPS aprox.` para verificaciones nuevas. El caudal mostrado durante la corrida usa volumen acumulado/tiempo transcurrido desde el primer pulso aceptado, nunca desde la apertura de la pantalla. Cada Evidence INICIO/INTERMEDIA/FINAL congela su LPS puntual; el mínimo, máximo y promedio son estadísticas descriptivas de esos snapshots y no sustituyen el error endpoint.
 
 ## 2. Constantes configurables
 Valores iniciales:

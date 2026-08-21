@@ -49,8 +49,14 @@ final class LocalSampleClosureService implements SampleClosureService {
         'Conteo de pulsos no verificable. La prueba debe repetirse.',
       );
     }
-    if (sample.initialReading == null || sample.finalReading == null) {
-      throw StateError('Both confirmed readings are required.');
+    final hasEndpointReadings =
+        sample.initialReading != null && sample.finalReading != null;
+    final hasManualFinalReading =
+        sample.manualIndicatedLiters != null && sample.finalReading != null;
+    if (!hasEndpointReadings && !hasManualFinalReading) {
+      throw StateError(
+        'A confirmed FINAL reading and manual meter total are required.',
+      );
     }
 
     final config = sample.configuration;
@@ -81,11 +87,13 @@ final class LocalSampleClosureService implements SampleClosureService {
         )..where((t) => t.id.equals(sampleId))).getSingle(),
       );
     }
-    final indicatedLiters = metrology.calculateIndicatedVolume(
-      initial: sample.initialReading!.reading,
-      finalReading: sample.finalReading!.reading,
-      referenceLiters: referenceLiters,
-    );
+    final indicatedLiters =
+        sample.manualIndicatedLiters ??
+        metrology.calculateIndicatedVolume(
+          initial: sample.initialReading!.reading,
+          finalReading: sample.finalReading!.reading,
+          referenceLiters: referenceLiters,
+        );
     final engine = metrology.MetrologyEngine(
       mpePolicy: _FrozenMpePolicy(config.mpePct),
       uncertaintyPolicy: metrology.ReadingUncertaintyPolicy(
@@ -111,26 +119,29 @@ final class LocalSampleClosureService implements SampleClosureService {
       endedAt: at,
       requiredEvidence: requiredEvidence,
     );
-    final initialReadingLiters =
-        sample.initialReading!.reading.odometerUnits *
-            sample.initialReading!.reading.litersPerOdometerUnit +
-        sample.initialReading!.reading.needleLiters;
+    final initialReadingLiters = sample.initialReading == null
+        ? null
+        : sample.initialReading!.reading.odometerUnits *
+                  sample.initialReading!.reading.litersPerOdometerUnit +
+              sample.initialReading!.reading.needleLiters;
     final finalReadingLiters =
         sample.finalReading!.reading.odometerUnits *
             sample.finalReading!.reading.litersPerOdometerUnit +
         sample.finalReading!.reading.needleLiters;
-    await (database.update(database.testPoints)..where(
-          (point) =>
-              point.sampleId.equals(sampleId) &
-              point.type.equals(domain.PointType.start.name),
-        ))
-        .write(
-          db.TestPointsCompanion(
-            readingLiters: Value(initialReadingLiters),
-            indicatedLiters: const Value(0),
-            needleLiters: Value(sample.initialReading!.reading.needleLiters),
-          ),
-        );
+    if (initialReadingLiters != null) {
+      await (database.update(database.testPoints)..where(
+            (point) =>
+                point.sampleId.equals(sampleId) &
+                point.type.equals(domain.PointType.start.name),
+          ))
+          .write(
+            db.TestPointsCompanion(
+              readingLiters: Value(initialReadingLiters),
+              indicatedLiters: const Value(0),
+              needleLiters: Value(sample.initialReading!.reading.needleLiters),
+            ),
+          );
+    }
     await (database.update(database.testPoints)..where(
           (point) =>
               point.sampleId.equals(sampleId) &

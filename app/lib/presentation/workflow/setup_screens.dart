@@ -11,8 +11,8 @@ import '../common/app_scaffold.dart';
 import '../home/home_screens.dart';
 
 String flowLabel(FlowPoint flow) => switch (flow) {
-  FlowPoint.q1 => 'Q1 — Caudal mínimo',
-  FlowPoint.q2 => 'Q2 — Caudal de transición',
+  FlowPoint.q1 => 'Q1 — Caudal operativo',
+  FlowPoint.q2 => 'Q2 — Caudal medio',
   FlowPoint.q3 => 'Q3 — Caudal permanente',
   FlowPoint.q4 => 'Q4 — Caudal de sobrecarga',
 };
@@ -34,13 +34,17 @@ final class IdentificationScreen extends ConsumerStatefulWidget {
 final class _IdentificationScreenState
     extends ConsumerState<IdentificationScreen> {
   final _form = GlobalKey<FormState>();
-  final _meter = TextEditingController();
-  final _lps = TextEditingController(text: '20');
+  late final _meter = TextEditingController(
+    text: ref.read(appControllerProvider).identificationMeterId,
+  );
+  late final _testBench = TextEditingController(
+    text: ref.read(appControllerProvider).identificationTestBenchId,
+  );
 
   @override
   void dispose() {
     _meter.dispose();
-    _lps.dispose();
+    _testBench.dispose();
     super.dispose();
   }
 
@@ -61,6 +65,8 @@ final class _IdentificationScreenState
               TextFormField(
                 key: const Key('meter-id'),
                 controller: _meter,
+                onChanged: (value) =>
+                    controller.updateIdentificationDraft(meterId: value),
                 decoration: const InputDecoration(
                   labelText: 'ID / número de cuenta del medidor',
                   hintText: 'p. ej. H-016',
@@ -69,46 +75,20 @@ final class _IdentificationScreenState
                     ? 'Captura cualquier ID válido.'
                     : null,
               ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<FlowPoint>(
-                key: const Key('flow-selector'),
-                initialValue: state.selectedFlow,
-                decoration: const InputDecoration(labelText: 'Caudal'),
-                items: FlowPoint.values
-                    .map(
-                      (flow) => DropdownMenuItem(
-                        value: flow,
-                        child: Text(flowLabel(flow)),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  if (value != null) controller.selectFlow(value);
-                },
-              ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               TextFormField(
-                key: const Key('lps-input'),
-                controller: _lps,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-                ],
+                key: const Key('test-bench-id'),
+                controller: _testBench,
+                textCapitalization: TextCapitalization.characters,
+                onChanged: (value) =>
+                    controller.updateIdentificationDraft(testBenchId: value),
                 decoration: const InputDecoration(
-                  labelText: 'LPS aproximado manual',
+                  labelText: 'ID / banco de pruebas',
+                  hintText: 'p. ej. BANCO-01',
                 ),
-                validator: (value) => (double.tryParse(value ?? '') ?? 0) > 0
-                    ? null
-                    : 'Ingresa un LPS mayor que cero.',
-              ),
-              const SizedBox(height: 12),
-              StatusBanner(
-                text:
-                    '${flowLabel(state.selectedFlow)} · MPE ±${const Class2WaterMpePolicy().mpePctFor(state.selectedFlow).toStringAsFixed(0)} %',
-                color: AppColors.heading,
-                icon: Icons.speed,
+                validator: (value) => (value ?? '').trim().isEmpty
+                    ? 'Captura el banco de pruebas utilizado.'
+                    : null,
               ),
               const SizedBox(height: 10),
               ListTile(
@@ -146,6 +126,13 @@ final class _IdentificationScreenState
                   icon: const Icon(Icons.my_location),
                 ),
               ),
+              const Padding(
+                padding: EdgeInsets.only(left: 16, right: 16, bottom: 8),
+                child: Text(
+                  '* Dato informativo para validación interna',
+                  style: TextStyle(color: AppColors.muted, fontSize: 11),
+                ),
+              ),
               if (capabilities.hydrantLookupConfigured)
                 ListTile(
                   contentPadding: EdgeInsets.zero,
@@ -173,11 +160,38 @@ final class _IdentificationScreenState
               const SizedBox(height: 14),
               FilledButton(
                 key: const Key('identify-continue'),
-                onPressed: () {
+                onPressed: () async {
                   if (_form.currentState!.validate()) {
-                    controller.identifyMeter(
+                    if (state.gps == null) {
+                      final continueWithoutGps = await showDialog<bool>(
+                        context: context,
+                        builder: (dialogContext) => AlertDialog(
+                          title: const Text('Ubicación no registrada'),
+                          content: const Text(
+                            '¿Desea continuar sin capturar la ubicación de esta verificación?',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () =>
+                                  Navigator.pop(dialogContext, false),
+                              child: const Text('CAPTURAR UBICACIÓN'),
+                            ),
+                            FilledButton(
+                              key: const Key('confirm-without-gps'),
+                              onPressed: () =>
+                                  Navigator.pop(dialogContext, true),
+                              child: const Text('CONTINUAR SIN UBICACIÓN'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (!context.mounted || continueWithoutGps != true) {
+                        return;
+                      }
+                    }
+                    await controller.identifyMeter(
                       meterId: _meter.text,
-                      lpsApprox: double.parse(_lps.text),
+                      testBenchId: _testBench.text,
                     );
                   }
                 },
@@ -191,10 +205,28 @@ final class _IdentificationScreenState
   }
 }
 
-final class MethodScreen extends ConsumerWidget {
+final class MethodScreen extends ConsumerStatefulWidget {
   const MethodScreen({super.key});
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MethodScreen> createState() => _MethodScreenState();
+}
+
+final class _MethodScreenState extends ConsumerState<MethodScreen> {
+  @override
+  void initState() {
+    super.initState();
+    if (ref.read(appControllerProvider).selectedBleDevice == null) {
+      Future.microtask(
+        () => ref
+            .read(appControllerProvider.notifier)
+            .scanBleDevices(autoSelectSingle: true),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(appControllerProvider);
     final controller = ref.read(appControllerProvider.notifier);
     return AppScaffold(
@@ -207,12 +239,47 @@ final class MethodScreen extends ConsumerWidget {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: MeasurementMethod.values
+              children: const [MeasurementMethod.ble, MeasurementMethod.visual]
                   .map(
                     (method) => ChoiceChip(
                       key: Key('method-${method.name}'),
                       selected: state.selectedMethod == method,
-                      onSelected: (_) => controller.selectMethod(method),
+                      onSelected: method == MeasurementMethod.visual
+                          ? null
+                          : (_) async {
+                              if (state.sample != null &&
+                                  state.sample!.status !=
+                                      SampleStatus.closedValid &&
+                                  state.selectedMethod != method) {
+                                final replace = await showDialog<bool>(
+                                  context: context,
+                                  builder: (dialogContext) => AlertDialog(
+                                    title: const Text('Cambiar método'),
+                                    content: const Text(
+                                      'Se descartará únicamente la preparación dependiente de la muestra abierta. El expediente y Q1/Q2 se conservarán.',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(dialogContext, false),
+                                        child: const Text('CANCELAR'),
+                                      ),
+                                      FilledButton(
+                                        onPressed: () =>
+                                            Navigator.pop(dialogContext, true),
+                                        child: const Text('CAMBIAR'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                                if (replace != true) return;
+                                await controller.replaceOpenSampleMethod(
+                                  method,
+                                );
+                                return;
+                              }
+                              controller.selectMethod(method);
+                            },
                       label: Text(methodLabel(method)),
                     ),
                   )
@@ -227,11 +294,14 @@ final class MethodScreen extends ConsumerWidget {
               selectedBleDevice: state.selectedBleDevice,
               onScanBle: controller.scanBleDevices,
               onSelectBle: controller.selectBleDevice,
+              onDisconnectBle: controller.disconnectBleDevice,
             ),
             const SizedBox(height: 18),
             FilledButton(
               key: const Key('method-continue'),
-              onPressed: controller.continueToSetup,
+              onPressed: state.hardwareState == HardwareState.ready
+                  ? controller.continueToSetup
+                  : null,
               child: const Text('CONFIGURAR PRUEBA'),
             ),
           ],
@@ -250,6 +320,7 @@ final class _MethodPanel extends StatelessWidget {
     required this.selectedBleDevice,
     required this.onScanBle,
     required this.onSelectBle,
+    required this.onDisconnectBle,
   });
   final MeasurementMethod method;
   final HardwareState hardwareState;
@@ -258,13 +329,14 @@ final class _MethodPanel extends StatelessWidget {
   final BleDeviceCandidate? selectedBleDevice;
   final Future<void> Function() onScanBle;
   final ValueChanged<BleDeviceCandidate> onSelectBle;
+  final Future<void> Function() onDisconnectBle;
 
   @override
   Widget build(BuildContext context) {
     if (method == MeasurementMethod.visual) {
       return const StatusBanner(
         text:
-            'LECTURA VISUAL productiva con cámara real, OCR de odómetro, detección de aguja y confirmación humana.',
+            'LECTURA VISUAL productiva con cámara real y captura manual de la lectura al finalizar.',
         color: AppColors.heading,
         icon: Icons.visibility_outlined,
       );
@@ -287,17 +359,20 @@ final class _MethodPanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        StatusBanner(
-          text: method == MeasurementMethod.ble
-              ? '$label · ${selectedBleDevice?.name ?? 'Seleccione DDR001 ESP32'}'
-              : '$label · Configure ROI LED y reconciliación BLE.',
-          color: hardwareState == HardwareState.ready
-              ? AppColors.success
-              : AppColors.warning,
-          icon: method == MeasurementMethod.ble
-              ? Icons.bluetooth_disabled
-              : Icons.highlight_outlined,
-        ),
+        if (hardwareState == HardwareState.preparing)
+          const _ConnectingMetersBanner()
+        else
+          StatusBanner(
+            text: method == MeasurementMethod.ble
+                ? '$label · ${selectedBleDevice?.name ?? 'Seleccione DDR001 ESP32'}'
+                : '$label · Configure ROI LED y reconciliación BLE.',
+            color: hardwareState == HardwareState.ready
+                ? AppColors.success
+                : AppColors.warning,
+            icon: method == MeasurementMethod.ble
+                ? Icons.bluetooth_disabled
+                : Icons.highlight_outlined,
+          ),
         const SizedBox(height: 10),
         if (method == MeasurementMethod.ble ||
             method == MeasurementMethod.led) ...[
@@ -305,8 +380,15 @@ final class _MethodPanel extends StatelessWidget {
             key: const Key('ble-scan'),
             onPressed: onScanBle,
             icon: const Icon(Icons.bluetooth_searching),
-            label: const Text('BUSCAR ESP32 DDR001'),
+            label: const Text('BUSCAR ESP32'),
           ),
+          if (selectedBleDevice != null)
+            OutlinedButton.icon(
+              key: const Key('ble-disconnect'),
+              onPressed: onDisconnectBle,
+              icon: const Icon(Icons.link_off),
+              label: const Text('DESCONECTAR ESP32'),
+            ),
           for (final device in bleDevices)
             ListTile(
               selected: selectedBleDevice?.id == device.id,
@@ -332,6 +414,55 @@ final class _MethodPanel extends StatelessWidget {
   }
 }
 
+final class _ConnectingMetersBanner extends StatefulWidget {
+  const _ConnectingMetersBanner();
+
+  @override
+  State<_ConnectingMetersBanner> createState() =>
+      _ConnectingMetersBannerState();
+}
+
+final class _ConnectingMetersBannerState extends State<_ConnectingMetersBanner>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1800),
+  )..repeat(reverse: true);
+  late final Animation<double> _opacity = Tween<double>(
+    begin: .42,
+    end: 1,
+  ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => FadeTransition(
+    opacity: _opacity,
+    child: Container(
+      key: const Key('connecting-meters-banner'),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2388E8).withValues(alpha: .24),
+        border: Border.all(color: const Color(0xFF55B5FF), width: 1.5),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: const Text(
+        'CONECTANDO A MEDIDORES',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: Color(0xFF8ED0FF),
+          fontWeight: FontWeight.w800,
+          letterSpacing: .5,
+        ),
+      ),
+    ),
+  );
+}
+
 final class TestSetupScreen extends ConsumerStatefulWidget {
   const TestSetupScreen({super.key});
   @override
@@ -339,9 +470,6 @@ final class TestSetupScreen extends ConsumerStatefulWidget {
 }
 
 final class _TestSetupScreenState extends ConsumerState<TestSetupScreen> {
-  late final _k = TextEditingController(
-    text: ref.read(appControllerProvider).litersPerPulse.toString(),
-  );
   late final _step = TextEditingController(
     text: ref.read(appControllerProvider).evidenceStepLiters.toString(),
   );
@@ -363,10 +491,21 @@ final class _TestSetupScreenState extends ConsumerState<TestSetupScreen> {
   late final _hydrantK = TextEditingController(
     text: ref.read(appControllerProvider).hydrantLitersPerPulse.toString(),
   );
+  late final _odometerScale = TextEditingController(
+    text: ref.read(appControllerProvider).litersPerOdometerUnit.toString(),
+  );
+  late final _needleScale = TextEditingController(
+    text: ref.read(appControllerProvider).needleLitersPerRevolution.toString(),
+  );
+  late final _integerDigits = TextEditingController(
+    text: ref.read(appControllerProvider).totalizerIntegerDigits.toString(),
+  );
+  late int _decimalPlaces = ref
+      .read(appControllerProvider)
+      .totalizerDecimalPlaces;
 
   @override
   void dispose() {
-    _k.dispose();
     _step.dispose();
     _uncertainty.dispose();
     _minimum.dispose();
@@ -374,6 +513,9 @@ final class _TestSetupScreenState extends ConsumerState<TestSetupScreen> {
     _startMin.dispose();
     _startMax.dispose();
     _hydrantK.dispose();
+    _odometerScale.dispose();
+    _needleScale.dispose();
+    _integerDigits.dispose();
     super.dispose();
   }
 
@@ -384,34 +526,17 @@ final class _TestSetupScreenState extends ConsumerState<TestSetupScreen> {
     return AppScaffold(
       title: 'Preparación',
       child: SectionCard(
-        title: 'Configuración congelada',
+        title: 'Configuración',
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _summary('Medidor', state.meter?.id ?? '—'),
-            _summary('Caudal', flowLabel(state.selectedFlow)),
-            _summary(
-              'LPS',
-              '${state.lpsApprox?.toStringAsFixed(2) ?? '—'} L/s',
-            ),
+            _summary('Q1 — Caudal operativo', 'Calculado durante la prueba'),
+            _summary('Q2 — Caudal medio', 'Calculado durante la prueba'),
             _summary('Método', methodLabel(state.selectedMethod)),
-            _summary(
-              'MPE',
-              '±${state.flow?.mpePct.toStringAsFixed(0) ?? '—'} %',
-            ),
+            _summary('K para Q1', '${state.litersPerPulse} L/pulso'),
+            _summary('K para Q2', '${state.litersPerPulse} L/pulso'),
             const Divider(),
-            TextField(
-              key: const Key('config-k'),
-              controller: _k,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              enabled: state.selectedMethod.isPulseEventSource,
-              decoration: const InputDecoration(
-                labelText: 'K · litros por pulso',
-              ),
-            ),
-            const SizedBox(height: 10),
             Row(
               children: [
                 Expanded(
@@ -483,6 +608,72 @@ final class _TestSetupScreenState extends ConsumerState<TestSetupScreen> {
               ),
             ),
             const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    key: const Key('config-odometer-scale'),
+                    controller: _odometerScale,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'Escala del odómetro (L/unidad)',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    key: const Key('config-needle-scale'),
+                    controller: _needleScale,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'Escala aguja (L/vuelta)',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    key: const Key('config-totalizer-integers'),
+                    controller: _integerDigits,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: const InputDecoration(
+                      labelText: 'Enteros del odómetro',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: DropdownButtonFormField<int>(
+                    key: const Key('config-totalizer-decimals'),
+                    initialValue: _decimalPlaces,
+                    decoration: const InputDecoration(labelText: 'Decimales'),
+                    items: const [0, 1, 2, 3]
+                        .map(
+                          (value) => DropdownMenuItem(
+                            value: value,
+                            child: Text(
+                              value == 0 ? 'Sin decimales' : '$value',
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) =>
+                        setState(() => _decimalPlaces = value ?? 0),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
             TextField(
               key: const Key('config-step'),
               controller: _step,
@@ -505,16 +696,12 @@ final class _TestSetupScreenState extends ConsumerState<TestSetupScreen> {
               ),
             ),
             const SizedBox(height: 10),
-            const Text(
-              'Escala: odómetro 1000 L/unidad · aguja 100 L/vuelta',
-              style: TextStyle(color: AppColors.muted),
-            ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 8),
             FilledButton(
               key: const Key('start-sample'),
               onPressed: () {
                 controller.updateSetup(
-                  litersPerPulse: double.tryParse(_k.text) ?? 1,
+                  litersPerPulse: state.litersPerPulse,
                   evidenceStepLiters: double.tryParse(_step.text) ?? 25,
                   uncertaintyLiters: double.tryParse(_uncertainty.text) ?? 1,
                   minimumVolumeLiters: double.tryParse(_minimum.text) ?? 100,
@@ -522,10 +709,17 @@ final class _TestSetupScreenState extends ConsumerState<TestSetupScreen> {
                   controlStartMinimumLps: double.tryParse(_startMin.text) ?? .5,
                   controlStartMaximumLps: double.tryParse(_startMax.text) ?? 50,
                   hydrantLitersPerPulse: double.tryParse(_hydrantK.text) ?? 1,
+                  litersPerOdometerUnit:
+                      double.tryParse(_odometerScale.text) ?? 1000,
+                  needleLitersPerRevolution:
+                      double.tryParse(_needleScale.text) ?? 100,
+                  totalizerIntegerDigits:
+                      int.tryParse(_integerDigits.text) ?? 5,
+                  totalizerDecimalPlaces: _decimalPlaces,
                 );
                 controller.startSample();
               },
-              child: const Text('PREPARAR Y CAPTURAR INICIO'),
+              child: const Text('PREPARAR CÁMARA'),
             ),
           ],
         ),

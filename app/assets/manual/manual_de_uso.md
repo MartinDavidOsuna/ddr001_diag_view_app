@@ -1,9 +1,9 @@
-# Manual de uso — DDR001 Verificador de Medidores
+# Manual de uso — AQ VF DDR001 · Verificador Funcional
 
 **Versión del manual:** 1.1  
 **Última actualización del contenido:** 16 de agosto de 2026
 
-La pantalla muestra por separado la versión instalada de la aplicación. Este manual es la fuente canónica del procedimiento visible para el técnico y funciona completamente sin internet.
+Inicio y Ajustes muestran por separado la versión instalada de la aplicación con el formato `Versión: #.#.#+##`. Este manual es la fuente canónica del procedimiento visible para el técnico y funciona completamente sin internet.
 
 ## Índice
 
@@ -55,6 +55,8 @@ El primer acceso solicita **Nombre**, **Correo** y **Teléfono**. Correo y telé
 
 El primer acceso requiere el backend DDR001 configurado. Después de guardar una sesión válida, la aplicación puede abrir y trabajar sin internet. La sesión permanece hasta pulsar **CERRAR SESIÓN** en Ajustes. Cerrar sesión no elimina expedientes, muestras ni fotografías locales.
 
+Para contingencia de campo existen tres identidades maestras: **Martin Osuna** (`martinosuna@agrienlace.com`), **Rene** (`renelopez@agrienlace.com`) y **Omar** (`omarpizano@aquafim.com`), todas con teléfono **9999999999**. Nombre, correo y teléfono deben coincidir. La versión instalada se muestra discretamente al fondo.
+
 ## 3. Pantalla de inicio
 
 - **NUEVA VERIFICACIÓN:** inicia la identificación de un medidor.
@@ -64,20 +66,22 @@ El primer acceso requiere el backend DDR001 configurado. Después de guardar una
 
 ## 4. Identificación del medidor
 
+Capture el **ID / número de cuenta del medidor** y el **ID / banco de pruebas** físico utilizado. El banco queda congelado en el expediente y aparece en el reporte.
+
 Capture el **ID o número de cuenta**. Cualquier ID es válido para continuar. Cuando la consulta externa esté configurada, la aplicación puede informar si la cuenta está localizada con levantamiento, localizada sin levantamiento o no localizada/nueva. La consulta nunca bloquea la verificación y no escribe en el sistema de hidrantes.
 
 Seleccione el caudal:
 
-- **Q1:** caudal mínimo.
-- **Q2:** caudal de transición.
+- **Q1 — Caudal operativo:** corrida obligatoria con MPE ±2 %.
+- **Q2 — Caudal medio:** corrida obligatoria con MPE ±2 %.
 - **Q3:** caudal permanente.
 - **Q4:** caudal de sobrecarga.
 
-Capture manualmente el **LPS aproximado**. El MPE mostrado se deriva del caudal seleccionado; no se introduce libremente.
+Identificación ya no solicita un LPS aproximado. El caudal se calcula durante la prueba desde el primer pulso y se registra al tomar INICIO, cada fotografía INTERMEDIA y FINAL.
 
 ## 5. GPS
 
-Pulse el icono **Obtener ubicación GPS** en Identificación. La pantalla muestra latitud, longitud y precisión aproximada `±N m`. La captura usa la ubicación de alta precisión del teléfono y registra timestamp.
+Pulse el icono **Obtener ubicación GPS** en Identificación. La pantalla muestra latitud, longitud y precisión aproximada `±N m`. La captura usa la ubicación de alta precisión del teléfono y registra timestamp. Si pulsa **CONTINUAR** sin ubicación, confirme **CONTINUAR SIN UBICACIÓN** para avanzar o vuelva a capturarla.
 
 GPS no necesita internet ni servidor. Android puede solicitar permiso. Si el permiso se deniega, se deniega permanentemente, los servicios están apagados o ocurre timeout, aparece un mensaje claro y la prueba puede continuar sin coordenadas. Al pulsar **INICIAR PRUEBA**, la aplicación vuelve a intentar GPS si todavía no existe una posición.
 
@@ -96,7 +100,7 @@ MANUAL, LED y BLUETOOTH convierten pulsos a volumen patrón con `Vref = pulsos �
 
 Configure **K en L/pulso**. Durante la prueba, cada acción sobre el botón de pulso representa exactamente un pulso real y aumenta el contador una unidad. El volumen patrón mostrado se obtiene multiplicando el contador por K.
 
-No pulse varias veces por un único evento ni omita eventos físicos. Use **Capturar un punto ahora** solamente cuando necesite un punto diagnóstico adicional; no sustituye las evidencias obligatorias.
+No pulse varias veces por un único evento ni omita eventos físicos. Los puntos del registro se generan mediante las evidencias obligatorias de la corrida.
 
 ## 8. Método BLUETOOTH
 
@@ -109,6 +113,12 @@ El ESP32 DDR001 recibe el dummy/sensor en GPIO27 y publica un contador acumulati
 
 La aplicación concilia los incrementos del contador y conserva el último valor observado para recovery. Una reconexión válida incorpora el delta acumulado. Un rollback o intervalo que no puede conciliarse marca la adquisición `COMPROMISED`; esa muestra no puede cerrar como válida.
 
+Durante la corrida, la app lee el contador cada 10 segundos como keepalive. Si el ESP32 no responde, realiza tres intentos de recuperación antes de mostrarlo desconectado. El control remoto Bluetooth también se verifica cada 10 segundos y solo se desarma después de tres verificaciones negativas.
+
+La conexión se conserva al moverse con Atrás entre **FUENTE / MÉTODO**, **PREPARACIÓN** y **PREPARACIÓN DE CÁMARA**, al fijar regiones y al comenzar otra verificación. En **FUENTE / MÉTODO**, **DESCONECTAR ESP32** es la única acción que fuerza la desconexión. **BUSCAR ESP32** repite siempre la búsqueda y lista todos los equipos que validan el contrato DDR001 real; un nombre parecido sin servicio, característica y contador compatibles no aparece.
+
+Un ESP32 conectado puede dejar de anunciarse temporalmente. Si la app continúa leyendo su contador por GATT, **BUSCAR ESP32** lo conserva en la lista como conectado y agrega los demás módulos cercanos encontrados; la ausencia de advertising no se interpreta por sí sola como desconexión.
+
 ## 9. Método LED
 
 LED utiliza el LED integrado GPIO2 del ESP32. La cámara observa una ROI, obtiene baseline de brillo y cuenta el flanco **DARK → BRIGHT** con histéresis y anti-rebote. Un destello válido equivale a un pulso y suma K litros.
@@ -117,11 +127,15 @@ El contador BLE acumulativo se usa como canal auxiliar de conciliación. Al toma
 
 ## 10. LECTURA VISUAL
 
-LECTURA VISUAL **no es simulación**. Se aplica a medidores reales. Usa la foto completa de la carátula, un crop de totalizador y un crop del dial elegidos por el técnico. OCR y detección de aguja solamente proponen valores; el técnico siempre confirma o corrige START y FINAL.
+LECTURA VISUAL **no es simulación**. Se aplica a medidores reales. El técnico fija en la cámara las regiones del totalizador y del dial. La app no interpreta esas imágenes mediante OCR ni detección automática: al finalizar presenta ambos recortes como referencia y el técnico captura manualmente los valores.
 
 El simulador web es una herramienta externa de validación y no forma parte de la app productiva.
 
 ## 11. Preparación de la prueba
+
+La ficha **CONFIGURACIÓN** muestra Q1/Q2 como caudales calculados y los valores K para ambas corridas. K ya no se captura en esta pantalla. Aquí se configuran la escala del odómetro en L/unidad, la escala de la aguja en L/vuelta, la cantidad de enteros y entre cero y tres decimales; estos valores quedan congelados en la corrida. El selector productivo muestra únicamente BLUETOOTH, primero y seleccionado, y LECTURA VISUAL, visible pero no seleccionable temporalmente. Al entrar, la app busca un ESP32 DDR001 y selecciona automáticamente solo cuando encuentra exactamente uno. El botón de búsqueda siempre ejecuta un scan nuevo y actualiza la lista aun cuando exista conexión. **CONFIGURAR PRUEBA** se habilita cuando el ESP32 llega a READY.
+
+En **PREPARACIÓN DE CÁMARA**, las lupas de los extremos disminuyen o aumentan el zoom y el slider permite ajuste continuo. Después de cambiar zoom, pulse **NUEVA SUGERENCIA DE REGIONES** para volver a detectar y reposicionar totalizador y diales con el encuadre actual. Las sugerencias siguen siendo opcionales y ajustables manualmente.
 
 Revise antes de iniciar:
 
@@ -150,15 +164,16 @@ Si FINAL coincide con un múltiplo, existe una sola FINAL en ese volumen. Cada E
 
 ## 13. Captura START
 
-1. Capture una foto completa y legible de la carátula.
-2. En **CONFIGURAR LECTURA**, seleccione manualmente el totalizador.
-3. Seleccione manualmente el dial que utilizará.
-4. Confirme formato del totalizador y escala del dial.
-5. Pulse **ANALIZAR LECTURA**.
-6. Revise ambos crops y la propuesta.
-7. Pulse **CORRECTA** o **CORREGIR**.
+Antes de START se abre **PREPARACIÓN DE CÁMARA**. Las guías se ajustan directamente sobre el preview en tiempo real: esta etapa no toma ni guarda una fotografía y no crea Evidence ni lectura inicial. El técnico coloca el rectángulo sobre el totalizador y el círculo sobre el dial que desea consultar. La app no intenta leer sus valores en esta etapa. La Evidence INICIO real se toma al pulsar **INICIAR PRUEBA**, usando el mismo zoom y geometría; INTERMEDIATE y FINAL restauran esos valores.
 
-Al pulsar **FIJAR REGIONES**, la tarjeta de la fotografía se minimiza para dejar visibles los controles de formato, escala y **ANALIZAR LECTURA**.
+1. Encuadre la carátula en **PREPARACIÓN DE CÁMARA**.
+2. Seleccione manualmente la región del totalizador.
+3. Seleccione manualmente el dial que utilizará.
+4. Fije las regiones. La app conserva las últimas posiciones confirmadas para una verificación nueva. Solo propone posiciones automáticamente si todavía no existe una configuración anterior; use **NUEVA SUGERENCIA DE REGIONES** para recorrer objetos detectados distintos después de cambiar encuadre o zoom.
+5. Inicie la prueba cuando se habilite la acción.
+6. La app toma automáticamente la fotografía INICIO sin interrumpir la corrida. Sus valores se capturan después, junto con FINAL.
+
+Al pulsar **FIJAR REGIONES**, la geometría queda preparada para los recortes que se presentarán al finalizar.
 
 Durante la preparación y la prueba, un panel permanece fijo debajo del título. Muestra la hora del primer pulso recibido, pulsos acumulados, volumen patrón y los caudales en L/s con dos decimales. Se refresca cada medio segundo: el caudal se calcula como volumen acumulado dividido entre el tiempo transcurrido desde el primer pulso. Por eso continúa cambiando aunque no llegue otro pulso y, si el flujo se detiene, disminuye progresivamente hasta mostrarse como 0.00 L/s. El botón **FINALIZAR Y CONFIRMAR LECTURAS** permanece dentro de ese panel aunque se desplace el registro.
 
@@ -170,39 +185,33 @@ Puede utilizarse un control Bluetooth de disparo fotográfico que Android presen
 
 Android puede mostrar el evento como **Volumen arriba** o **Volumen abajo**. Esto es normal: durante **Prueba en curso** la aplicación intercepta ese evento antes de que cambie el volumen y lo convierte en la acción habilitada. Fuera de esa pantalla, las teclas conservan su comportamiento normal.
 
-En Preparación configure el caudal mínimo y máximo permitido para iniciar, además de cuántos litros representa cada pulso del **medidor del hidrante**. Tras confirmar la fotografía INICIO, la app observa continuamente los dos canales para mostrar sus caudales, pero los acumulados oficiales de pulsos, V patrón y volumen del hidrante permanecen en cero. El botón verde **INICIAR PRUEBA** permanece deshabilitado hasta que el caudal de control esté dentro del rango; el valor cambia a verde. Al pulsarlo se toman bases lógicas sin reiniciar el ESP32 ni interrumpir los caudales observados: desde ese instante comienzan en cero los acumulados oficiales y aparece **FINALIZAR Y CONFIRMAR LECTURAS**.
+En Preparación configure el caudal mínimo y máximo permitido para iniciar, además de cuántos litros representa cada pulso del **medidor del hidrante**. Antes de INICIAR, la app observa continuamente ambos canales y muestra también el caudal calculado del hidrante cuando recibe pulsos, mientras los acumulados oficiales permanecen en cero. El botón verde **INICIAR PRUEBA** se habilita únicamente cuando el caudal de control está dentro del rango. Al pulsarlo se toman bases lógicas sin reiniciar el ESP32: desde ese instante comienzan los acumulados oficiales y aparece **FINALIZAR Y CONFIRMAR LECTURAS**. El rango solo controla el inicio; después, una caída de caudal o ausencia temporal de pulsos no reinicia ni detiene la prueba. La corrida continúa midiendo tiempo hasta que el operador la finaliza expresamente.
 
 En el extremo superior derecho, el icono Bluetooth y el texto **ESP32** son verdes cuando existe conexión y rojos cuando no existe. El icono del control remoto permanece gris hasta habilitarlo: la primera pulsación abre **Control conectado** y una segunda pulsación, o tocar **ACEPTAR**, lo habilita y cambia el icono a verde. Esta confirmación evita iniciar accidentalmente por pulsaciones repetidas durante la preparación. En el resumen, **V hidrante** es el acumulado oficial de pulsos GPIO25 multiplicado por el valor configurado de cada pulso del medidor del hidrante. El nombre del medidor y su renglón Q/caudal/K aparecen dentro del resumen, antes del estado de inicio.
 
-La app no ejecuta el análisis definitivo antes de esas selecciones. La foto original se conserva intacta con su SHA-256; rectángulo y círculo producen solamente crops derivados.
+La foto original se conserva intacta con su SHA-256; rectángulo y círculo producen solamente recortes derivados para consulta visual.
 
 ## 14. Selección del totalizador
 
-Pulse **EDITAR REGIONES** para entrar al modo de edición fijo. En este modo la pantalla no se desplaza: mueva el rectángulo ámbar hasta incluir **únicamente los dígitos del totalizador** y use el control de esquina para ampliar o reducir. Puede colocarlo arriba, abajo, al centro, a la izquierda o a la derecha según la marca del medidor. Pulse **FIJAR REGIONES** para volver al formulario de formato y análisis.
+Pulse **EDITAR REGIONES** para entrar al modo de edición fijo. En este modo la pantalla no se desplaza: mueva el rectángulo ámbar con un dedo hasta incluir **únicamente los dígitos del totalizador**. Junte dos dedos sobre el rectángulo para reducirlo y sepárelos para ampliarlo. Puede colocarlo arriba, abajo, al centro, a la izquierda o a la derecha según la marca del medidor. Pulse **FIJAR REGIONES** para guardar la geometría.
 
 Use el selector **TOTALIZADOR / DIAL** para indicar qué guía está editando. Así, aunque ambas regiones se superpongan, solamente se moverá o redimensionará la elegida.
 
-No incluya año, número de serie, Q3, R160, marca, modelo u otros números. OCR recibe exclusivamente el crop elegido; una cifra fuera del rectángulo no puede ser candidata.
+No incluya año, número de serie, Q3, R160, marca, modelo u otros números. Al finalizar, solo esta región se presenta ampliada para que el técnico capture el valor.
 
 ## 15. Formato del totalizador
 
-Confirme número total de dígitos, decimales, unidad y ceros iniciales cuando aplique. El decimal se aplica desde el formato confirmado aunque OCR no vea el punto.
-
-Cuente todos los tambores visibles, incluidos los ceros iniciales. Si el último tambor está entre dos números (por ejemplo, se ve parte de `2` y parte de `3`), la aplicación propone el dígito anterior —`2` en ese ejemplo— y muestra una advertencia. Revise la propuesta antes de pulsar **CORRECTA**; use **CORREGIR** si no coincide con la lectura física.
-
-Ejemplo: OCR `482`, formato `##.#`, propuesta `48.2 m³`. Si OCR falla, contiene caracteres ambiguos o no coincide con el formato, capture manualmente la lectura. Una foto íntegra sigue siendo Evidence válida aunque OCR falle.
+Al finalizar, observe el recorte y capture manualmente el valor del totalizador. Cuente todos los tambores visibles, incluidos los ceros iniciales, y aplique los decimales de la carátula. Si un tambor está en transición, interprete la lectura física siguiendo el procedimiento de campo aplicable; la app no propone ni corrige el dígito.
 
 ## 16. Selección del dial
 
-Un medidor puede tener uno, dos, tres, cuatro o más diales. Mueva el círculo verde sobre **un solo dial**: el que se utilizará para la lectura fina. Use el control del círculo para redimensionar y confirme su escala.
+Un medidor puede tener uno, dos, tres, cuatro o más diales. Mueva el círculo verde con un dedo sobre **un solo dial**: el que se utilizará para la lectura fina. Junte dos dedos para reducir el círculo o sepárelos para ampliarlo y confirme su escala.
 
 Seleccione el dial de **mayor resolución metrológica**, es decir, el que represente la menor cantidad de volumen por división o vuelta entre los diales disponibles para esa lectura. No significa el círculo físicamente más grande, la aguja más larga, el dial con más píxeles ni el más nítido. La app no decide automáticamente entre los diales.
 
 ## 17. Aguja
 
-El detector busca exclusivamente una **aguja roja** dentro del círculo confirmado. Exige dominancia roja, suficientes píxeles, relación con el eje central, dirección radial, longitud y confianza mínimas.
-
-Una línea negra, tornillo, reflejo, marca o sombra no debe producir lectura. Si no existe una aguja roja válida aparece **Aguja no detectada**. Puede introducir el valor manualmente, ajustar el círculo y reanalizar o repetir la foto. La Evidence no se invalida por una falla de visión.
+Al finalizar, la app presenta el recorte del dial seleccionado. Observe directamente la posición de la aguja y capture manualmente su valor en litros. La app no busca color, calcula ángulos ni propone una lectura automática.
 
 ## 18. Fotografías INTERMEDIATE
 
@@ -214,11 +223,15 @@ En MANUAL, LED y BLUETOOTH la app abre automáticamente la captura al alcanzar c
 
 ## 19. Captura FINAL
 
-Al pulsar **FINALIZAR Y CONFIRMAR LECTURAS**, la app congela inmediatamente el conteo y Vref: ningún pulso posterior cambia el endpoint de la prueba. El botón muestra **FINALIZANDO…** mientras, en segundo plano, se completa cualquier Evidence pendiente, se toma FINAL y se analiza. FINAL reutiliza el rectángulo, círculo, formato y escala congelados en START; después muestra directamente la propuesta para confirmar o corregir.
+Al pulsar **FINALIZAR Y CONFIRMAR LECTURAS**, la app congela inmediatamente el conteo y Vref y desasocia los canales de la muestra: ningún pulso posterior cambia el endpoint. FINAL es la primera fotografía posterior al botón; no se toman evidencias intermedias atrasadas durante el cierre. Después abre **CAPTURAR LECTURAS**: primero muestra totalizador y dial de INICIO y solicita totalizador, aguja y total del medidor; enseguida muestra los mismos elementos y campos de FINAL.
 
-Si el encuadre cambió, pulse **AJUSTAR REGIONES** para abrir el modo fijo, mueva las guías y termine con **APLICAR Y REANALIZAR**. Ajustar regiones no toma otra foto, no crea otra Evidence y no altera la original.
+En Preparación de cámara, toque el punto de la imagen que desea enfocar; el indicador amarillo marca temporalmente el punto de enfoque y exposición. Durante la corrida la app conserva la cámara preparada, restaura periódicamente el enfoque y vuelve a validar enfoque y zoom antes de cada foto. La fotografía guardada siempre contiene la carátula completa: los recuadros únicamente recortan totalizador y dial para mostrarlos ampliados en el formulario. Toque cualquiera de esos recortes para abrir la fotografía completa. Puede ampliarla con dos dedos. Cierre con la cruz, tocando fuera de la imagen o deslizando hacia la izquierda. INICIO y FINAL utilizan exactamente las regiones y el zoom congelados en la primera preparación de cámara; Q2 y las repeticiones no vuelven a buscar ni desplazan esas regiones.
+
+Los valores de INICIO se solicitan al cierre, no durante el arranque. `Vind` es la diferencia entre el total manual FINAL y el total manual INICIO. Las fotografías originales no se alteran.
 
 ## 20. Registro
+
+La fecha aparece una vez junto a **5 · REGISTRO**. La tabla portrait usa cuatro columnas: punto/hora, pulsos/patrón, lectura/V.mec y Error %. En esta tabla, **V.mec L** representa el snapshot de pulsos GPIO25 del medidor del hidrante. Si el punto no tiene pulsos del hidrante, Lectura L, V.mec L y Error % permanecen vacíos. Esta etiqueta visual no modifica Vind ni el cálculo endpoint.
 
 - **Punto:** START, INTERMEDIATE, FINAL o punto manual diagnóstico.
 - **Fecha / hora:** timestamp local de la Evidence correspondiente.
@@ -228,9 +241,9 @@ Si el encuadre cambió, pulse **AJUSTAR REGIONES** para abrir el modo fijo, muev
 - **V mecánico:** avance indicado/diagnóstico disponible.
 - **Error diagnóstico:** comparación del punto; no es el error oficial.
 
-`Lectura L` se completa al confirmar START y FINAL. En una INTERMEDIATE automática puede mostrarse `—` porque esa foto sirve como evidencia diagnóstica y no requiere una lectura confirmada; el guion no significa que falte la fotografía.
+`Lectura L` se completa en FINAL con el valor capturado manualmente. START e INTERMEDIATE pueden mostrar `—` porque no requieren lectura; el guion no significa que falte la fotografía.
 
-El resultado oficial siempre usa los endpoints START y FINAL.
+El resultado oficial compara Vref con `Vind = total FINAL − total INICIO`. El botón Atrás, el gesto desde el borde y la flecha regresan al paso anterior conservando el diagnóstico editable o RUNNING; salir a Inicio continúa siendo una acción explícita. Una muestra cerrada permanece inmutable.
 
 ## 21. Resultado
 
@@ -250,7 +263,7 @@ Los valores se calculan completos; el redondeo mostrado no interviene en la deci
 
 ## 22. Muestras
 
-Puede usar **INICIAR OTRA MUESTRA** sin límite artificial y **CAMBIAR CAUDAL** para trabajar Q1–Q4 dentro del mismo expediente. Las muestras anteriores se conservan.
+Después de Q1 puede **REPETIR PRUEBA Q1** o **COMENZAR Q2**. Ambas acciones crean la siguiente corrida y abren directamente **Prueba en curso** con la configuración Q correspondiente. Las regiones y el zoom de cámara se definen una sola vez y se reutilizan en Q2 y en todas las repeticiones. Después de Q2 puede repetir Q2. Las muestras anteriores se conservan. Si solo existe una corrida del caudal se identifica como `Q1` o `Q2`; al repetir se muestran `Q1-1`, `Q1-2`, … o `Q2-1`, `Q2-2`, ….
 
 Con tres o más muestras se muestran n, media, mínimo, máximo, dispersión, desviación estándar y repetibilidad. Con menos de tres, la repetibilidad es **No evaluable**.
 
@@ -260,13 +273,21 @@ El expediente agrupa un medidor, sus caudales y muestras. **TERMINAR EXPEDIENTE*
 
 ## 24. Evidencia inválida
 
-Una foto obligatoria faltante, ilegible como archivo o con SHA-256 incorrecto produce `INVALID_EVIDENCE`. La prueba se conserva para trazabilidad pero debe repetirse. Una falla de OCR o aguja con foto válida no es evidencia inválida: use corrección manual.
+Una foto obligatoria faltante, ilegible como archivo o con SHA-256 incorrecto produce `INVALID_EVIDENCE`. La prueba se conserva para trazabilidad pero debe repetirse. La captura manual de valores no modifica la validez física del archivo.
 
 ## 25. Adquisición comprometida
 
 `COMPROMISED` significa que el conteo de pulsos no pudo verificarse o reconciliarse. Es diferente de `INVALID_EVIDENCE`, que corresponde a fotografías. Una adquisición comprometida no puede cerrar `CLOSED_VALID`; repita la muestra y revise conexión BLE, ROI LED y contador ESP32.
 
 ## 26. Reportes y exportes
+
+Las pruebas aparecen en orden cronológico. Cada prueba muestra su fecha; la tabla usa **Tiempo** y presenta únicamente la hora local. `V.MEC L` corresponde al volumen del medidor del hidrante calculado con los pulsos GPIO25 y su K configurada. También se muestran los caudales puntuales mínimo, máximo y promedio obtenidos en las fotografías de evidencia.
+
+El ID técnico del teléfono, versión de Android, marca y modelo se guardan para trazabilidad interna cuando Android los proporciona. Puede consultarlos en **Ajustes > Usuario actual**, antes de la versión, pero no aparecen en el HTML/PDF entregable.
+
+El reporte muestra además la configuración metrológica usada, la identidad del ESP32, la repetibilidad por caudal y un mapa autocontenido del punto GPS. El enlace **Abrir mapa detallado** requiere conexión; el punto, coordenadas y precisión permanecen visibles sin internet.
+
+En el **Resumen del expediente**, expanda **INFORMACIÓN TÉCNICA LOCAL** debajo de una prueba finalizada para consultar integridad de adquisición, incidencia registrada, contadores ESP32, primer/último punto, duración, pulsos, fotografías y su integridad, zoom y coordenadas normalizadas de las regiones de cámara.
 
 En el resumen seleccione una o varias muestras. Puede generar:
 
@@ -324,13 +345,13 @@ Revise permiso de Cámara, cierre otras aplicaciones que la ocupen y vuelva a in
 
 Conceda Ubicación precisa, active servicios de ubicación y vuelva a pulsar el icono. Puede continuar sin GPS; nunca introduzca coordenadas ficticias.
 
-### OCR falla
+### El recorte del totalizador no permite leerlo
 
-Ajuste el rectángulo para contener solo dígitos, mejore encuadre/iluminación y reanalice. Si persiste, corrija manualmente.
+Repita la corrida si la fotografía FINAL no permite identificar con certeza los dígitos. En la siguiente preparación ajuste el rectángulo y el encuadre; no estime un valor que no pueda verificarse.
 
-### Aguja no detectada
+### El recorte del dial no permite leer la aguja
 
-Confirme que eligió el dial correcto, que el círculo contiene eje y aguja roja y que la escala es correcta. Ajuste, reanalice o capture manualmente la aguja.
+Repita la corrida si la fotografía FINAL no permite identificar con certeza la aguja. En la siguiente preparación centre y dimensione nuevamente el círculo.
 
 ### BLE no encuentra ESP32
 
@@ -372,9 +393,9 @@ Continúe offline. Las funciones remotas se ocultan y los datos quedan locales h
 - **K:** litros representados por un pulso.
 - **MPE:** error máximo permisible.
 - **U:** incertidumbre usada en la decisión.
-- **START:** Evidence y lectura inicial.
+- **START:** Evidence inicial automática; sus valores manuales se capturan al cierre.
 - **INTERMEDIATE:** Evidence intermedia diagnóstica según el paso.
-- **FINAL:** Evidence y lectura final.
+- **FINAL:** Evidence final; abre la captura manual de los endpoints INICIO y FINAL.
 - **Totalizador:** conjunto de dígitos acumulativos del medidor.
 - **Dial:** círculo graduado con aguja para lectura fina.
 - **Muestra/Sample:** una corrida individual cerrable.

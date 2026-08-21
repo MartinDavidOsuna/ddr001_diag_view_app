@@ -26,10 +26,11 @@ final class OdometerParser {
     for (final rawLine in segments) {
       final compact = rawLine.replaceAll(RegExp(r'\s'), '');
       if (compact.isEmpty) continue;
-      final ambiguous = RegExp(r'[OoIl]').hasMatch(compact);
-      final normalized = compact
-          .replaceAll(RegExp('[Oo]'), '0')
-          .replaceAll(RegExp('[Il]'), '1');
+      // Automatic totalizer suggestions must be exclusively numeric. Codes
+      // such as R160, Q3 or DN100 are never proposed to the technician.
+      if (!RegExp(r'^\d+(?:[.,]\d+)?$').hasMatch(compact)) continue;
+      const ambiguous = false;
+      final normalized = compact;
       for (final match in RegExp(r'\d+(?:[.,]\d+)?').allMatches(normalized)) {
         final token = match.group(0)!;
         final digits = token.replaceAll(RegExp(r'[^0-9]'), '');

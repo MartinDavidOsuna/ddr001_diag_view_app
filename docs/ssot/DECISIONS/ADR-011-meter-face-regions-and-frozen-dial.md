@@ -14,6 +14,7 @@ Una fotografía de carátula contiene un totalizador rectangular y uno o varios 
 - El selector de dial usa litros por vuelta como resolución metrológica. Tamaño, píxeles y nitidez no deciden la selección. Sin escala inequívoca se requiere confirmación humana.
 - La configuración confirmada en START (ROI, círculo, multiplicador, litros/vuelta, cero, sentido y origen) se persiste en Sample RUNNING y se reutiliza en INTERMEDIATE/FINAL.
 - Drift 3 agrega columnas nullable mediante migración aditiva. La canonicalización v1 se conserva para muestras históricas; muestras con configuración visual usan v2.
+- La sugerencia no vinculante puede repetirse sobre un nuevo frame transitorio para adaptarse al zoom vigente; reemplaza propuestas geométricas, nunca Evidence. Slider, pinch y botones de lupa comparten los límites reales de zoom de Android.
 
 ## Consecuencias
 

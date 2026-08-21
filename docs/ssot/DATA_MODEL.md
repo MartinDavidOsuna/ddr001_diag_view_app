@@ -27,13 +27,15 @@ Los JSON Schemas de `packages/shared-contracts/` son contratos serializables. Pr
 - `overall_verdict`: `APROBADO | RECHAZADO | NO_CONCLUYENTE | null`.
 - timestamps de creación/cierre.
 - `report_version`.
+- `test_bench_id`: identificador obligatorio del banco de pruebas usado.
+- metadata nullable de procedencia: `device_id`, `android_version`, `device_brand`, `device_model`; se congela al crear el expediente y no se presenta en HTML/PDF.
 - checksum del expediente cerrado.
 
 ## FlowPoint (Caudal evaluado)
 - `flow_point_id`.
 - `case_id`.
 - `code`: `Q1 | Q2 | Q3 | Q4`.
-- `lps_approx` manual nullable.
+- `lps_approx` nullable y legado; verificaciones nuevas no lo solicitan.
 - `mpe_pct` congelado (5 para Q1; 2 para Q2/Q3/Q4 salvo regla normativa futura documentada).
 - `status`: `OPEN | PASS | FAIL | INCONCLUSIVE`.
 - estadísticas nullable: n, mean_error, dispersion, sample_stddev, repeatability_pass.
@@ -51,6 +53,8 @@ Los JSON Schemas de `packages/shared-contracts/` son contratos serializables. Pr
 - configuración de adquisición nullable: identidad/UUID/versión BLE, baseline/último contador, ROI/umbrales LED y BLE auxiliar.
 - integridad `OK | COMPROMISED`, razón, timestamp y fuente; `COMPROMISED` bloquea `CLOSED_VALID` sin reutilizar `INVALID_EVIDENCE`.
 - configuración visual nullable para compatibilidad histórica: región relativa seleccionada manualmente para el totalizador y su formato (`digitCount`, `decimalPlaces`, unidad, ceros iniciales y origen); centro/radio relativo del único dial elegido por el técnico; multiplicador, litros por vuelta, cero, sentido y origen `AUTO_CONFIRMED | MANUAL`. Se confirma antes de analizar START, se recupera durante RUNNING y forma parte de la canonicalización v3 de muestras nuevas; muestras sin formato conservan v1/v2. El correctivo manual-first reutiliza estos campos y no requiere migración.
+- Para muestras nuevas de lectura manual al cierre, `initialReading` y `finalReading` conservan totalizador y aguja asociados a sus Evidence. El formulario también captura el total del medidor en ambos endpoints y persiste en `indicated_liters` su diferencia `FINAL − INICIO`, que es el `Vind` evaluado. Muestras históricas mantienen su cálculo anterior.
+- `camera_zoom_level` nullable/default 1.0, agregado aditivamente en schema 8 y congelado para todas las capturas de la Sample.
 - lecturas inicial/final con origen (`AUTO_CONFIRMED | MANUAL`) y `evidence_id` nullable; en captura visual productiva enlaza la imagen exacta que originó la propuesta confirmada.
 - resultado: V_ref, V_ind, E, U, MPE, decision_metric(s), verdict.
 - `checksum` al cierre.
@@ -60,6 +64,8 @@ Los JSON Schemas de `packages/shared-contracts/` son contratos serializables. Pr
 - `point_id`.
 - `sample_id`.
 - `type`: `START | INTERMEDIATE | FINAL | MANUAL_DIAGNOSTIC`.
+- `meter_under_test_pulse_count` nullable/default visual 0: snapshot GPIO25 usado exclusivamente como `V.MEC L` en Registro; agregado aditivamente en schema 9.
+- `flow_lps` nullable: lectura puntual calculada desde el primer pulso del patrón al capturar INICIO, cada INTERMEDIA y FINAL. Schema 10 la agrega aditivamente; mínimo, máximo y promedio se derivan de los puntos no-null de la muestra.
 - pulse_count, V_ref, lectura nullable, V_ind diagnostic nullable, error diagnostic nullable, timestamp.
 
 ## Evidence
@@ -76,6 +82,7 @@ Los JSON Schemas de `packages/shared-contracts/` son contratos serializables. Pr
 
 ## AuthSession (local/server)
 Representa la política de sesión persistente; no usar password. El secreto/token nunca forma parte de exportes ni reportes.
+La sesión creada por la identidad maestra es local y no fabrica un bearer token de servidor; sus entidades continúan sujetas a la misma persistencia y sincronización que cualquier trabajo offline.
 
 ## SyncItem
 - entity type/id, checksum, state, attempts, last_error, timestamps.

@@ -126,6 +126,8 @@ void main() {
               capturedAt: at,
               pulseCount: 0,
               referenceLiters: 0,
+              meterUnderTestPulseCount: 2,
+              flowLps: 1.25,
             ),
           ],
         },
@@ -141,14 +143,20 @@ void main() {
       final csv = await File(files.csvPath).readAsString();
       final pdf = await File(files.pdfPath).readAsBytes();
 
-      expect(html, contains('DDR001 · Evidencia de verificación'));
+      expect(html, contains('Evidencia de verificación'));
       expect(html, contains('Operador Prueba'));
       expect(html, contains('29.102400, -111.049500'));
       expect(html, contains('data:image/png;base64,'));
       expect(html, contains('Descargar PDF'));
-      expect(html, contains('<th>Timestamp</th>'));
+      expect(html, contains('<th>Tiempo</th>'));
+      expect(html, isNot(contains('Sello DDR001')));
+      expect(html, isNot(contains('Expediente ')));
       expect(html, contains('INICIO'));
-      expect(html, contains(at.toLocal().toIso8601String()));
+      expect(html, contains('Configuración metrológica'));
+      expect(html, contains('Repetibilidad del caudal'));
+      expect(html, contains('Mapa de ubicación'));
+      expect(html, contains('Abrir mapa detallado'));
+      expect(html, contains('1.25'));
       expect(html, isNot(contains('src="http')));
       expect(json['schema'], 'ddr001.verification.export/v1');
       expect(csv, contains('diagnostic_error_pct'));

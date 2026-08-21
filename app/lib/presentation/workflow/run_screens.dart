@@ -15,7 +15,6 @@ import '../../infrastructure/camera/camera_models.dart';
 import '../../infrastructure/pulse/led_pulse_detector.dart';
 import '../app_controller.dart';
 import '../common/app_scaffold.dart';
-import '../home/home_screens.dart';
 
 final class TestRunScreen extends ConsumerStatefulWidget {
   const TestRunScreen({super.key});
@@ -30,6 +29,11 @@ final class _TestRunScreenState extends ConsumerState<TestRunScreen> {
   DateTime? _lastRemoteActionAt;
   bool _remoteControlArmed = false;
   bool _remoteConfirmationOpen = false;
+  final _scrollController = ScrollController();
+  final _evidencePlanKey = GlobalKey();
+  int _lastExpectedEvidenceCount = 0;
+  Timer? _remoteKeepAliveTimer;
+  bool _checkingRemote = false;
 
   @override
   void initState() {
@@ -39,6 +43,37 @@ final class _TestRunScreenState extends ConsumerState<TestRunScreen> {
         _triggerRemoteAction();
       } else if (call.method == 'remoteConnectionChanged' && mounted) {
         final connected = call.arguments == true;
+        if (connected) {
+          ref
+              .read(appControllerProvider.notifier)
+              .setRemoteControlConnected(true);
+        } else {
+          unawaited(_refreshRemoteConnection());
+        }
+      }
+    });
+    unawaited(_refreshRemoteConnection());
+    _remoteKeepAliveTimer = Timer.periodic(
+      const Duration(seconds: 10),
+      (_) => unawaited(_refreshRemoteConnection()),
+    );
+  }
+
+  Future<void> _refreshRemoteConnection() async {
+    if (_checkingRemote) return;
+    _checkingRemote = true;
+    var connected = false;
+    try {
+      for (var attempt = 1; attempt <= 3; attempt++) {
+        connected =
+            await _remoteChannel.invokeMethod<bool>('getRemoteConnected') ??
+            false;
+        if (connected) break;
+        if (attempt < 3) {
+          await Future<void>.delayed(const Duration(seconds: 1));
+        }
+      }
+      if (mounted) {
         ref
             .read(appControllerProvider.notifier)
             .setRemoteControlConnected(connected);
@@ -46,22 +81,10 @@ final class _TestRunScreenState extends ConsumerState<TestRunScreen> {
           setState(() => _remoteControlArmed = false);
         }
       }
-    });
-    unawaited(_refreshRemoteConnection());
-  }
-
-  Future<void> _refreshRemoteConnection() async {
-    try {
-      final connected = await _remoteChannel.invokeMethod<bool>(
-        'getRemoteConnected',
-      );
-      if (mounted) {
-        ref
-            .read(appControllerProvider.notifier)
-            .setRemoteControlConnected(connected ?? false);
-      }
     } on PlatformException {
       // Older/native-less test hosts simply report no remote control.
+    } finally {
+      _checkingRemote = false;
     }
   }
 
@@ -69,6 +92,8 @@ final class _TestRunScreenState extends ConsumerState<TestRunScreen> {
   void dispose() {
     _visualReference.dispose();
     _remoteFocusNode.dispose();
+    _scrollController.dispose();
+    _remoteKeepAliveTimer?.cancel();
     _remoteChannel.setMethodCallHandler(null);
     super.dispose();
   }
@@ -177,36 +202,15 @@ final class _TestRunScreenState extends ConsumerState<TestRunScreen> {
     final reference = config.measurementMethod == MeasurementMethod.visual
         ? sample.referenceLitersProgress ?? 0
         : sample.pulseCount * config.litersPerPulse;
+    _keepLatestEvidenceVisible(sample, reference);
     return KeyboardListener(
       focusNode: _remoteFocusNode,
       autofocus: true,
       onKeyEvent: _handleRemoteKey,
       child: PopScope(
         canPop: false,
-        onPopInvokedWithResult: (didPop, result) async {
-          if (didPop) return;
-          final leave =
-              await showDialog<bool>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Prueba en curso'),
-                  content: const Text(
-                    'La prueba seguirá RUNNING y podrá reanudarse. ¿Salir a inicio?',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text('CONTINUAR PRUEBA'),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child: const Text('SALIR'),
-                    ),
-                  ],
-                ),
-              ) ??
-              false;
-          if (leave) controller.showHome();
+        onPopInvokedWithResult: (didPop, result) {
+          if (!didPop) controller.goBack();
         },
         child: AppScaffold(
           title: 'Prueba en curso',
@@ -240,135 +244,96 @@ final class _TestRunScreenState extends ConsumerState<TestRunScreen> {
                 : controller.showReadings,
             onBegin: controller.beginMeasurement,
           ),
+          scrollController: _scrollController,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SectionCard(
-                title: '4 · Prueba',
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (config.measurementMethod == MeasurementMethod.manual)
+                    FilledButton.icon(
+                      key: const Key('manual-pulse'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.amber,
+                        minimumSize: const Size.fromHeight(76),
+                      ),
+                      onPressed: controller.addManualPulse,
+                      icon: const Icon(Icons.circle),
+                      label: Text(
+                        'PULSO (+${config.litersPerPulse.toStringAsFixed(1)} L)',
+                        style: const TextStyle(fontSize: 19),
+                      ),
+                    )
+                  else if (config.measurementMethod == MeasurementMethod.visual)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Expanded(
-                          child: _Metric(
-                            label: 'Pulsos',
-                            value: config.measurementMethod.isPulseEventSource
-                                ? '${sample.pulseCount}'
-                                : 'N/A',
+                        const StatusBanner(
+                          text:
+                              'LECTURA VISUAL · Ingresa el volumen patrón externo alcanzado; la lectura del medidor proviene de fotografías reales.',
+                          color: AppColors.heading,
+                          icon: Icons.visibility_outlined,
+                        ),
+                        const SizedBox(height: 10),
+                        TextField(
+                          key: const Key('visual-reference'),
+                          controller: _visualReference,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          decoration: const InputDecoration(
+                            labelText: 'Volumen patrón externo / progreso (L)',
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _Metric(
-                            label: 'Volumen patrón',
-                            value: '${reference.toStringAsFixed(1)} L',
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _Metric(
-                            label: 'Método',
-                            value: methodLabel(config.measurementMethod),
-                            compact: true,
-                          ),
+                        const SizedBox(height: 8),
+                        OutlinedButton(
+                          onPressed: () {
+                            final value = double.tryParse(
+                              _visualReference.text,
+                            );
+                            if (value != null && value > 0) {
+                              controller.setDevelopmentVisualReference(value);
+                            }
+                          },
+                          child: const Text('CONFIRMAR PROGRESO VISUAL'),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 14),
-                    if (config.measurementMethod == MeasurementMethod.manual)
-                      FilledButton.icon(
-                        key: const Key('manual-pulse'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.amber,
-                          minimumSize: const Size.fromHeight(76),
-                        ),
-                        onPressed: controller.addManualPulse,
-                        icon: const Icon(Icons.circle),
-                        label: Text(
-                          'PULSO (+${config.litersPerPulse.toStringAsFixed(1)} L)',
-                          style: const TextStyle(fontSize: 19),
-                        ),
-                      )
-                    else if (config.measurementMethod ==
-                        MeasurementMethod.visual)
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
+                    )
+                  else
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (sample.acquisitionIntegrity.isCompromised)
                           const StatusBanner(
                             text:
-                                'LECTURA VISUAL · Ingresa el volumen patrón externo alcanzado; la lectura del medidor proviene de fotografías reales.',
-                            color: AppColors.heading,
-                            icon: Icons.visibility_outlined,
+                                'Adquisición comprometida · conteo no verificable',
+                            color: AppColors.danger,
+                            icon: Icons.warning_amber,
                           ),
-                          const SizedBox(height: 10),
-                          TextField(
-                            key: const Key('visual-reference'),
-                            controller: _visualReference,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            decoration: const InputDecoration(
-                              labelText:
-                                  'Volumen patrón externo / progreso (L)',
-                            ),
-                          ),
+                        if (config.measurementMethod == MeasurementMethod.led &&
+                            sample.pulseAcquisitionConfiguration?.ledBaseline ==
+                                null)
+                          _LedPreparationPanel(initialRegion: state.ledRegion),
+                        if (config.measurementMethod == MeasurementMethod.led &&
+                            sample.pulseAcquisitionConfiguration?.ledBaseline !=
+                                null) ...[
                           const SizedBox(height: 8),
-                          OutlinedButton(
-                            onPressed: () {
-                              final value = double.tryParse(
-                                _visualReference.text,
-                              );
-                              if (value != null && value > 0) {
-                                controller.setDevelopmentVisualReference(value);
-                              }
-                            },
-                            child: const Text('CONFIRMAR PROGRESO VISUAL'),
+                          Text(
+                            'LED live: ${state.ledLivePulses} · reconciliados: ${state.ledReconciledPulses} · falsos: ${state.ledFalsePositives}',
+                          ),
+                          Text(
+                            'Dark ${state.ledDarkBrightness?.toStringAsFixed(1) ?? '—'} · Bright ${state.ledBrightBrightness?.toStringAsFixed(1) ?? '—'} · FPS ${state.ledFps?.toStringAsFixed(1) ?? '—'} · descartados ${state.ledFramesDropped}',
                           ),
                         ],
-                      )
-                    else
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          if (sample.acquisitionIntegrity.isCompromised)
-                            const StatusBanner(
-                              text:
-                                  'Adquisición comprometida · conteo no verificable',
-                              color: AppColors.danger,
-                              icon: Icons.warning_amber,
-                            ),
-                          if (config.measurementMethod ==
-                                  MeasurementMethod.led &&
-                              sample
-                                      .pulseAcquisitionConfiguration
-                                      ?.ledBaseline ==
-                                  null)
-                            _LedPreparationPanel(
-                              initialRegion: state.ledRegion,
-                            ),
-                          if (config.measurementMethod ==
-                                  MeasurementMethod.led &&
-                              sample
-                                      .pulseAcquisitionConfiguration
-                                      ?.ledBaseline !=
-                                  null) ...[
-                            const SizedBox(height: 8),
-                            Text(
-                              'LED live: ${state.ledLivePulses} · reconciliados: ${state.ledReconciledPulses} · falsos: ${state.ledFalsePositives}',
-                            ),
-                            Text(
-                              'Dark ${state.ledDarkBrightness?.toStringAsFixed(1) ?? '—'} · Bright ${state.ledBrightBrightness?.toStringAsFixed(1) ?? '—'} · FPS ${state.ledFps?.toStringAsFixed(1) ?? '—'} · descartados ${state.ledFramesDropped}',
-                            ),
-                          ],
-                        ],
-                      ),
-                  ],
-                ),
+                      ],
+                    ),
+                ],
               ),
               const SizedBox(height: 14),
               SectionCard(
-                title: 'Evidencias esperadas',
+                key: _evidencePlanKey,
+                title: 'CAPTURA DE EVIDENCIAS',
                 child: EvidencePlanView(
                   sample: sample,
                   evidence: state.evidence,
@@ -376,18 +341,7 @@ final class _TestRunScreenState extends ConsumerState<TestRunScreen> {
                 ),
               ),
               const SizedBox(height: 14),
-              SectionCard(
-                title: '5 · Registro',
-                child: _Registry(points: state.points),
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton(
-                key: const Key('capture-diagnostic-point'),
-                onPressed: dependenciesHaveCamera(ref)
-                    ? controller.requestManualDiagnosticPoint
-                    : null,
-                child: const Text('CAPTURAR UN PUNTO AHORA'),
-              ),
+              _Registry(points: state.points, configuration: config),
               const SizedBox(height: 8),
               OutlinedButton(
                 onPressed: controller.showHome,
@@ -398,6 +352,26 @@ final class _TestRunScreenState extends ConsumerState<TestRunScreen> {
         ),
       ),
     );
+  }
+
+  void _keepLatestEvidenceVisible(Sample sample, double reference) {
+    if (reference <= 0) return;
+    final count = ExpectedEvidencePlan.derive(
+      evidenceStepLiters: sample.configuration.evidenceStepLiters,
+      finalVolumeLiters: reference,
+    ).requirements.length;
+    if (count < 4 || count == _lastExpectedEvidenceCount) return;
+    _lastExpectedEvidenceCount = count;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final context = _evidencePlanKey.currentContext;
+      if (!mounted || context == null) return;
+      Scrollable.ensureVisible(
+        context,
+        alignment: 1,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOut,
+      );
+    });
   }
 }
 
@@ -567,10 +541,14 @@ final class _PinnedRunStatusState extends State<_PinnedRunStatus> {
         widget.measurementStarted || widget.finalizingMeasurement
         ? widget.referenceLiters
         : 0.0;
-    final firstPulse = widget.preStartControlFirstPulseAt;
+    final firstPulse = widget.measurementStarted
+        ? widget.sample.startedAt
+        : widget.preStartControlFirstPulseAt;
     final now = DateTime.now().toUtc();
     final gate = ControlStartGate.evaluate(
-      pulses: widget.preStartControlPulses,
+      pulses: widget.measurementStarted
+          ? widget.sample.pulseCount
+          : widget.preStartControlPulses,
       litersPerPulse: widget.litersPerPulse,
       firstPulseAt: firstPulse,
       now: now,
@@ -599,6 +577,14 @@ final class _PinnedRunStatusState extends State<_PinnedRunStatus> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const Text(
+              '4 · PRUEBA',
+              style: TextStyle(
+                color: AppColors.heading,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 6),
             Text(
               'Medidor ${widget.meterId}',
               key: const Key('running-meter-id'),
@@ -609,7 +595,7 @@ final class _PinnedRunStatusState extends State<_PinnedRunStatus> {
             ),
             const SizedBox(height: 4),
             Text(
-              '${widget.sample.configuration.flowPoint.name.toUpperCase()} · ${widget.sample.configuration.lpsApprox?.toStringAsFixed(2) ?? '—'} L/s · K ${widget.litersPerPulse} L/pulso',
+              '${widget.sample.configuration.flowPoint.name.toUpperCase()} · Caudal calculado · K ${widget.litersPerPulse} L/pulso',
               style: const TextStyle(color: AppColors.muted),
             ),
             const SizedBox(height: 12),
@@ -658,7 +644,7 @@ final class _PinnedRunStatusState extends State<_PinnedRunStatus> {
                 Expanded(
                   child: _PinnedValue(
                     label: 'Caudal hidrante',
-                    value: widget.meterUnderTestPulses == 0
+                    value: widget.hydrantMonitorPulses == 0
                         ? 'Sin pulsos'
                         : '${hydrantEstimate.flowLps.toStringAsFixed(2)} L/s',
                   ),
@@ -872,7 +858,7 @@ final class EvidencePlanView extends StatelessWidget {
   Widget build(BuildContext context) {
     if (currentReference <= 0) {
       return const Text(
-        'START capturada. Las intermedias y FINAL se derivarán al conocer el volumen final.',
+        'INICIO se captura al momento de iniciar la prueba, las intermedias y FINAL se derivarán al conocer el volumen final.',
         style: TextStyle(color: AppColors.muted),
       );
     }
@@ -921,108 +907,149 @@ bool dependenciesHaveCamera(WidgetRef ref) =>
     ref.read(appDependenciesProvider).camera != null;
 
 final class _Registry extends StatelessWidget {
-  const _Registry({required this.points});
+  const _Registry({required this.points, required this.configuration});
   final List<TestPoint> points;
+  final SampleConfiguration configuration;
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-          columns: const [
-            DataColumn(label: Text('Punto')),
-            DataColumn(label: Text('Fecha / hora')),
-            DataColumn(label: Text('Pulsos'), numeric: true),
-            DataColumn(label: Text('V.patrón L'), numeric: true),
-            DataColumn(label: Text('Lectura L'), numeric: true),
-            DataColumn(label: Text('V.mec L'), numeric: true),
-            DataColumn(label: Text('Error %'), numeric: true),
+  Widget build(BuildContext context) {
+    final flowStatistics = PointFlowStatistics.fromPoints(points);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                '5 · REGISTRO',
+                style: TextStyle(
+                  color: AppColors.heading,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            Text(
+              points.isEmpty ? '' : _dateOnly(points.first.capturedAt),
+              textAlign: TextAlign.right,
+              style: const TextStyle(color: AppColors.muted, fontSize: 12),
+            ),
           ],
-          rows:
-              ([...points]
-                    ..sort((a, b) => a.capturedAt.compareTo(b.capturedAt)))
-                  .map(
-                    (point) => DataRow(
-                      cells: [
-                        DataCell(
-                          Text(switch (point.type) {
-                            PointType.start => 'INICIO',
-                            PointType.intermediate => 'INTERMEDIO',
-                            PointType.finalPoint => 'FINAL',
-                            PointType.manualDiagnostic => 'MANUAL',
-                          }),
-                        ),
-                        DataCell(Text(_timestamp(point.capturedAt))),
-                        DataCell(Text('${point.pulseCount ?? '—'}')),
-                        DataCell(
-                          Text(
-                            point.referenceLiters?.toStringAsFixed(2) ?? '—',
-                          ),
-                        ),
-                        DataCell(
-                          Text(point.readingLiters?.toStringAsFixed(2) ?? '—'),
-                        ),
-                        DataCell(
-                          Text(
-                            point.indicatedLiters?.toStringAsFixed(2) ?? '—',
-                          ),
-                        ),
-                        DataCell(
-                          Text(
-                            point.diagnosticErrorPct?.toStringAsFixed(2) ?? '—',
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                  .toList(),
         ),
+        const SizedBox(height: 8),
+        Table(
+          columnWidths: const {
+            0: FlexColumnWidth(1.05),
+            1: FlexColumnWidth(1.25),
+            2: FlexColumnWidth(1.35),
+            3: FlexColumnWidth(.85),
+            4: FlexColumnWidth(.85),
+          },
+          border: TableBorder.all(color: AppColors.muted),
+          children: [
+            const TableRow(
+              decoration: BoxDecoration(color: AppColors.panelDark),
+              children: [
+                _RegistryCell('PUNTO', header: true),
+                _RegistryCell('PULSOS/\nPATRÓN', header: true),
+                _RegistryCell('LECTURA L /\nV.MEC L', header: true),
+                _RegistryCell('ERROR %', header: true),
+                _RegistryCell('CAUDAL\nL/s', header: true),
+              ],
+            ),
+            ...([
+              ...points,
+            ]..sort((a, b) => a.capturedAt.compareTo(b.capturedAt))).map((
+              point,
+            ) {
+              final hydrantPulses = point.meterUnderTestPulseCount ?? 0;
+              final hasHydrantReading = hydrantPulses > 0;
+              final hydrantLiters =
+                  hydrantPulses * configuration.hydrantLitersPerPulse;
+              final reference = point.referenceLiters ?? 0;
+              final diagnosticError = !hasHydrantReading || reference <= 0
+                  ? null
+                  : (hydrantLiters - reference) / reference * 100;
+              return TableRow(
+                children: [
+                  _RegistryCell(
+                    '${_pointLabel(point.type)}\n${_timeOnly(point.capturedAt)}',
+                  ),
+                  _RegistryCell(
+                    '${point.pulseCount ?? 0} / ${point.referenceLiters?.toStringAsFixed(1) ?? '0.0'} L',
+                    numeric: true,
+                  ),
+                  _RegistryCell(
+                    hasHydrantReading
+                        ? '${hydrantLiters.toStringAsFixed(2)} / $hydrantPulses'
+                        : '',
+                    numeric: true,
+                  ),
+                  _RegistryCell(
+                    diagnosticError?.toStringAsFixed(2) ?? '',
+                    numeric: true,
+                  ),
+                  _RegistryCell(
+                    point.flowLps?.toStringAsFixed(2) ?? '',
+                    numeric: true,
+                  ),
+                ],
+              );
+            }),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (flowStatistics != null)
+          Text(
+            'Caudal puntual · mín. ${flowStatistics.minimumLps.toStringAsFixed(2)} · máx. ${flowStatistics.maximumLps.toStringAsFixed(2)} · promedio ${flowStatistics.averageLps.toStringAsFixed(2)} L/s',
+            style: const TextStyle(color: AppColors.heading, fontSize: 12),
+          ),
+        if (flowStatistics != null) const SizedBox(height: 6),
+        const Text(
+          'Los errores de puntos son diagnósticos; el resultado oficial usa el endpoint.',
+          style: TextStyle(color: AppColors.warning, fontSize: 12),
+        ),
+      ],
+    );
+  }
+}
+
+final class _RegistryCell extends StatelessWidget {
+  const _RegistryCell(this.value, {this.header = false, this.numeric = false});
+  final String value;
+  final bool header;
+  final bool numeric;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 7),
+    child: Text(
+      value,
+      maxLines: 2,
+      textAlign: numeric ? TextAlign.right : TextAlign.left,
+      style: TextStyle(
+        fontSize: header ? 10 : 11,
+        fontWeight: header ? FontWeight.w700 : FontWeight.normal,
       ),
-      const SizedBox(height: 8),
-      const Text(
-        'Los errores de puntos son diagnósticos; el resultado oficial usa el endpoint.',
-        style: TextStyle(color: AppColors.warning, fontSize: 12),
-      ),
-    ],
+    ),
   );
 }
 
-final class _Metric extends StatelessWidget {
-  const _Metric({
-    required this.label,
-    required this.value,
-    this.compact = false,
-  });
-  final String label;
-  final String value;
-  final bool compact;
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
-    decoration: BoxDecoration(
-      color: AppColors.panelDark,
-      borderRadius: BorderRadius.circular(10),
-    ),
-    child: Column(
-      children: [
-        Text(
-          label,
-          style: const TextStyle(color: AppColors.muted, fontSize: 11),
-        ),
-        const SizedBox(height: 4),
-        FittedBox(
-          child: Text(
-            value,
-            style: TextStyle(
-              fontSize: compact ? 14 : 25,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
+String _pointLabel(PointType type) => switch (type) {
+  PointType.start => 'INICIO',
+  PointType.intermediate => 'INTERMEDIO',
+  PointType.finalPoint => 'FINAL',
+  PointType.manualDiagnostic => 'MANUAL',
+};
+
+String _timeOnly(DateTime value) {
+  final local = value.toLocal();
+  String two(int number) => number.toString().padLeft(2, '0');
+  return '${two(local.hour)}:${two(local.minute)}:${two(local.second)}';
+}
+
+String _dateOnly(DateTime value) {
+  final local = value.toLocal();
+  String two(int number) => number.toString().padLeft(2, '0');
+  return '${two(local.day)}/${two(local.month)}/${local.year}';
 }
 
 String evidenceTypeLabel(EvidenceType type) => switch (type) {

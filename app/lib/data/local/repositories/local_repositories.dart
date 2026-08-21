@@ -174,6 +174,11 @@ db.VerificationCasesCompanion _caseCompanion(domain.VerificationCase value) =>
       createdAtMs: _ms(value.createdAt),
       closedAtMs: Value(value.closedAt == null ? null : _ms(value.closedAt!)),
       reportVersion: Value(value.reportVersion),
+      testBenchId: Value(value.testBenchId),
+      deviceId: Value(value.deviceId),
+      androidVersion: Value(value.androidVersion),
+      deviceBrand: Value(value.deviceBrand),
+      deviceModel: Value(value.deviceModel),
       checksum: Value(value.checksum),
     );
 
@@ -189,6 +194,11 @@ domain.VerificationCase mapCase(db.VerificationCaseRow row) =>
       createdAt: _date(row.createdAtMs),
       closedAt: row.closedAtMs == null ? null : _date(row.closedAtMs!),
       reportVersion: row.reportVersion,
+      testBenchId: row.testBenchId,
+      deviceId: row.deviceId,
+      androidVersion: row.androidVersion,
+      deviceBrand: row.deviceBrand,
+      deviceModel: row.deviceModel,
       checksum: row.checksum,
     );
 
@@ -212,6 +222,16 @@ final class LocalFlowPointRepository implements FlowPointRepository {
             createdAtMs: _ms(flowPoint.createdAt),
           ),
         );
+  }
+
+  @override
+  Future<void> updateLps(String id, double lpsApprox) async {
+    final flow = await getById(id);
+    if (flow == null) throw StateError('Flow point not found.');
+    await _ensureCaseOpen(database, flow.caseId);
+    await (database.update(database.flowPoints)
+          ..where((table) => table.id.equals(id)))
+        .write(db.FlowPointsCompanion(lpsApprox: Value(lpsApprox)));
   }
 
   @override
@@ -358,6 +378,7 @@ final class LocalSampleRepository implements SampleRepository {
     required String id,
     required int pulseCount,
     double? referenceLiters,
+    double? manualIndicatedLiters,
     DateTime? firstPulseAt,
     domain.ConfirmedReading? initialReading,
     domain.ConfirmedReading? finalReading,
@@ -366,7 +387,9 @@ final class LocalSampleRepository implements SampleRepository {
     if (current.status != domain.SampleStatus.running) {
       throw StateError('Only a RUNNING sample can be updated.');
     }
-    if (pulseCount < 0 || (referenceLiters != null && referenceLiters <= 0)) {
+    if (pulseCount < 0 ||
+        (referenceLiters != null && referenceLiters <= 0) ||
+        (manualIndicatedLiters != null && manualIndicatedLiters < 0)) {
       throw ArgumentError('Invalid progress values.');
     }
     await (database.update(
@@ -380,6 +403,9 @@ final class LocalSampleRepository implements SampleRepository {
         progressReferenceLiters: Value(
           referenceLiters ?? current.referenceLitersProgress,
         ),
+        indicatedLiters: manualIndicatedLiters == null
+            ? const Value.absent()
+            : Value(manualIndicatedLiters),
         updatedAtMs: Value(DateTime.now().toUtc().millisecondsSinceEpoch),
         initialOdometerUnits: initialReading == null
             ? const Value.absent()
@@ -454,6 +480,24 @@ final class LocalSampleRepository implements SampleRepository {
     );
     return (await getById(id))!;
   });
+
+  @override
+  Future<domain.Sample> updateCameraZoom(String id, double zoomLevel) =>
+      database.transaction(() async {
+        final current = await _requiredSample(database, id);
+        if (current.status != domain.SampleStatus.running) {
+          throw StateError('Only a RUNNING sample can update camera zoom.');
+        }
+        await (database.update(
+          database.samples,
+        )..where((table) => table.id.equals(id))).write(
+          db.SamplesCompanion(
+            cameraZoomLevel: Value(zoomLevel),
+            updatedAtMs: Value(DateTime.now().toUtc().millisecondsSinceEpoch),
+          ),
+        );
+        return (await getById(id))!;
+      });
 
   @override
   Future<domain.Sample> updatePulseAcquisition({
@@ -562,6 +606,27 @@ final class LocalSampleRepository implements SampleRepository {
     final row = await query.getSingleOrNull();
     return row == null ? null : mapSampleWithSettings(database, row);
   }
+
+  @override
+  Future<void> deleteOpen(String id) => database.transaction(() async {
+    final sample = await _requiredSample(database, id);
+    if (sample.status == domain.SampleStatus.closedValid) {
+      throw StateError('A closed sample is immutable.');
+    }
+    await (database.delete(
+      database.evidenceItems,
+    )..where((table) => table.sampleId.equals(id))).go();
+    await (database.delete(
+      database.testPoints,
+    )..where((table) => table.sampleId.equals(id))).go();
+    await database.customStatement(
+      'DELETE FROM sample_operational_settings WHERE sample_id = ?',
+      [id],
+    );
+    await (database.delete(
+      database.samples,
+    )..where((table) => table.id.equals(id))).go();
+  });
 }
 
 db.SamplesCompanion _sampleCompanion(domain.Sample sample) {
@@ -580,6 +645,7 @@ db.SamplesCompanion _sampleCompanion(domain.Sample sample) {
     lpsApprox: Value(config.lpsApprox),
     litersPerOdometerUnit: config.litersPerOdometerUnit,
     needleLitersPerRevolution: config.needleLitersPerRevolution,
+    cameraZoomLevel: Value(config.cameraZoomLevel),
     createdAtMs: _ms(sample.createdAt),
     updatedAtMs: _ms(sample.updatedAt),
     pulseCount: Value(sample.pulseCount),
@@ -633,6 +699,7 @@ domain.Sample mapSample(
     controlStartMinimumLps: controlStartMinimumLps ?? 0,
     controlStartMaximumLps: controlStartMaximumLps ?? double.infinity,
     hydrantLitersPerPulse: hydrantLitersPerPulse ?? 1,
+    cameraZoomLevel: row.cameraZoomLevel ?? 1,
   );
   domain.ConfirmedReading? reading(
     double? odometer,
@@ -722,6 +789,7 @@ domain.Sample mapSample(
           ),
     pulseCount: row.pulseCount,
     referenceLitersProgress: row.progressReferenceLiters,
+    manualIndicatedLiters: row.indicatedLiters,
     initialReading: reading(
       row.initialOdometerUnits,
       row.initialNeedleLiters,
@@ -846,6 +914,8 @@ final class LocalPointRepository implements PointRepository {
             indicatedLiters: Value(point.indicatedLiters),
             diagnosticErrorPct: Value(point.diagnosticErrorPct),
             needleLiters: Value(point.needleLiters),
+            meterUnderTestPulseCount: Value(point.meterUnderTestPulseCount),
+            flowLps: Value(point.flowLps),
             capturedAtMs: _ms(point.capturedAt),
           ),
           mode: InsertMode.insertOrReplace,
@@ -868,6 +938,8 @@ final class LocalPointRepository implements PointRepository {
               indicatedLiters: row.indicatedLiters,
               diagnosticErrorPct: row.diagnosticErrorPct,
               needleLiters: row.needleLiters,
+              meterUnderTestPulseCount: row.meterUnderTestPulseCount,
+              flowLps: row.flowLps,
               capturedAt: _date(row.capturedAtMs),
             ),
           )

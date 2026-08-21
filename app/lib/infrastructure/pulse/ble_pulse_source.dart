@@ -42,9 +42,12 @@ final class BlePulseSource implements PulseSource {
   StreamSubscription<BluetoothConnectionState>? _connection;
   StreamSubscription<List<int>>? _notifications;
   BluetoothDevice? _device;
-  Timer? _reconnectTimer;
+  BluetoothCharacteristic? _counterCharacteristic;
+  Timer? _keepAliveTimer;
+  bool _recovering = false;
   bool _disposed = false;
   bool _stopping = false;
+  int? _lastPublishedMeterUnderTestCounter;
   PulseSourceState _state = const PulseSourceState(
     status: PulseSourceStatus.disconnected,
   );
@@ -60,6 +63,7 @@ final class BlePulseSource implements PulseSource {
   Stream<int> get counters => _counters.stream;
   Stream<int> get meterUnderTestCounters => _meterUnderTestCounters.stream;
   int? get lastObservedCounter => _reconciler.lastObservedCounter;
+  String get deviceId => _configuration.deviceId;
 
   void _set(
     PulseSourceStatus status, {
@@ -90,13 +94,22 @@ final class BlePulseSource implements PulseSource {
       _onConnection,
       onError: _onConnectionError,
     );
-    await device.connect(timeout: const Duration(seconds: 12));
+    await _connect(device);
+  }
+
+  Future<void> _connect(BluetoothDevice device) async {
+    try {
+      await device.connect(timeout: const Duration(seconds: 12));
+    } catch (error) {
+      if (!_disposed && !_stopping) await _recoverConnection(error);
+    }
   }
 
   Future<void> _onConnection(BluetoothConnectionState connectionState) async {
     if (_disposed || _stopping) return;
     switch (connectionState) {
       case BluetoothConnectionState.connected:
+        _recovering = false;
         _set(PulseSourceStatus.connected);
         await _notifications?.cancel();
         final services = await _device!.discoverServices();
@@ -119,6 +132,7 @@ final class BlePulseSource implements PulseSource {
           );
           return;
         }
+        _counterCharacteristic = characteristic;
         _notifications = characteristic.onValueReceived.listen(
           _onPayload,
           onError: _onNotificationError,
@@ -126,18 +140,68 @@ final class BlePulseSource implements PulseSource {
         await characteristic.setNotifyValue(true);
         _set(PulseSourceStatus.ready);
         _onPayload(await characteristic.read());
+        _startKeepAlive();
       case BluetoothConnectionState.disconnected:
-        _set(
-          PulseSourceStatus.reconnecting,
-          message: 'Conexión perdida; reconciliando contador ESP32.',
-        );
-        _reconnectTimer?.cancel();
-        _reconnectTimer = Timer(const Duration(seconds: 2), () {
-          if (!_disposed && !_stopping) unawaited(start());
-        });
+        _keepAliveTimer?.cancel();
+        unawaited(_recoverConnection('ESP32 no disponible'));
       default:
         _set(PulseSourceStatus.connecting);
     }
+  }
+
+  void _startKeepAlive() {
+    _keepAliveTimer?.cancel();
+    _keepAliveTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      unawaited(_probeKeepAlive());
+    });
+  }
+
+  Future<void> _probeKeepAlive() async {
+    final characteristic = _counterCharacteristic;
+    if (_disposed || _stopping || characteristic == null || _recovering) return;
+    try {
+      _onPayload(await characteristic.read());
+    } catch (error) {
+      await _recoverConnection(error);
+    }
+  }
+
+  Future<void> _recoverConnection(Object reason) async {
+    if (_disposed || _stopping || _recovering) return;
+    _recovering = true;
+    _keepAliveTimer?.cancel();
+    _set(
+      PulseSourceStatus.reconnecting,
+      message: 'Keepalive ESP32 sin respuesta; reintentando conexión.',
+    );
+    Object lastError = reason;
+    for (var attempt = 1; attempt <= 3; attempt++) {
+      if (_disposed || _stopping) return;
+      try {
+        await Future<void>.delayed(const Duration(seconds: 2));
+        final device =
+            _device ?? BluetoothDevice.fromId(_configuration.deviceId);
+        _device = device;
+        if (!device.isConnected) {
+          await device.connect(timeout: const Duration(seconds: 12));
+        }
+        // The connected callback discovers the characteristic and restarts
+        // keepalive. Give it a bounded window before the next attempt.
+        await device.connectionState
+            .firstWhere((state) => state == BluetoothConnectionState.connected)
+            .timeout(const Duration(seconds: 4));
+        _recovering = false;
+        return;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    _recovering = false;
+    _counterCharacteristic = null;
+    _set(
+      PulseSourceStatus.disconnected,
+      message: 'ESP32 no encontrado después de 3 reintentos: $lastError',
+    );
   }
 
   static const _loss =
@@ -148,9 +212,15 @@ final class BlePulseSource implements PulseSource {
     final parsed = _protocol.parse(payload);
     if (parsed == null) return;
     final observation = _reconciler.observe(parsed.counter);
-    _counters.add(parsed.counter);
+    if (observation.status != CounterObservationStatus.duplicate) {
+      _counters.add(parsed.counter);
+    }
     final meterCounter = parsed.meterUnderTestCounter;
-    if (meterCounter != null) _meterUnderTestCounters.add(meterCounter);
+    if (meterCounter != null &&
+        meterCounter != _lastPublishedMeterUnderTestCounter) {
+      _lastPublishedMeterUnderTestCounter = meterCounter;
+      _meterUnderTestCounters.add(meterCounter);
+    }
     if (observation.status == CounterObservationStatus.rollback) {
       _set(
         PulseSourceStatus.error,
@@ -195,7 +265,10 @@ final class BlePulseSource implements PulseSource {
   @override
   Future<void> stop() async {
     _stopping = true;
-    _reconnectTimer?.cancel();
+    _keepAliveTimer?.cancel();
+    _keepAliveTimer = null;
+    _counterCharacteristic = null;
+    _recovering = false;
     await _notifications?.cancel();
     _notifications = null;
     await _connection?.cancel();

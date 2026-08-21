@@ -42,7 +42,7 @@ void main() {
     expect(sync.checksum, closed.checksum);
   });
 
-  test('Q1 closure uses frozen 5 percent MPE through Stage 1 engine', () async {
+  test('Q1 closure uses frozen former-Q3 MPE through Stage 1 engine', () async {
     await database.close();
     database = memoryDatabase();
     fixture = OfflineFixture(database, directory);
@@ -56,9 +56,9 @@ void main() {
       'sample-1',
       at: fixedTime,
     );
-    expect(closed.result!.mpePct, 5);
+    expect(closed.result!.mpePct, 2);
     expect(closed.result!.errorPct, closeTo(4, 1e-12));
-    expect(closed.result!.verdict, SampleVerdict.pass);
+    expect(closed.result!.verdict, SampleVerdict.fail);
   });
 
   test('VISUAL closes with explicit Vref and no fictitious pulses', () async {

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:ddr001_diag_view_app/domain/pulse/esp32_counter_protocol.dart';
 import 'package:ddr001_diag_view_app/domain/pulse/pulse_source.dart';
 import 'package:ddr001_diag_view_app/infrastructure/pulse/led_pulse_detector.dart';
+import 'package:ddr001_diag_view_app/infrastructure/pulse/ble_discovery.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -54,6 +55,32 @@ void main() {
       expect(
         () => esp32CounterDelta(baseline: 100, current: 7),
         throwsStateError,
+      );
+    });
+  });
+
+  group('DDR001 ESP32 discovery contract', () {
+    test('requires both firmware name and DDR001 service UUID', () {
+      expect(
+        BleDiscoveryService.isDdr001Esp32Advertisement(
+          name: 'DDR001-PULSE-691C',
+          serviceUuids: const [Ddr001BleContract.serviceUuid],
+        ),
+        isTrue,
+      );
+      expect(
+        BleDiscoveryService.isDdr001Esp32Advertisement(
+          name: 'DDR001-PULSE-FAKE',
+          serviceUuids: const ['0000180f-0000-1000-8000-00805f9b34fb'],
+        ),
+        isFalse,
+      );
+      expect(
+        BleDiscoveryService.isDdr001Esp32Advertisement(
+          name: 'Generic ESP32',
+          serviceUuids: const [Ddr001BleContract.serviceUuid],
+        ),
+        isFalse,
       );
     });
   });

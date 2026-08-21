@@ -1,8 +1,8 @@
 # GLOSSARY — Glosario
 
-- **Q1 (Qmín)** — gasto mínimo dentro de MPE.
-- **Q2 (Qt)** — gasto de transición; frontera entre zona inferior y superior.
-- **Q3 (Qp/Qn)** — gasto permanente (nominal).
+- **Q1 operativo** — corrida V1 que sustituye a la antigua Q3 y hereda sus reglas de gasto permanente (nominal).
+- **Q2 medio** — corrida V1 que conserva las reglas de la anterior Q2.
+- **Q3 histórico (Qp/Qn)** — identificador anterior de gasto permanente, conservado para leer expedientes existentes.
 - **Q4 (Qmáx/Qs)** — gasto de sobrecarga (≈2·Q3).
 - **K** — constante del banco: volumen por pulso. Proyecto: 1 L/pulso.
 - **MPE** — error máximo permisible (±2% zona superior, ±5% inferior).

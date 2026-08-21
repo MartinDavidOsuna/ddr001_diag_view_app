@@ -232,6 +232,31 @@ final class VisualReadingProposal {
   final DialVisionConfiguration configuration;
   final List<DialCandidate> dialCandidates;
   final Uint8List? totalizerCrop, dialCrop;
+
+  VisualReadingProposal copyWith({
+    DialVisionConfiguration? configuration,
+    List<DialCandidate>? dialCandidates,
+  }) => VisualReadingProposal(
+    evidenceId: evidenceId,
+    evidencePath: evidencePath,
+    odometerRaw: odometerRaw,
+    odometerValue: odometerValue,
+    needleLiters: needleLiters,
+    needleAngle: needleAngle,
+    warnings: warnings,
+    createdAt: createdAt,
+    configuration: configuration ?? this.configuration,
+    dialCandidates: dialCandidates ?? this.dialCandidates,
+    totalizerCrop: totalizerCrop,
+    dialCrop: dialCrop,
+    odometerConfidence: odometerConfidence,
+    needleConfidence: needleConfidence,
+    needleCandidatePixelCount: needleCandidatePixelCount,
+    odometerCandidates: odometerCandidates,
+    totalizerReadingProposal: totalizerReadingProposal,
+    analysisCompleted: analysisCompleted,
+  );
+
   ConfirmedReading confirm({
     required double odometerValue,
     required double needleLiters,

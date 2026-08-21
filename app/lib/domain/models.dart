@@ -101,6 +101,11 @@ final class VerificationCase {
     required this.status,
     required this.createdAt,
     required this.reportVersion,
+    this.testBenchId = '',
+    this.deviceId,
+    this.androidVersion,
+    this.deviceBrand,
+    this.deviceModel,
     this.overallVerdict,
     this.closedAt,
     this.checksum,
@@ -114,7 +119,21 @@ final class VerificationCase {
   final DateTime createdAt;
   final DateTime? closedAt;
   final int reportVersion;
+  final String testBenchId;
+  final String? deviceId;
+  final String? androidVersion;
+  final String? deviceBrand;
+  final String? deviceModel;
   final String? checksum;
+}
+
+final class DeviceMetadata {
+  const DeviceMetadata({this.id, this.androidVersion, this.brand, this.model});
+
+  final String? id;
+  final String? androidVersion;
+  final String? brand;
+  final String? model;
 }
 
 final class PersistedFlowStatistics {
@@ -189,6 +208,7 @@ final class SampleConfiguration {
     this.controlStartMinimumLps = 0,
     this.controlStartMaximumLps = double.infinity,
     this.hydrantLitersPerPulse = 1,
+    this.cameraZoomLevel = 1,
   });
 
   final MeasurementMethod measurementMethod;
@@ -205,6 +225,7 @@ final class SampleConfiguration {
   final double controlStartMinimumLps;
   final double controlStartMaximumLps;
   final double hydrantLitersPerPulse;
+  final double cameraZoomLevel;
 }
 
 enum DialConfigurationSource { autoConfirmed, manual }
@@ -349,6 +370,7 @@ final class Sample {
     required this.updatedAt,
     required this.pulseCount,
     this.referenceLitersProgress,
+    this.manualIndicatedLiters,
     this.startedAt,
     this.endedAt,
     this.gps,
@@ -373,6 +395,9 @@ final class Sample {
   final GpsSnapshot? gps;
   final int pulseCount;
   final double? referenceLitersProgress;
+
+  /// Technician-entered Vind for the manual FINAL-only reading workflow.
+  final double? manualIndicatedLiters;
   final ConfirmedReading? initialReading;
   final ConfirmedReading? finalReading;
   final MeterFaceConfiguration? meterFaceConfiguration;
@@ -413,6 +438,7 @@ final class Sample {
     gps: gps ?? this.gps,
     pulseCount: pulseCount,
     referenceLitersProgress: referenceLitersProgress,
+    manualIndicatedLiters: manualIndicatedLiters,
     initialReading: initialReading,
     finalReading: finalReading,
     meterFaceConfiguration: meterFaceConfiguration,
@@ -435,6 +461,8 @@ final class TestPoint {
     this.indicatedLiters,
     this.diagnosticErrorPct,
     this.needleLiters,
+    this.meterUnderTestPulseCount,
+    this.flowLps,
   });
 
   final String id;
@@ -446,7 +474,38 @@ final class TestPoint {
   final double? indicatedLiters;
   final double? diagnosticErrorPct;
   final double? needleLiters;
+  final int? meterUnderTestPulseCount;
+  final double? flowLps;
   final DateTime capturedAt;
+}
+
+final class PointFlowStatistics {
+  const PointFlowStatistics({
+    required this.minimumLps,
+    required this.maximumLps,
+    required this.averageLps,
+    required this.count,
+  });
+
+  final double minimumLps;
+  final double maximumLps;
+  final double averageLps;
+  final int count;
+
+  static PointFlowStatistics? fromPoints(Iterable<TestPoint> points) {
+    final values = points
+        .map((point) => point.flowLps)
+        .whereType<double>()
+        .where((value) => value.isFinite && value >= 0)
+        .toList(growable: false);
+    if (values.isEmpty) return null;
+    return PointFlowStatistics(
+      minimumLps: values.reduce((a, b) => a < b ? a : b),
+      maximumLps: values.reduce((a, b) => a > b ? a : b),
+      averageLps: values.reduce((a, b) => a + b) / values.length,
+      count: values.length,
+    );
+  }
 }
 
 final class Evidence {

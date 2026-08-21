@@ -22,6 +22,7 @@ abstract interface class VerificationCaseRepository {
 
 abstract interface class FlowPointRepository {
   Future<void> create(FlowPointRecord flowPoint);
+  Future<void> updateLps(String id, double lpsApprox);
   Future<FlowPointRecord?> getById(String id);
   Future<List<FlowPointRecord>> listByCase(String caseId);
   Future<FlowPointResult> summarize(String flowPointId);
@@ -35,6 +36,7 @@ abstract interface class SampleRepository {
     required String id,
     required int pulseCount,
     double? referenceLiters,
+    double? manualIndicatedLiters,
     DateTime? firstPulseAt,
     ConfirmedReading? initialReading,
     ConfirmedReading? finalReading,
@@ -43,6 +45,7 @@ abstract interface class SampleRepository {
     String id,
     MeterFaceConfiguration configuration,
   );
+  Future<Sample> updateCameraZoom(String id, double zoomLevel);
   Future<Sample> updatePulseAcquisition({
     required String id,
     required PulseAcquisitionConfiguration configuration,
@@ -52,6 +55,7 @@ abstract interface class SampleRepository {
   Future<List<Sample>> listByFlow(String flowPointId);
   Future<List<Sample>> listIncomplete();
   Future<Sample?> getActiveByFlow(String flowPointId);
+  Future<void> deleteOpen(String id);
 }
 
 abstract interface class PointRepository {

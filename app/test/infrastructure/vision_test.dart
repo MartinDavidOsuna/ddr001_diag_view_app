@@ -109,11 +109,12 @@ void main() {
       );
     });
 
-    test('preserves ambiguity warning without silently trusting it', () {
-      final candidate = parser.parse('0O1234').single;
-      expect(candidate.value, 1234);
-      expect(candidate.ambiguous, isTrue);
-      expect(parser.select([candidate]), isNull);
+    test('rejects any automatic candidate containing letters', () {
+      expect(parser.parse('0O1234'), isEmpty);
+      expect(parser.parse('R160'), isEmpty);
+      expect(parser.parse('DN100'), isEmpty);
+      expect(parser.parse('2024A'), isEmpty);
+      expect(parser.parse('00482').single.digits, '00482');
     });
 
     test('returns no candidate for unrelated text', () {
