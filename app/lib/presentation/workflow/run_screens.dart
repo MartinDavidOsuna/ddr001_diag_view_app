@@ -236,6 +236,8 @@ final class _TestRunScreenState extends ConsumerState<TestRunScreen> {
             meterUnderTestFirstPulseAt: state.meterUnderTestFirstPulseAt,
             hydrantMonitorPulses: state.hydrantMonitorPulseCount,
             hydrantMonitorFirstPulseAt: state.hydrantMonitorFirstPulseAt,
+            controlPulseTimes: state.controlPulseTimes,
+            hydrantPulseTimes: state.hydrantPulseTimes,
             litersPerPulse: config.litersPerPulse,
             hydrantLitersPerPulse: config.hydrantLitersPerPulse,
             canFinish: reference > 0,
@@ -486,6 +488,8 @@ final class _PinnedRunStatus extends StatefulWidget {
     required this.meterUnderTestFirstPulseAt,
     required this.hydrantMonitorPulses,
     required this.hydrantMonitorFirstPulseAt,
+    required this.controlPulseTimes,
+    required this.hydrantPulseTimes,
     required this.litersPerPulse,
     required this.hydrantLitersPerPulse,
     required this.canFinish,
@@ -504,6 +508,8 @@ final class _PinnedRunStatus extends StatefulWidget {
   final DateTime? meterUnderTestFirstPulseAt;
   final int hydrantMonitorPulses;
   final DateTime? hydrantMonitorFirstPulseAt;
+  final List<DateTime> controlPulseTimes;
+  final List<DateTime> hydrantPulseTimes;
   final double litersPerPulse;
   final double hydrantLitersPerPulse;
   final bool canFinish;
@@ -555,13 +561,22 @@ final class _PinnedRunStatusState extends State<_PinnedRunStatus> {
       minimumLps: widget.sample.configuration.controlStartMinimumLps,
       maximumLps: widget.sample.configuration.controlStartMaximumLps,
     );
-    final calculatedFlow = gate.flowLps;
+    final calculatedFlow = widget.measurementStarted
+        ? PulseFlowEstimate.calculate(
+            pulses: widget.sample.pulseCount,
+            litersPerPulse: widget.litersPerPulse,
+            firstPulseAt: firstPulse,
+            now: now,
+            recentPulseTimes: widget.controlPulseTimes,
+          ).flowLps
+        : gate.flowLps;
     final flowInRange = gate.inRange;
     final hydrantEstimate = PulseFlowEstimate.calculate(
       pulses: widget.hydrantMonitorPulses,
       litersPerPulse: widget.hydrantLitersPerPulse,
       firstPulseAt: widget.hydrantMonitorFirstPulseAt,
       now: now,
+      recentPulseTimes: widget.hydrantPulseTimes,
     );
     return Material(
       elevation: 8,

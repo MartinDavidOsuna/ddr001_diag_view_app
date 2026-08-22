@@ -22,4 +22,4 @@ Todo incremento actualiza en el mismo cambio:
 5. `app/assets/manual/manual_de_uso.md` cuando cambie un procedimiento visible para el técnico.
 6. SSOT funcional y ADR cuando cambien comportamiento, modelo, API o una decisión relevante.
 
-La versión vigente es `1.2.0+08`.
+La versión vigente es `1.2.1+09`.

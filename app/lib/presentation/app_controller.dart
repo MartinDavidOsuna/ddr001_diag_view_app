@@ -23,6 +23,10 @@ import '../infrastructure/pulse/led_pulse_detector.dart';
 import '../infrastructure/camera/flutter_camera_adapter.dart';
 import '../infrastructure/export/case_export_service.dart';
 
+List<T> _lastTen<T>(List<T> values) => values.length <= 10
+    ? List.unmodifiable(values)
+    : values.sublist(values.length - 10);
+
 enum AppPage {
   loading,
   login,
@@ -138,6 +142,8 @@ final class AppViewState {
     this.reportSampleIds = const {},
     this.meterUnderTestPulseCount = 0,
     this.meterUnderTestFirstPulseAt,
+    this.controlPulseTimes = const [],
+    this.hydrantPulseTimes = const [],
   });
 
   final AppPage page;
@@ -207,6 +213,8 @@ final class AppViewState {
   final Set<String> reportSampleIds;
   final int meterUnderTestPulseCount;
   final DateTime? meterUnderTestFirstPulseAt;
+  final List<DateTime> controlPulseTimes;
+  final List<DateTime> hydrantPulseTimes;
 
   AppViewState copyWith({
     AppPage? page,
@@ -291,6 +299,8 @@ final class AppViewState {
     int? meterUnderTestPulseCount,
     DateTime? meterUnderTestFirstPulseAt,
     bool clearMeterUnderTestFirstPulseAt = false,
+    List<DateTime>? controlPulseTimes,
+    List<DateTime>? hydrantPulseTimes,
   }) => AppViewState(
     page: page ?? this.page,
     busy: busy ?? this.busy,
@@ -385,6 +395,8 @@ final class AppViewState {
     meterUnderTestFirstPulseAt: clearMeterUnderTestFirstPulseAt
         ? null
         : meterUnderTestFirstPulseAt ?? this.meterUnderTestFirstPulseAt,
+    controlPulseTimes: controlPulseTimes ?? this.controlPulseTimes,
+    hydrantPulseTimes: hydrantPulseTimes ?? this.hydrantPulseTimes,
   );
 }
 
@@ -1042,6 +1054,7 @@ final class AppController extends StateNotifier<AppViewState> {
           receivedAt: now,
         ),
       );
+      _recordControlPulse(now);
       await _refreshSample(sample.id);
       await _openDueIntermediateEvidence(sample.id);
     });
@@ -1084,6 +1097,8 @@ final class AppController extends StateNotifier<AppViewState> {
       clearMeterUnderTestFirstPulseAt: true,
       hydrantMonitorPulseCount: 0,
       clearHydrantMonitorFirstPulseAt: true,
+      controlPulseTimes: const [],
+      hydrantPulseTimes: const [],
     );
     await _captureOfficialStartEvidence();
   }
@@ -1256,6 +1271,10 @@ final class AppController extends StateNotifier<AppViewState> {
     _ledReconciliationTimer = null;
     await _pulseSubscription?.cancel();
     _pulseSubscription = null;
+    // The transport keeps its own keepalive alive, but no BLE callback may
+    // mutate the review state after the operator froze the FINAL endpoint.
+    await _pulseStateSubscription?.cancel();
+    _pulseStateSubscription = null;
     await _counterSubscription?.cancel();
     _counterSubscription = null;
     await _meterUnderTestCounterSubscription?.cancel();
@@ -1270,6 +1289,12 @@ final class AppController extends StateNotifier<AppViewState> {
     String sourcePath, {
     bool transparent = false,
   }) async {
+    // A camera callback can complete after FINAL already moved the workflow to
+    // manual review. It belongs to the finished capture and must be harmless.
+    if (state.capturePurpose == null &&
+        (state.page == AppPage.readings || state.page == AppPage.result)) {
+      return;
+    }
     await _guard(() async {
       var sample = state.sample;
       final verificationCase = state.activeCase;
@@ -1658,8 +1683,17 @@ final class AppController extends StateNotifier<AppViewState> {
       if (sample == null || verificationCase == null) {
         throw StateError('No hay una prueba activa.');
       }
+      // Manual review is a post-acquisition phase. Reassert the endpoint
+      // boundary so a delayed hardware callback cannot affect its result.
+      _sampleEndpointFrozen = true;
+      await _freezeSampleAcquisition();
+      await _pulseQueue;
+      sample = await dependencies.samples.getById(sample.id) ?? sample;
       final config = sample.configuration;
       final evidence = await dependencies.evidence.listBySample(sample.id);
+      final startEvidence = evidence
+          .where((item) => item.type == EvidenceType.start)
+          .firstOrNull;
       final frozenFinal = evidence
           .where((item) => item.type == EvidenceType.finalEvidence)
           .lastOrNull;
@@ -1678,6 +1712,12 @@ final class AppController extends StateNotifier<AppViewState> {
           'El total FINAL no puede ser menor que el total INICIO.',
         );
       }
+      if (initialNeedle >= config.needleLitersPerRevolution ||
+          finalNeedle >= config.needleLitersPerRevolution) {
+        throw ArgumentError(
+          'La aguja debe ser menor que ${config.needleLitersPerRevolution.toStringAsFixed(1)} L.',
+        );
+      }
       sample = await dependencies.samples.updateProgress(
         id: sample.id,
         pulseCount: config.measurementMethod.isPulseEventSource
@@ -1690,14 +1730,14 @@ final class AppController extends StateNotifier<AppViewState> {
           odometer: initialTotalizer,
           needle: initialNeedle,
           config: config,
-          evidenceId: state.initialReadingProposal?.evidenceId,
+          evidenceId: startEvidence?.id,
         ),
         finalReading: _confirmedFromReview(
           existing: sample.finalReading,
           odometer: finalTotalizer,
           needle: finalNeedle,
           config: config,
-          evidenceId: state.readingProposal?.evidenceId,
+          evidenceId: frozenFinal?.id,
         ),
       );
       if (createDevelopmentEvidence) {
@@ -2092,6 +2132,13 @@ final class AppController extends StateNotifier<AppViewState> {
   }
 
   Future<void> _loadSampleContext(Sample sample) async {
+    final currentSample = state.sample;
+    if (currentSample?.id == sample.id &&
+        currentSample!.status == SampleStatus.running &&
+        sample.status == SampleStatus.running &&
+        sample.pulseCount < currentSample.pulseCount) {
+      sample = currentSample;
+    }
     final flow = await dependencies.flows.getById(sample.flowPointId);
     if (flow == null) {
       throw StateError('No se encontró el caudal de la muestra.');
@@ -2233,6 +2280,7 @@ final class AppController extends StateNotifier<AppViewState> {
               state.preStartControlFirstPulseAt ?? event.receivedAt,
         );
         if (!countsTowardMeasurement) return;
+        _recordControlPulse(event.receivedAt);
         if (sample.configuration.measurementMethod == MeasurementMethod.ble) {
           await dependencies.pulseProgress.acceptPulse(sample.id, event);
           await _refreshSample(sample.id);
@@ -2343,6 +2391,10 @@ final class AppController extends StateNotifier<AppViewState> {
       }
       final pulses = counter - baseline;
       if (pulses != state.meterUnderTestPulseCount) {
+        _recordHydrantPulses(
+          pulses - state.meterUnderTestPulseCount,
+          DateTime.now().toUtc(),
+        );
         state = state.copyWith(
           meterUnderTestPulseCount: pulses,
           meterUnderTestFirstPulseAt:
@@ -2621,6 +2673,21 @@ final class AppController extends StateNotifier<AppViewState> {
         occurredAt: now,
         receivedAt: now,
       ),
+    );
+    _recordControlPulse(now);
+  }
+
+  void _recordControlPulse(DateTime at) {
+    state = state.copyWith(
+      controlPulseTimes: _lastTen([...state.controlPulseTimes, at]),
+    );
+  }
+
+  void _recordHydrantPulses(int count, DateTime at) {
+    if (count <= 0) return;
+    final additions = List<DateTime>.filled(count.clamp(0, 10), at);
+    state = state.copyWith(
+      hydrantPulseTimes: _lastTen([...state.hydrantPulseTimes, ...additions]),
     );
   }
 

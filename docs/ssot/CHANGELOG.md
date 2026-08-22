@@ -1,5 +1,13 @@
 # CHANGELOG funcional
 
+## Versión 1.2.1+09 — cierre manual aislado de adquisición — 2026-08-21
+- CAPTURAR LECTURAS queda aislada de pulsos, estado BLE y callbacks tardíos de cámara después de persistir FINAL.
+- GUARDAR Y CALCULAR RESULTADO usa las evidencias START/FINAL persistidas, sin depender de una captura activa ni de recortes transitorios en memoria.
+- Los callbacks duplicados de una fotografía ya finalizada son idempotentes y no muestran errores ni duplican evidencias.
+- La validación de aguja fuera de su escala presenta una indicación específica en lugar del mensaje genérico de operación no permitida.
+- El panel de prueba conserva contadores monotónicos durante capturas de evidencia y evita que una lectura asíncrona atrasada restaure un snapshot anterior.
+- Los caudales visibles de patrón e hidrante usan todos los pulsos al arrancar y una ventana móvil de los últimos 10 después del décimo pulso.
+
 ## Versión 1.2.0+08 — banco, procedencia y reporte cronológico — 2026-08-21
 - Firmware ESP32 V1.0 incorpora filtro PCNT, estabilidad/rearme y debounce para GPIO25/GPIO27; el configurador exige `--nombre` con serie y versión y produce un nombre BLE compatible con DDR001.
 - Identificación incorpora el campo obligatorio `ID / banco de pruebas`.

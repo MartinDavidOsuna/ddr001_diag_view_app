@@ -574,6 +574,15 @@ void main() {
       expect(evidence.last.type, EvidenceType.finalEvidence);
       expect(controller.state.sample!.pulseCount, frozenPulses);
       expect(controller.state.measurementStarted, isFalse);
+
+      final evidenceCount = evidence.length;
+      await controller.processCapturedPhoto(camera.lastCapturePath);
+      expect(controller.state.page, AppPage.readings);
+      expect(controller.state.errorMessage, isNull);
+      expect(
+        await dependencies.evidence.listBySample(controller.state.sample!.id),
+        hasLength(evidenceCount),
+      );
     },
   );
 
@@ -800,6 +809,8 @@ final class _FakeTokenStore implements TokenStore {
 
 final class _FakeCameraPort implements CameraPort {
   int captureCount = 0;
+  String get lastCapturePath =>
+      '${Directory.systemTemp.path}/ddr001-auto-intermediate-$captureCount.jpg';
   @override
   double get previewAspectRatio => 3 / 4;
   @override
@@ -815,9 +826,7 @@ final class _FakeCameraPort implements CameraPort {
   @override
   Future<CapturedPhoto> capture() async {
     captureCount++;
-    final file = File(
-      '${Directory.systemTemp.path}/ddr001-auto-intermediate-$captureCount.jpg',
-    );
+    final file = File(lastCapturePath);
     await file.writeAsBytes(List<int>.filled(900, captureCount));
     return CapturedPhoto(path: file.path, capturedAt: DateTime.now().toUtc());
   }
