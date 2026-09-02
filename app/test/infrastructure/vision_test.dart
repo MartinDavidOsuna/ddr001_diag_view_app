@@ -213,6 +213,15 @@ void main() {
     expect(parseDialMultiplier('escala desconocida'), isNull);
   });
 
+  test('liters per revolution is canonical for legacy and 1000 L scales', () {
+    expect(dialMultiplierForLitersPerRevolution(1000), 10);
+    expect(dialMultiplierForLitersPerRevolution(100), 1);
+    expect(dialMultiplierForLitersPerRevolution(10), .1);
+    expect(dialMultiplierForLitersPerRevolution(1), .01);
+    expect(dialMultiplierForLitersPerRevolution(.1), .001);
+    expect(() => dialMultiplierForLitersPerRevolution(0), throwsArgumentError);
+  });
+
   group('angle mapping', () {
     const config = DialVisionConfiguration(zeroAngleDegrees: -90);
     test('normalizes wrap', () {

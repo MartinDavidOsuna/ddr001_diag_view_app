@@ -587,7 +587,7 @@ ${_locationMapHtml(sample.gps)}
 
   String _repeatabilityText(CaseExportBundle bundle, Sample sample) {
     final stats = _repeatability(bundle, sample).statistics!;
-    return 'Repetibilidad: n ${stats.n} - error promedio ${stats.meanErrorPct.toStringAsFixed(3)} % - dispersión ${stats.dispersionPct.toStringAsFixed(3)} % - desviación estándar ${stats.sampleStandardDeviationPct?.toStringAsFixed(3) ?? '—'} % - ${_repeatabilityName(stats.repeatabilityStatus)}';
+    return 'Repetibilidad: n ${stats.n} - error promedio ${stats.meanErrorPct.toStringAsFixed(3)} % - dispersión ${stats.dispersionPct.toStringAsFixed(3)} % - desviación estándar ${stats.sampleStandardDeviationPct?.toStringAsFixed(3) ?? 'No disponible'} % - ${_repeatabilityName(stats.repeatabilityStatus)}';
   }
 
   String _repeatabilityName(RepeatabilityStatus value) => switch (value) {

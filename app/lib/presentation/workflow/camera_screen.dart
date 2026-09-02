@@ -30,6 +30,7 @@ final class _CameraCaptureScreenState extends ConsumerState<CameraCaptureScreen>
   String? _cameraError;
   final _odometer = TextEditingController();
   final _needle = TextEditingController();
+  final _dialScale = TextEditingController();
   bool _manualCorrection = false;
   bool _adjustingRegions = false;
   bool _editingRegions = false;
@@ -63,12 +64,18 @@ final class _CameraCaptureScreenState extends ConsumerState<CameraCaptureScreen>
     _visionConfiguration = face == null
         ? DialVisionConfiguration(
             litersPerRevolution: appState.needleLitersPerRevolution,
+            multiplier: dialMultiplierForLitersPerRevolution(
+              appState.needleLitersPerRevolution,
+            ),
             totalizerConfiguration: TotalizerConfiguration(
               digitCount: _digitCount,
               decimalPlaces: _decimalPlaces,
             ),
           )
         : DialVisionConfiguration.fromDomain(face);
+    _dialScale.text = _formatDialScale(
+      _visionConfiguration.litersPerRevolution,
+    );
     _automaticRegionAttempted = face != null;
     _liveValueFade = AnimationController(
       vsync: this,
@@ -166,6 +173,7 @@ final class _CameraCaptureScreenState extends ConsumerState<CameraCaptureScreen>
     _liveValueFade.dispose();
     _odometer.dispose();
     _needle.dispose();
+    _dialScale.dispose();
     // AppDependencies owns the shared camera. Evidence releases it so the LED
     // ImageStream can reuse the same physical camera without closing its
     // brightness stream for the rest of the process lifetime.
@@ -204,6 +212,27 @@ final class _CameraCaptureScreenState extends ConsumerState<CameraCaptureScreen>
     }
   }
 
+  Widget _dialScaleField({required Key key}) => TextFormField(
+    key: key,
+    controller: _dialScale,
+    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+    decoration: const InputDecoration(
+      labelText: 'Escala del dial (L/vuelta)',
+      helperText: 'Use el valor real configurado en Preparación.',
+    ),
+    onChanged: (text) {
+      final value = double.tryParse(text.trim().replaceAll(',', '.'));
+      if (value == null || !value.isFinite || value <= 0) return;
+      setState(() {
+        _visionConfiguration = _copyConfiguration(
+          _visionConfiguration,
+          multiplier: dialMultiplierForLitersPerRevolution(value),
+          litersPerRevolution: value,
+        );
+      });
+    },
+  );
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(appControllerProvider);
@@ -226,6 +255,9 @@ final class _CameraCaptureScreenState extends ConsumerState<CameraCaptureScreen>
         if (!mounted || _loadedProposalAt != proposal.createdAt) return;
         _odometer.text = odometerText;
         _needle.text = needleText;
+        _dialScale.text = _formatDialScale(
+          proposal.configuration.litersPerRevolution,
+        );
       });
       _manualCorrection =
           proposal.analysisCompleted &&
@@ -565,33 +597,7 @@ final class _CameraCaptureScreenState extends ConsumerState<CameraCaptureScreen>
                             onChanged: (value) =>
                                 setState(() => _decimalPlaces = value ?? 0),
                           ),
-                          DropdownButtonFormField<double>(
-                            key: const Key('manual-dial-scale'),
-                            initialValue: _visionConfiguration.multiplier,
-                            decoration: const InputDecoration(
-                              labelText: 'Escala del dial seleccionado',
-                            ),
-                            items: const [1.0, .1, .01, .001]
-                                .map(
-                                  (value) => DropdownMenuItem(
-                                    value: value,
-                                    child: Text(
-                                      '×$value · ${(100 * value).toStringAsFixed(value < .01 ? 1 : 0)} L/vuelta',
-                                    ),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (value) {
-                              if (value == null) return;
-                              setState(() {
-                                _visionConfiguration = _copyConfiguration(
-                                  _visionConfiguration,
-                                  multiplier: value,
-                                  litersPerRevolution: 100 * value,
-                                );
-                              });
-                            },
-                          ),
+                          _dialScaleField(key: const Key('manual-dial-scale')),
                           const SizedBox(height: 12),
                           FilledButton.icon(
                             key: const Key('analyze-reading'),
@@ -889,41 +895,8 @@ final class _CameraCaptureScreenState extends ConsumerState<CameraCaptureScreen>
                                 );
                               },
                             ),
-                            DropdownButtonFormField<double>(
-                              initialValue: _visionConfiguration.multiplier,
-                              decoration: const InputDecoration(
-                                labelText: 'Escala del dial',
-                              ),
-                              items: const [1.0, .1, .01, .001]
-                                  .map(
-                                    (v) => DropdownMenuItem(
-                                      value: v,
-                                      child: Text('×$v'),
-                                    ),
-                                  )
-                                  .toList(),
-                              onChanged: (value) {
-                                if (value == null) return;
-                                setState(
-                                  () => _visionConfiguration =
-                                      DialVisionConfiguration(
-                                        totalizerRegion: _visionConfiguration
-                                            .totalizerRegion,
-                                        selectedDial:
-                                            _visionConfiguration.selectedDial,
-                                        zeroAngleDegrees: _visionConfiguration
-                                            .zeroAngleDegrees,
-                                        clockwise:
-                                            _visionConfiguration.clockwise,
-                                        multiplier: value,
-                                        litersPerRevolution: 100 * value,
-                                        source: DialConfigurationSource.manual,
-                                        totalizerConfiguration:
-                                            _visionConfiguration
-                                                .totalizerConfiguration,
-                                      ),
-                                );
-                              },
+                            _dialScaleField(
+                              key: const Key('analyzed-dial-scale'),
                             ),
                             FilledButton.tonal(
                               onPressed: state.busy
@@ -1795,3 +1768,7 @@ DialVisionConfiguration _copyConfiguration(
   totalizerConfiguration:
       totalizerConfiguration ?? value.totalizerConfiguration,
 );
+
+String _formatDialScale(double value) => value == value.truncateToDouble()
+    ? value.toStringAsFixed(0)
+    : value.toString();

@@ -364,12 +364,18 @@ void main() {
       );
       controller = AppController(dependencies);
       await _prepare(controller, method: MeasurementMethod.visual);
+      controller.updateSetup(
+        litersPerPulse: 1,
+        evidenceStepLiters: 25,
+        uncertaintyLiters: 1,
+        needleLitersPerRevolution: 1000,
+      );
       await controller.startSample();
       const selected = DialVisionConfiguration(
         totalizerRegion: TotalizerRegion(NormalizedRect(.08, .72, .44, .16)),
         selectedDial: NormalizedCircle(.78, .22, .14),
-        multiplier: .01,
-        litersPerRevolution: 1,
+        multiplier: 10,
+        litersPerRevolution: 1000,
         totalizerConfiguration: TotalizerConfiguration(
           digitCount: 6,
           decimalPlaces: 2,
@@ -385,7 +391,12 @@ void main() {
       expect(restored.totalizerTop, .72);
       expect(restored.dialCenterX, .78);
       expect(restored.dialCenterY, .22);
-      expect(restored.multiplier, .01);
+      expect(restored.multiplier, 10);
+      expect(restored.litersPerRevolution, 1000);
+      expect(
+        restarted.state.sample!.configuration.needleLitersPerRevolution,
+        1000,
+      );
       expect(restored.totalizerConfiguration?.decimalPlaces, 2);
       expect(restarted.state.evidence, isEmpty);
     },
@@ -482,6 +493,60 @@ void main() {
     expect(controller.state.sample?.manualIndicatedLiters, 25);
     expect(controller.state.sample?.result?.indicatedLiters, 25);
     expect(controller.state.sample?.checksum, isNotEmpty);
+  });
+
+  test(
+    '1000 L revolution accepts accumulated total 5000 and needle 500',
+    () async {
+      await _prepare(controller, method: MeasurementMethod.visual);
+      controller.updateSetup(
+        litersPerPulse: 1,
+        evidenceStepLiters: 2500,
+        uncertaintyLiters: 1,
+        needleLitersPerRevolution: 1000,
+      );
+      await controller.startSample();
+      await controller.closeSample(
+        initialTotalizer: 0,
+        initialNeedle: 0,
+        initialMeterTotalLiters: 0,
+        finalTotalizer: 5,
+        finalNeedle: 500,
+        finalMeterTotalLiters: 5000,
+        visualReferenceLiters: 5000,
+      );
+
+      expect(controller.state.errorMessage, isNull);
+      expect(controller.state.sample?.status, SampleStatus.closedValid);
+      expect(controller.state.sample?.manualIndicatedLiters, 5000);
+      expect(
+        controller.state.sample?.configuration.needleLitersPerRevolution,
+        1000,
+      );
+    },
+  );
+
+  test('1000 L revolution rejects needle position 5000', () async {
+    await _prepare(controller, method: MeasurementMethod.visual);
+    controller.updateSetup(
+      litersPerPulse: 1,
+      evidenceStepLiters: 2500,
+      uncertaintyLiters: 1,
+      needleLitersPerRevolution: 1000,
+    );
+    await controller.startSample();
+    await controller.closeSample(
+      initialTotalizer: 0,
+      initialNeedle: 0,
+      initialMeterTotalLiters: 0,
+      finalTotalizer: 5,
+      finalNeedle: 5000,
+      finalMeterTotalLiters: 5000,
+      visualReferenceLiters: 5000,
+    );
+
+    expect(controller.state.errorMessage, contains('menor que 1000.0 L'));
+    expect(controller.state.sample?.status, SampleStatus.running);
   });
 
   test('FINAL evidence freezes pulse endpoint used by closure', () async {

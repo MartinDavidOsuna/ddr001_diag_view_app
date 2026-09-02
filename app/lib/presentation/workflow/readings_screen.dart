@@ -206,7 +206,11 @@ final class _ReadingsScreenState extends ConsumerState<ReadingsScreen> {
             style: const TextStyle(color: AppColors.warning),
           ),
         const SizedBox(height: 10),
-        _number(needle, 'Valor de la aguja (L)', Key('$keyPrefix-needle')),
+        _number(
+          needle,
+          'Posición de aguja dentro de la vuelta (L)',
+          Key('$keyPrefix-needle'),
+        ),
         const SizedBox(height: 10),
         _number(
           meterTotal,

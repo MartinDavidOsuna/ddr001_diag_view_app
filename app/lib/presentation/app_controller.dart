@@ -297,6 +297,7 @@ final class AppViewState {
     bool clearGpsMessage = false,
     bool? hydrantLookupInProgress,
     ExportedCaseFiles? exportedFiles,
+    bool clearExportedFiles = false,
     String? syncMessage,
     Set<String>? reportSampleIds,
     int? meterUnderTestPulseCount,
@@ -392,7 +393,9 @@ final class AppViewState {
     gpsMessage: clearGpsMessage ? null : gpsMessage ?? this.gpsMessage,
     hydrantLookupInProgress:
         hydrantLookupInProgress ?? this.hydrantLookupInProgress,
-    exportedFiles: exportedFiles ?? this.exportedFiles,
+    exportedFiles: clearExportedFiles
+        ? null
+        : exportedFiles ?? this.exportedFiles,
     syncMessage: syncMessage ?? this.syncMessage,
     reportSampleIds: reportSampleIds ?? this.reportSampleIds,
     meterUnderTestPulseCount:
@@ -561,6 +564,11 @@ final class AppController extends StateNotifier<AppViewState> {
         samples: samples,
         casePointsBySample: points,
         caseEvidenceBySample: evidence,
+        reportSampleIds: samples
+            .where((sample) => sample.status == SampleStatus.closedValid)
+            .map((sample) => sample.id)
+            .toSet(),
+        clearExportedFiles: true,
         page: AppPage.caseSummary,
       );
     });
@@ -1953,7 +1961,12 @@ final class AppController extends StateNotifier<AppViewState> {
     final verificationCase = state.activeCase;
     final user = state.user;
     final meter = state.meter;
-    if (verificationCase == null || user == null || meter == null) return;
+    if (verificationCase == null ||
+        user == null ||
+        meter == null ||
+        state.reportSampleIds.isEmpty) {
+      return;
+    }
     await _guard(() async {
       final flows = await dependencies.flows.listByCase(verificationCase.id);
       final samples = <Sample>[];
@@ -1961,11 +1974,7 @@ final class AppController extends StateNotifier<AppViewState> {
       final evidence = <String, List<Evidence>>{};
       for (final flow in flows) {
         final flowSamples = (await dependencies.samples.listByFlow(flow.id))
-            .where(
-              (sample) =>
-                  state.reportSampleIds.isEmpty ||
-                  state.reportSampleIds.contains(sample.id),
-            )
+            .where((sample) => state.reportSampleIds.contains(sample.id))
             .toList();
         samples.addAll(flowSamples);
         for (final sample in flowSamples) {
@@ -1975,6 +1984,7 @@ final class AppController extends StateNotifier<AppViewState> {
           );
         }
       }
+      if (samples.isEmpty) return;
       final files = await dependencies.caseExport.export(
         CaseExportBundle(
           user: user,
@@ -1992,7 +2002,11 @@ final class AppController extends StateNotifier<AppViewState> {
 
   void toggleReportSample(String sampleId, bool selected) {
     final ids = {...state.reportSampleIds};
-    if (selected) {
+    final belongsToCurrentCase = state.samples.any(
+      (sample) =>
+          sample.id == sampleId && sample.status == SampleStatus.closedValid,
+    );
+    if (selected && belongsToCurrentCase) {
       ids.add(sampleId);
     } else {
       ids.remove(sampleId);

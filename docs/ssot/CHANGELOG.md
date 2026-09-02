@@ -1,5 +1,12 @@
 # CHANGELOG funcional
 
+## Versión 1.3.1+11 — escala de dial y selección aislada de reportes — 2026-09-01
+- Preparación y Cámara comparten `litersPerRevolution` como escala canónica positiva; Cámara conserva 1000 L/vuelta y deriva el multiplicador histórico sin limitar el dominio a 100 L/vuelta.
+- CAPTURAR LECTURAS distingue el total acumulado del medidor de la posición de aguja dentro de una vuelta. El total no queda limitado por L/vuelta; la aguja conserva su frontera metrológica.
+- La selección de Samples para exportación se reconcilia al expediente abierto y nunca conserva IDs de otro Case; una selección vacía no genera reportes.
+- PDF sustituye el marcador Unicode no disponible de repetibilidad por texto compatible, sin rediseñar la paginación.
+- Drift permanece en schema 12; no hay migración ni cambio en fórmulas, Simulación, BLE, backend o firmware.
+
 ## Versión 1.3.0+10 — modo de simulación trazable — 2026-09-01
 - Fuente SIMULACIÓN local con escenarios exitosa, fallida y mixta; el escenario genera entradas deterministas y el motor metrológico real decide APRUEBA/RECHAZA.
 - La adquisición acelerada usa el progreso de pulsos, persistencia Drift, SampleClosureService, plan START/INTERMEDIATE/FINAL, archivos Evidence reales y SHA-256.

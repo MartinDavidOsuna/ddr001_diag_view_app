@@ -99,6 +99,17 @@ double? parseDialMultiplier(String text) {
   return match == null ? null : double.tryParse(match.group(1)!);
 }
 
+double dialMultiplierForLitersPerRevolution(double litersPerRevolution) {
+  if (!litersPerRevolution.isFinite || litersPerRevolution <= 0) {
+    throw ArgumentError.value(
+      litersPerRevolution,
+      'litersPerRevolution',
+      'Debe ser un valor finito mayor que cero.',
+    );
+  }
+  return litersPerRevolution / 100;
+}
+
 final class DialVisionConfiguration {
   const DialVisionConfiguration({
     this.totalizerRegion = const TotalizerRegion(

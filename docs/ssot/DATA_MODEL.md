@@ -42,6 +42,7 @@ Los JSON Schemas de `packages/shared-contracts/` son contratos serializables. Pr
 
 ## Sample (Muestra/corrida)
 - `sample_id` PK.
+- La configuración congelada usa `needle_liters_per_revolution` como escala canónica positiva. `dial_multiplier` es compatibilidad histórica derivada (`litersPerRevolution / 100`), no un catálogo que limite las escalas reales.
 - `flow_point_id`.
 - `sample_number` secuencial dentro del caudal.
 - `status`: `DRAFT | RUNNING | INVALID_EVIDENCE | CLOSED_VALID`.

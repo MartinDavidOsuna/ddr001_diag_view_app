@@ -143,6 +143,48 @@ void main() {
     },
   );
 
+  test('report selections are isolated to the currently opened case', () async {
+    final controller = AppController(
+      fixture.dependencies.copyWith(simulationWorkflow: simulation),
+    );
+    await controller.login('QA Reportes', 'reports@aquafim.mx', '4491234567');
+    await controller.identifyMeter(
+      meterId: 'CASE-A-MIXED',
+      testBenchId: 'SIMULATION',
+    );
+    final caseA = controller.state.activeCase!.id;
+    controller.selectMethod(MeasurementMethod.simulation);
+    controller.selectSimulationScenario(SimulationScenario.failThenPass);
+    await controller.startSample();
+    await controller.showCaseSummary();
+    final sampleIdsA = controller.state.samples
+        .map((sample) => sample.id)
+        .toSet();
+    expect(sampleIdsA, hasLength(2));
+    expect(controller.state.reportSampleIds, sampleIdsA);
+
+    await controller.startIdentification();
+    await controller.identifyMeter(
+      meterId: 'CASE-B-EMPTY',
+      testBenchId: 'SIMULATION',
+    );
+    final caseB = controller.state.activeCase!.id;
+    await controller.openCaseFromHistory(caseB);
+    expect(controller.state.reportSampleIds, isEmpty);
+    controller.toggleReportSample(sampleIdsA.first, true);
+    expect(controller.state.reportSampleIds, isEmpty);
+    await controller.exportCurrentCase();
+    expect(controller.state.exportedFiles, isNull);
+
+    await controller.openCaseFromHistory(caseA);
+    expect(controller.state.reportSampleIds, sampleIdsA);
+    controller.toggleReportSample(sampleIdsA.first, false);
+    expect(controller.state.reportSampleIds.every(sampleIdsA.contains), isTrue);
+
+    await controller.openCaseFromHistory(caseB);
+    expect(controller.state.reportSampleIds, isEmpty);
+  });
+
   test('simulation export uses real CSV JSON HTML PDF generators', () async {
     final sample = await _runningSimulation(
       fixture,
