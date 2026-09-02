@@ -1,5 +1,11 @@
 # CHANGELOG funcional
 
+## Versión 1.3.3+13 — frontera START obligatoria para MANUAL — 2026-09-01
+- MANUAL habilita `INICIAR PRUEBA` sin exigir pulsos de caudal previos, captura primero Evidence START y sólo entonces habilita `+1 PULSO`.
+- Un pulso MANUAL previo a START ya no puede incrementar la Sample ni hacer que recovery interprete la adquisición como iniciada.
+- Recovery usa la Evidence START persistida como frontera durable y conserva las Samples inválidas o RUNNING ya existentes sin borrarlas.
+- BLE/ESP32 conserva su compuerta de caudal; Simulación, metrología, Drift 12, Cámara y reportes no cambian.
+
 ## Versión 1.3.2+12 — reactivación productiva de captura MANUAL — 2026-09-01
 - MANUAL vuelve al selector productivo tras haber sido ocultado por `6ffec407`; reutiliza la implementación existente desde Stage 3 y no crea un workflow paralelo.
 - Un único botón `+1 PULSO` emite `PulseEvent.manual` hacia `PulseProgressService`, persiste cada incremento y Vref, y queda deshabilitado mientras se procesa el tap para evitar dobles eventos accidentales.

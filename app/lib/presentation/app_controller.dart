@@ -1069,6 +1069,8 @@ final class AppController extends StateNotifier<AppViewState> {
     final sample = state.sample;
     if (sample == null ||
         sample.status != SampleStatus.running ||
+        !state.measurementStarted ||
+        state.capturePurpose == CapturePurpose.start ||
         _sampleEndpointFrozen ||
         sample.configuration.measurementMethod != MeasurementMethod.manual) {
       return;
@@ -1109,16 +1111,21 @@ final class AppController extends StateNotifier<AppViewState> {
   Future<void> beginMeasurement() async {
     final sample = state.sample;
     final first = state.preStartControlFirstPulseAt;
-    if (sample == null || first == null || state.measurementStarted) return;
-    final gate = ControlStartGate.evaluate(
-      pulses: state.preStartControlPulseCount,
-      litersPerPulse: sample.configuration.litersPerPulse,
-      firstPulseAt: first,
-      now: DateTime.now().toUtc(),
-      minimumLps: sample.configuration.controlStartMinimumLps,
-      maximumLps: sample.configuration.controlStartMaximumLps,
-    );
-    if (!gate.inRange) return;
+    if (sample == null || state.measurementStarted) return;
+    final manual =
+        sample.configuration.measurementMethod == MeasurementMethod.manual;
+    if (!manual) {
+      if (first == null) return;
+      final gate = ControlStartGate.evaluate(
+        pulses: state.preStartControlPulseCount,
+        litersPerPulse: sample.configuration.litersPerPulse,
+        firstPulseAt: first,
+        now: DateTime.now().toUtc(),
+        minimumLps: sample.configuration.controlStartMinimumLps,
+        maximumLps: sample.configuration.controlStartMaximumLps,
+      );
+      if (!gate.inRange) return;
+    }
     state = state.copyWith(measurementStarted: true, clearError: true);
     _meterUnderTestCounterBaseline = _latestMeterUnderTestCounter;
     _hydrantMonitorCounterBaseline = _latestMeterUnderTestCounter;
@@ -2214,9 +2221,12 @@ final class AppController extends StateNotifier<AppViewState> {
       gpsCaptureState: sample.gps == null
           ? GpsCaptureState.idle
           : GpsCaptureState.captured,
+      // START is the durable boundary between pre-test setup and official
+      // acquisition. In particular, a legacy/pre-fix MANUAL pulse without
+      // START must never make recovery skip the required initial Evidence.
       measurementStarted:
-          sample.pulseCount > 0 ||
-          evidence.any((item) => item.type == EvidenceType.start),
+          evidence.any((item) => item.type == EvidenceType.start) ||
+          (currentSample?.id == sample.id && state.measurementStarted),
     );
   }
 

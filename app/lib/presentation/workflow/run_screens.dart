@@ -233,6 +233,8 @@ final class _TestRunScreenState extends ConsumerState<TestRunScreen> {
             referenceLiters: reference,
             measurementStarted: state.measurementStarted,
             finalizingMeasurement: state.finalizingMeasurement,
+            manualSource:
+                config.measurementMethod == MeasurementMethod.manual,
             preStartControlPulses: state.preStartControlPulseCount,
             preStartControlFirstPulseAt: state.preStartControlFirstPulseAt,
             meterUnderTestPulses: state.meterUnderTestPulseCount,
@@ -272,7 +274,12 @@ final class _TestRunScreenState extends ConsumerState<TestRunScreen> {
                         backgroundColor: AppColors.amber,
                         minimumSize: const Size.fromHeight(76),
                       ),
-                      onPressed: state.busy ? null : controller.addManualPulse,
+                      onPressed:
+                          state.busy ||
+                              !state.measurementStarted ||
+                              state.capturePurpose == CapturePurpose.start
+                          ? null
+                          : controller.addManualPulse,
                       icon: const Icon(Icons.circle),
                       label: Text(
                         '+1 PULSO (+${config.litersPerPulse.toStringAsFixed(1)} L)',
@@ -494,6 +501,7 @@ final class _PinnedRunStatus extends StatefulWidget {
     required this.referenceLiters,
     required this.measurementStarted,
     required this.finalizingMeasurement,
+    required this.manualSource,
     required this.preStartControlPulses,
     required this.preStartControlFirstPulseAt,
     required this.meterUnderTestPulses,
@@ -514,6 +522,7 @@ final class _PinnedRunStatus extends StatefulWidget {
   final double referenceLiters;
   final bool measurementStarted;
   final bool finalizingMeasurement;
+  final bool manualSource;
   final int preStartControlPulses;
   final DateTime? preStartControlFirstPulseAt;
   final int meterUnderTestPulses;
@@ -582,7 +591,7 @@ final class _PinnedRunStatusState extends State<_PinnedRunStatus> {
             recentPulseTimes: widget.controlPulseTimes,
           ).flowLps
         : gate.flowLps;
-    final flowInRange = gate.inRange;
+    final flowInRange = widget.manualSource || gate.inRange;
     final hydrantEstimate = PulseFlowEstimate.calculate(
       pulses: widget.hydrantMonitorPulses,
       litersPerPulse: widget.hydrantLitersPerPulse,

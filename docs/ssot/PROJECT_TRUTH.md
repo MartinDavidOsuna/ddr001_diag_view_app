@@ -1,6 +1,6 @@
 # PROJECT_TRUTH — DDR001 Verificador de Medidores
 
-- Versión de aplicación vigente: `1.3.2+12`. Login, Inicio y Ajustes muestran la versión instalada. La identidad funcional visible es **VERIFICADOR FUNCIONAL** y Android muestra **AQ VF DDR001**; el encabezado común y el splash Flutter conservan la identidad Aquafim.
+- Versión de aplicación vigente: `1.3.3+13`. Login, Inicio y Ajustes muestran la versión instalada. La identidad funcional visible es **VERIFICADOR FUNCIONAL** y Android muestra **AQ VF DDR001**; el encabezado común y el splash Flutter conservan la identidad Aquafim.
 - Política de incrementos y archivos coordinados: `VERSIONING.md`.
 
 > **Estado:** SSOT consolidada — Etapa 0 cerrada el 2026-08-08.

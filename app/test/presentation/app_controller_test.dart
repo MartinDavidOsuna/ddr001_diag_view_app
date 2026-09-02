@@ -294,6 +294,7 @@ void main() {
       uncertaintyLiters: 1,
     );
     await controller.startSample();
+    await controller.beginMeasurement();
     final armedAt = controller.state.sample!.startedAt!;
     await controller.addManualPulse();
     final firstPulseAt = controller.state.sample!.startedAt!;
@@ -307,6 +308,35 @@ void main() {
     expect(firstPulseAt.isBefore(armedAt), isFalse);
     expect(persisted?.startedAt, firstPulseAt);
   });
+
+  test(
+    'manual acquisition cannot pulse before the required START boundary',
+    () async {
+      final dependencies = fixture.dependencies.copyWith(
+        camera: _FakeCameraPort(),
+        visualPipeline: _FakeVisualPipeline(),
+      );
+      controller = AppController(dependencies);
+      expect(dependencies.bleDiscovery, isNull);
+      await _prepare(controller, method: MeasurementMethod.manual);
+      await controller.startSample();
+      await controller.confirmLiveCameraPreparation(
+        const DialVisionConfiguration(
+          totalizerRegion: TotalizerRegion(NormalizedRect(.1, .1, .5, .2)),
+          selectedDial: NormalizedCircle(.6, .6, .15),
+        ),
+      );
+
+      await controller.addManualPulse();
+      expect(controller.state.sample?.pulseCount, 0);
+      expect(controller.state.measurementStarted, isFalse);
+
+      await controller.beginMeasurement();
+      expect(controller.state.measurementStarted, isTrue);
+      await controller.addManualPulse();
+      expect(controller.state.sample?.pulseCount, 1);
+    },
+  );
 
   test(
     'pulse threshold captures required intermediate evidence automatically',
@@ -330,12 +360,13 @@ void main() {
           selectedDial: NormalizedCircle(.6, .6, .15),
         ),
       );
+      await controller.beginMeasurement();
       await controller.addManualPulse();
       expect(controller.state.page, AppPage.run);
       await controller.addManualPulse();
       expect(controller.state.page, AppPage.run);
       expect(controller.state.capturePurpose, isNull);
-      expect(camera.captureCount, 1);
+      expect(camera.captureCount, 2);
       final evidence = await dependencies.evidence.listBySample(
         controller.state.sample!.id,
       );
@@ -347,14 +378,27 @@ void main() {
   );
 
   test('RUNNING sample is recovered by a new controller', () async {
+    final camera = _FakeCameraPort();
+    final dependencies = fixture.dependencies.copyWith(
+      camera: camera,
+      visualPipeline: _FakeVisualPipeline(),
+    );
+    controller = AppController(dependencies);
     await _prepare(controller, method: MeasurementMethod.manual);
     await controller.startSample();
+    await controller.confirmLiveCameraPreparation(
+      const DialVisionConfiguration(
+        totalizerRegion: TotalizerRegion(NormalizedRect(.1, .1, .5, .2)),
+        selectedDial: NormalizedCircle(.6, .6, .15),
+      ),
+    );
+    await controller.beginMeasurement();
     await controller.addManualPulse();
     await controller.addManualPulse();
     final evidenceBefore = await fixture.dependencies.evidence.listBySample(
       controller.state.sample!.id,
     );
-    final restarted = AppController(fixture.dependencies);
+    final restarted = AppController(dependencies);
     await restarted.initialize();
     expect(restarted.state.page, AppPage.recovery);
     expect(restarted.state.sample?.id, controller.state.sample?.id);
@@ -364,7 +408,7 @@ void main() {
     expect(restarted.state.page, AppPage.run);
     expect(restarted.state.sample?.pulseCount, 2);
     expect(
-      await fixture.dependencies.evidence.listBySample(
+      await dependencies.evidence.listBySample(
         restarted.state.sample!.id,
       ),
       hasLength(evidenceBefore.length),
@@ -570,6 +614,7 @@ void main() {
   test('FINAL evidence freezes pulse endpoint used by closure', () async {
     await _prepare(controller, method: MeasurementMethod.manual);
     await controller.startSample();
+    await controller.beginMeasurement();
     for (var index = 0; index < 27; index++) {
       await controller.addManualPulse();
     }
@@ -634,6 +679,7 @@ void main() {
           selectedDial: NormalizedCircle(.6, .6, .15),
         ),
       );
+      await controller.beginMeasurement();
       await controller.addManualPulse();
       await controller.addManualPulse();
       final capturesBeforeFinal = camera.captureCount;

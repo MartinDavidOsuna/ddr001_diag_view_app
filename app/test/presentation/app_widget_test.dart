@@ -19,8 +19,8 @@ void main() {
     PackageInfo.setMockInitialValues(
       appName: 'DDR001',
       packageName: 'mx.aquafim.ddr001',
-      version: '1.3.2',
-      buildNumber: '12',
+      version: '1.3.3',
+      buildNumber: '13',
       buildSignature: '',
     );
     fixture = await PresentationFixture.create();
@@ -33,7 +33,7 @@ void main() {
     expect(find.byKey(const Key('login-display-name')), findsOneWidget);
     expect(find.byKey(const Key('login-email')), findsOneWidget);
     expect(find.text('VERIFICADOR FUNCIONAL'), findsOneWidget);
-    expect(find.text('Versión: 1.3.2+12'), findsOneWidget);
+    expect(find.text('Versión: 1.3.3+13'), findsOneWidget);
   });
 
   testWidgets('bootstrap navigates home with persistent session', (
@@ -44,7 +44,7 @@ void main() {
     expect(find.text('NUEVA VERIFICACIÓN'), findsOneWidget);
     expect(find.text('Hola, Técnico de Campo'), findsOneWidget);
     expect(find.textContaining('Modo offline'), findsOneWidget);
-    expect(find.text('Versión: 1.3.2+12'), findsOneWidget);
+    expect(find.text('Versión: 1.3.3+13'), findsOneWidget);
     expect(find.byKey(const Key('aquafim-logo-symbol')), findsOneWidget);
   });
 
@@ -140,7 +140,7 @@ void main() {
     expect(find.text('Correo'), findsOneWidget);
     expect(find.text('Teléfono'), findsOneWidget);
     expect(find.byKey(const Key('manual-de-uso')), findsOneWidget);
-    expect(find.text('Versión: 1.3.2+12'), findsOneWidget);
+    expect(find.text('Versión: 1.3.3+13'), findsOneWidget);
     expect(find.byKey(const Key('visual-calibration-debug')), findsNothing);
     expect(find.textContaining('Contraseña'), findsNothing);
     await tester.tap(find.byKey(const Key('logout')));
