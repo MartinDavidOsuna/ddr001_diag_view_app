@@ -1,12 +1,21 @@
 # CHANGELOG funcional
 
 ## Versión 1.4.0+15 — sync online/offline-first con DDR001 API — 2026-09-02
+- Certificación Pixel corrige el MIME multipart a partir de la firma JPEG/PNG y
+  alinea la canonicalización numérica de `payloadSha256` con JavaScript; los
+  lotes rechazados por la huella anterior se reparan sin cambiar UUID, payload
+  funcional ni checksums metrológicos.
 - Auth adopta Field sessions reales con `client_app=ddr001_diag_view`, installation UUID estable, access/refresh seguro, un refresh ante 401 y aislamiento por app/instalación.
 - Login guarda primero la identidad local y conserva operación completa ante timeout/5xx; el UUID local y `rv_user_id` quedan separados. Logout elimina secretos remotos y sesión local, nunca trabajo.
 - Drift avanza 12→13 aditivamente con vínculo de usuario remoto, ACK/error de Evidence y `sync_batches` persistentes para recuperar respuestas perdidas tras restart.
 - Evidence se verifica por archivo/SHA-256 y sube con concurrencia 1 antes del batch; archivo faltante, 409, acceso denegado o error de red conservan metadata, Case, checksum, cola y filesystem.
 - `sync/push` serializa Meter, Case, FlowPoint, Sample, settings, Points y referencias Evidence con hashes canónicos; persiste receipt/ACK y consulta `sync/status` para estados ambiguos.
 - La UI muestra Pendiente, Sincronizando, Sincronizado, Conflicto o Error sin sustituir el listado local por `/cases`; producción, API, Dashboard, `sync/pull` y motor metrológico no cambian.
+- El estado confirmado `SYNC · Sincronizado` se muestra en verde para distinguir
+  visualmente el ACK persistido; el botón queda inactivo para evitar una falsa
+  acción de refresco. Historial lee el último ACK persistido y muestra también
+  `Sincronizado` en verde; una nueva pulsación sobre un Case cerrado ya
+  confirmado no envía otro batch ni crea otro receipt.
 
 ## Macroetapa 1 — contrato online con DDR001 API — 2026-09-02
 - Se congela `ddr001_api` + SQL Server 2014 como único backend productivo y se clasifica `backend/` Prisma/PostgreSQL como referencia histórica no desplegable.

@@ -53,7 +53,11 @@ void main() {
         localUserId: _userId,
       );
 
-      expect(result.outcome, FunctionalSyncOutcome.synced);
+      expect(
+        result.outcome,
+        FunctionalSyncOutcome.synced,
+        reason: result.message,
+      );
       expect(calls.where((path) => path.endsWith('/evidence')), hasLength(2));
       expect(calls.last, '/api/v1/functional-diagnostics/sync/push');
       expect(await fixture.queue.listPending(), isEmpty);
@@ -105,6 +109,57 @@ void main() {
       expect(pushCalls, 1);
       expect(statusCalls, 1);
       expect(await fixture.batches.unresolvedForCase(_caseId), isNull);
+    },
+  );
+
+  test(
+    'rejected legacy payload hashes are repaired with the same batch ID',
+    () async {
+      await fixture.seedClosedCase();
+      final batchIds = <String>[];
+      var pushCalls = 0;
+      final engine = fixture.engine((request) async {
+        if (request.url.path.endsWith('/me/access')) return _access();
+        if (request.url.path.endsWith('/evidence')) return _evidenceAck();
+        if (request.url.path.endsWith('/sync/push')) {
+          pushCalls++;
+          final body = jsonDecode(request.body) as Map<String, Object?>;
+          batchIds.add(body['batchId']! as String);
+          if (pushCalls == 1) {
+            return http.Response(
+              jsonEncode({
+                'error': {
+                  'code': 'PAYLOAD_HASH_MISMATCH',
+                  'message':
+                      'payloadSha256 does not match the canonical item payload.',
+                },
+              }),
+              422,
+              headers: {'content-type': 'application/json'},
+            );
+          }
+          return _receipt(request);
+        }
+        throw StateError('Unexpected route ${request.url}');
+      });
+
+      final first = await engine.syncCase(
+        caseId: _caseId,
+        localUserId: _userId,
+      );
+      expect(first.outcome, FunctionalSyncOutcome.error);
+      expect(
+        (await fixture.batches.unresolvedForCase(_caseId))?.state,
+        SyncBatchState.failed,
+      );
+
+      final second = await engine.syncCase(
+        caseId: _caseId,
+        localUserId: _userId,
+      );
+      expect(second.outcome, FunctionalSyncOutcome.synced);
+      expect(pushCalls, 2);
+      expect(batchIds.toSet(), hasLength(1));
     },
   );
 
@@ -220,6 +275,9 @@ final class _SyncFixture {
   late final LocalSampleClosureService closure;
 
   Future<Sample> seedClosedCase() async {
+    final evidenceBytes = await File(
+      'assets/simulation/simulation_evidence_placeholder.png',
+    ).readAsBytes();
     await users.save(
       User(
         id: _userId,
@@ -300,16 +358,9 @@ final class _SyncFixture {
         caseId: _caseId,
         sampleId: _sampleId,
         evidenceId: entry.$1,
-        extension: 'jpg',
+        extension: 'png',
       );
-      final bytes = [
-        0xff,
-        0xd8,
-        ...List<int>.filled(64, entry.$3.toInt()),
-        0xff,
-        0xd9,
-      ];
-      await File(path).writeAsBytes(bytes);
+      await File(path).writeAsBytes(evidenceBytes);
       await evidence.save(
         Evidence(
           id: entry.$1,
@@ -319,7 +370,7 @@ final class _SyncFixture {
           volumeRefLiters: entry.$3,
           pulseCount: entry.$3.toInt(),
           capturedAt: _time,
-          sha256: sha256.convert(bytes).toString(),
+          sha256: sha256.convert(evidenceBytes).toString(),
           localPath: path,
           syncStatus: EvidenceSyncStatus.local,
         ),

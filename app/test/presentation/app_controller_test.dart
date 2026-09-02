@@ -193,6 +193,77 @@ void main() {
     expect(await fixture.dependencies.cases.listLocalCases(), hasLength(1));
   });
 
+  test(
+    'history exposes persisted sync and a confirmed Case is not resent',
+    () async {
+      await controller.login('Martín Osuna', 'field@aquafim.mx', '4491234567');
+      final user = controller.state.user!;
+      final now = DateTime.utc(2026, 9, 2);
+      const caseId = 'case-synced';
+      await fixture.dependencies.meters.save(
+        Meter(
+          id: 'meter-synced',
+          externalStatus: ExternalMeterStatus.unknownOffline,
+          createdAt: now,
+        ),
+      );
+      await fixture.dependencies.cases.create(
+        VerificationCase(
+          id: caseId,
+          meterId: 'meter-synced',
+          userId: user.id,
+          status: VerificationCaseStatus.open,
+          createdAt: now,
+          reportVersion: 1,
+          testBenchId: 'bench-synced',
+        ),
+      );
+      await fixture.database.customStatement(
+        '''UPDATE verification_cases
+         SET status='closed', overall_verdict='approved', closed_at_ms=?, checksum=?
+         WHERE id=?''',
+        [
+          now.millisecondsSinceEpoch,
+          'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+          caseId,
+        ],
+      );
+      await fixture.dependencies.syncBatches.savePending(
+        SyncBatch(
+          id: 'batch-synced',
+          caseId: caseId,
+          requestJson: '{}',
+          requestSha256:
+              'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+          state: SyncBatchState.pending,
+          attempts: 0,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      await fixture.dependencies.syncBatches.markSynced(
+        'batch-synced',
+        receiptId: 'receipt-synced',
+        at: now,
+      );
+
+      await controller.openCaseFromHistory(caseId);
+      final confirmedState = controller.state;
+      await controller.syncCurrentCase();
+      expect(identical(controller.state, confirmedState), isTrue);
+      expect(controller.state.syncMessage, 'Sincronizado');
+      expect(
+        (await fixture.dependencies.syncBatches.latestForCase(
+          caseId,
+        ))?.attempts,
+        0,
+      );
+
+      await controller.showHistory();
+      expect(controller.state.caseSyncMessages[caseId], 'Sincronizado');
+    },
+  );
+
   test('identification persists mandatory Q1 and Q2 flow points', () async {
     await controller.login('Martín Osuna', 'field@aquafim.mx', '4491234567');
     await controller.identifyMeter(

@@ -113,6 +113,7 @@ final class AppViewState {
     this.casePointsBySample = const {},
     this.caseEvidenceBySample = const {},
     this.cases = const [],
+    this.caseSyncMessages = const {},
     this.errorMessage,
     this.capturePurpose,
     this.captureVolumeLiters,
@@ -190,6 +191,7 @@ final class AppViewState {
   final Map<String, List<TestPoint>> casePointsBySample;
   final Map<String, List<Evidence>> caseEvidenceBySample;
   final List<VerificationCase> cases;
+  final Map<String, String> caseSyncMessages;
   final String? errorMessage;
   final CapturePurpose? capturePurpose;
   final double? captureVolumeLiters;
@@ -269,6 +271,7 @@ final class AppViewState {
     Map<String, List<TestPoint>>? casePointsBySample,
     Map<String, List<Evidence>>? caseEvidenceBySample,
     List<VerificationCase>? cases,
+    Map<String, String>? caseSyncMessages,
     String? errorMessage,
     bool clearError = false,
     CapturePurpose? capturePurpose,
@@ -364,6 +367,7 @@ final class AppViewState {
     casePointsBySample: casePointsBySample ?? this.casePointsBySample,
     caseEvidenceBySample: caseEvidenceBySample ?? this.caseEvidenceBySample,
     cases: cases ?? this.cases,
+    caseSyncMessages: caseSyncMessages ?? this.caseSyncMessages,
     errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
     capturePurpose: clearCapturePurpose
         ? null
@@ -543,7 +547,15 @@ final class AppController extends StateNotifier<AppViewState> {
   Future<void> showHistory() async {
     await _guard(() async {
       final cases = await dependencies.cases.listLocalCases();
-      state = state.copyWith(page: AppPage.history, cases: cases);
+      final syncMessages = <String, String>{};
+      for (final item in cases) {
+        syncMessages[item.id] = await _persistedSyncMessage(item.id);
+      }
+      state = state.copyWith(
+        page: AppPage.history,
+        cases: cases,
+        caseSyncMessages: syncMessages,
+      );
     });
   }
 
@@ -2036,14 +2048,21 @@ final class AppController extends StateNotifier<AppViewState> {
     final engine = dependencies.syncEngine;
     final verificationCase = state.activeCase;
     final user = state.user;
-    if (engine == null) {
-      state = state.copyWith(
-        syncMessage: 'Pendiente local · backend no configurado',
-      );
+    if (verificationCase == null || user == null) return;
+    final latest = await dependencies.syncBatches.latestForCase(
+      verificationCase.id,
+    );
+    if (verificationCase.status == VerificationCaseStatus.closed &&
+        latest?.state == SyncBatchState.synced) {
       return;
     }
-    if (verificationCase == null || user == null) return;
     await _guard(() async {
+      if (engine == null) {
+        state = state.copyWith(
+          syncMessage: 'Pendiente local · backend no configurado',
+        );
+        return;
+      }
       state = state.copyWith(syncMessage: 'Sincronizando…');
       final result = await engine.syncCase(
         caseId: verificationCase.id,

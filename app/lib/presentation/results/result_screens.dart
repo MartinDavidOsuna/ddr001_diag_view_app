@@ -357,9 +357,16 @@ final class CaseSummaryScreen extends ConsumerWidget {
             const SizedBox(height: 8),
             OutlinedButton.icon(
               key: const Key('sync-case'),
-              onPressed: state.busy ? null : controller.syncCurrentCase,
+              onPressed: state.busy || state.syncMessage == 'Sincronizado'
+                  ? null
+                  : controller.syncCurrentCase,
               icon: const Icon(Icons.sync),
-              label: Text('SYNC · ${state.syncMessage}'),
+              label: Text(
+                'SYNC · ${state.syncMessage}',
+                style: state.syncMessage == 'Sincronizado'
+                    ? const TextStyle(color: AppColors.success)
+                    : null,
+              ),
             ),
           ],
           const SizedBox(height: 8),

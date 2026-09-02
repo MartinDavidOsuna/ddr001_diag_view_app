@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../domain/models.dart';
@@ -306,7 +307,8 @@ final class RemoteApiClient {
         code: 'LOCAL_EVIDENCE_HASH_MISSING',
       );
     }
-    final actualHash = sha256.convert(await file.readAsBytes()).toString();
+    final bytes = await file.readAsBytes();
+    final actualHash = sha256.convert(bytes).toString();
     if (actualHash != declaredHash) {
       throw const RemoteApiException(
         kind: RemoteFailureKind.conflict,
@@ -315,6 +317,7 @@ final class RemoteApiClient {
       );
     }
     final length = await file.length();
+    final mediaType = _evidenceMediaType(bytes);
     Future<http.Response> send(String token) async {
       final request = http.MultipartRequest(
         'POST',
@@ -334,7 +337,14 @@ final class RemoteApiClient {
         'sha256': declaredHash,
         'sizeBytes': length,
       });
-      request.files.add(await http.MultipartFile.fromPath('file', file.path));
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'file',
+          bytes,
+          filename: file.uri.pathSegments.last,
+          contentType: mediaType,
+        ),
+      );
       return http.Response.fromStream(
         await _client.send(request).timeout(uploadTimeout),
       );
@@ -506,6 +516,31 @@ final class RemoteApiClient {
   }
 }
 
+MediaType _evidenceMediaType(List<int> bytes) {
+  if (bytes.length >= 3 &&
+      bytes[0] == 0xff &&
+      bytes[1] == 0xd8 &&
+      bytes[2] == 0xff) {
+    return MediaType('image', 'jpeg');
+  }
+  if (bytes.length >= 8 &&
+      bytes[0] == 0x89 &&
+      bytes[1] == 0x50 &&
+      bytes[2] == 0x4e &&
+      bytes[3] == 0x47 &&
+      bytes[4] == 0x0d &&
+      bytes[5] == 0x0a &&
+      bytes[6] == 0x1a &&
+      bytes[7] == 0x0a) {
+    return MediaType('image', 'png');
+  }
+  throw const RemoteApiException(
+    kind: RemoteFailureKind.validation,
+    message: 'La evidencia local no es una imagen JPEG o PNG válida.',
+    code: 'LOCAL_EVIDENCE_MIME_UNSUPPORTED',
+  );
+}
+
 SyncReceiptAck _receipt(Map<String, Object?> data) => SyncReceiptAck(
   receiptId: data['receiptId']! as String,
   status: data['status']! as String,
@@ -525,7 +560,19 @@ SyncReceiptAck _receipt(Map<String, Object?> data) => SyncReceiptAck(
 );
 
 String canonicalJson(Object? value) {
-  if (value == null || value is bool || value is String || value is num) {
+  if (value == null || value is bool || value is String) {
+    return jsonEncode(value);
+  }
+  if (value is num) {
+    if (!value.isFinite) {
+      throw ArgumentError.value(value, 'value', 'Non-finite JSON number');
+    }
+    // Match JSON.stringify, used by ddr001_api: JavaScript does not preserve
+    // Dart's lexical distinction between an integral double (2.0) and 2.
+    if (value == 0) return '0';
+    if (value is double && value == value.truncateToDouble()) {
+      return value.toInt().toString();
+    }
     return jsonEncode(value);
   }
   if (value is List<Object?>) {

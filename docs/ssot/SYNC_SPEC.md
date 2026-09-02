@@ -58,6 +58,12 @@ entidad inmutable con otra huella devuelve `conflict`; mismo batch con otro body
 devuelve HTTP 409. La cola no marca synced por un HTTP 200 global: inspecciona
 el estado individual.
 
+Un rechazo `PAYLOAD_HASH_MISMATCH` ocurre antes de crear receipt. Al actualizar
+desde una versión con canonicalización de transporte incompatible, la app puede
+recalcular únicamente los `payloadSha256` y la huella del request persistido,
+conservando el mismo `batchId`, payload funcional, UUID y checksums metrológicos.
+Esta reparación no se aplica a lotes ambiguos, con receipt o en conflicto.
+
 Estados de respuesta por ítem:
 
 `created | exists | accepted | conflict | rejected`

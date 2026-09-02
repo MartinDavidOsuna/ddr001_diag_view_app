@@ -63,6 +63,11 @@ final class FunctionalSyncEngine {
       }
 
       var batch = await batches.unresolvedForCase(caseId);
+      if (batch != null &&
+          batch.state == SyncBatchState.failed &&
+          _isPayloadHashFailure(batch.lastError)) {
+        batch = await _repairPayloadHashes(batch);
+      }
       if (batch?.state == SyncBatchState.conflict) {
         return FunctionalSyncResult(
           FunctionalSyncOutcome.conflict,
@@ -125,7 +130,7 @@ final class FunctionalSyncEngine {
         }
         await batches.markFailed(
           batch.id,
-          error: error.message,
+          error: '${error.code ?? error.kind.name}: ${error.message}',
           at: DateTime.now().toUtc(),
         );
         return FunctionalSyncResult(
@@ -152,6 +157,23 @@ final class FunctionalSyncEngine {
         'Error · $error',
       );
     }
+  }
+
+  Future<SyncBatch> _repairPayloadHashes(SyncBatch batch) async {
+    final request = (jsonDecode(batch.requestJson) as Map)
+        .cast<String, Object?>();
+    final items = (request['items']! as List<Object?>)
+        .cast<Map<String, Object?>>();
+    for (final item in items) {
+      item['payloadSha256'] = canonicalSha256(item['payload']);
+    }
+    final requestJson = jsonEncode(request);
+    return batches.repairFailedRequest(
+      id: batch.id,
+      requestJson: requestJson,
+      requestSha256: canonicalSha256(request),
+      at: DateTime.now().toUtc(),
+    );
   }
 
   Future<List<FunctionalSyncResult>> syncCases({
@@ -296,3 +318,7 @@ final class FunctionalSyncEngine {
     );
   }
 }
+
+bool _isPayloadHashFailure(String? error) =>
+    error?.contains('PAYLOAD_HASH_MISMATCH') == true ||
+    error?.contains('payloadSha256 does not match') == true;

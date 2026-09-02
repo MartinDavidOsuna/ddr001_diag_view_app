@@ -185,9 +185,15 @@ final class HistoryScreen extends ConsumerWidget {
                               if (ref
                                   .read(appDependenciesProvider)
                                   .backendSyncConfigured)
-                                const Text(
-                                  'Sincronización disponible',
-                                  style: TextStyle(color: AppColors.muted),
+                                Text(
+                                  'Sincronización: ${state.caseSyncMessages[item.id] ?? 'Pendiente'}',
+                                  style: TextStyle(
+                                    color:
+                                        state.caseSyncMessages[item.id] ==
+                                            'Sincronizado'
+                                        ? AppColors.success
+                                        : AppColors.muted,
+                                  ),
                                 ),
                             ],
                           ),

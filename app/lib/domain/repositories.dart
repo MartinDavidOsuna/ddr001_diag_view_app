@@ -82,6 +82,12 @@ abstract interface class EvidenceRepository {
 
 abstract interface class SyncBatchRepository {
   Future<SyncBatch> savePending(SyncBatch batch);
+  Future<SyncBatch> repairFailedRequest({
+    required String id,
+    required String requestJson,
+    required String requestSha256,
+    required DateTime at,
+  });
   Future<SyncBatch?> unresolvedForCase(String caseId);
   Future<SyncBatch?> latestForCase(String caseId);
   Future<List<SyncBatch>> listRunnable({DateTime? at});

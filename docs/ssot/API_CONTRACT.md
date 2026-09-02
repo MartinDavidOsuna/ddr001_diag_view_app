@@ -81,6 +81,11 @@ forma atómica.
 Cada ítem tiene `itemId`, `entityId`, `parentId`, checksum metrológico cuando
 aplica, SHA-256 del payload canónico y payload. La respuesta por ítem distingue:
 
+El JSON canónico ordena recursivamente las claves y usa representación numérica
+compatible con `JSON.stringify`: un double integral se representa sin `.0` y
+`-0.0` como `0`. Esto mantiene la misma huella entre Dart y JavaScript sin
+alterar los checksums metrológicos versionados.
+
 `created | exists | accepted | conflict | rejected`
 
 y códigos estables, al menos:

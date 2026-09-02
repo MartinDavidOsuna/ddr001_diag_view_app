@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:crypto/crypto.dart';
+import 'package:ddr001_diag_view_app/domain/models.dart';
 import 'package:ddr001_diag_view_app/infrastructure/remote/remote_api.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -189,6 +192,41 @@ void main() {
       canonicalSha256({'a': 1, 'b': 2}),
     );
   });
+
+  test('canonical numbers match JavaScript JSON.stringify semantics', () {
+    expect(
+      canonicalJson({'a': 2.0, 'b': -0.0, 'c': -0.9142135623731094}),
+      '{"a":2,"b":0,"c":-0.9142135623731094}',
+    );
+    expect(
+      canonicalSha256({'a': 2.0, 'b': -0.0, 'c': -0.9142135623731094}),
+      'eab998d4ecd6e41e8647cea483fa559ff03d33758cbb8da988d44a5bc0759d66',
+    );
+  });
+
+  test('Evidence upload declares MIME detected from image bytes', () async {
+    final file = File('assets/simulation/simulation_evidence_placeholder.png');
+    final bytes = await file.readAsBytes();
+    final transport = _CapturingMultipartClient();
+    final client = RemoteApiClient(
+      baseUrl: 'https://test.invalid',
+      credentials: _MemoryCredentialStore.seeded(),
+      client: transport,
+    );
+    await client.uploadEvidence(
+      Evidence(
+        id: '55555555-5555-4555-8555-555555555555',
+        sampleId: '66666666-6666-4666-8666-666666666666',
+        type: EvidenceType.start,
+        required: true,
+        capturedAt: DateTime.utc(2026, 9, 2),
+        sha256: sha256.convert(bytes).toString(),
+        localPath: file.path,
+        syncStatus: EvidenceSyncStatus.pending,
+      ),
+    );
+    expect(transport.contentType, 'image/png');
+  });
 }
 
 const _installationId = '11111111-1111-4111-8111-111111111111';
@@ -232,5 +270,30 @@ final class _MemoryCredentialStore implements RemoteCredentialStore {
   @override
   Future<void> writeCredentials(RemoteCredentials credentials) async {
     value = credentials;
+  }
+}
+
+final class _CapturingMultipartClient extends http.BaseClient {
+  String? contentType;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    final multipart = request as http.MultipartRequest;
+    contentType = multipart.files.single.contentType.toString();
+    await request.finalize().drain<void>();
+    return http.StreamedResponse(
+      Stream.value(
+        utf8.encode(
+          jsonEncode({
+            'data': {
+              'status': 'created',
+              'storageKey': '55555555-5555-4555-8555-555555555555',
+            },
+          }),
+        ),
+      ),
+      201,
+      headers: {'content-type': 'application/json'},
+    );
   }
 }

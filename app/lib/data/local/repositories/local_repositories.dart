@@ -1253,6 +1253,33 @@ final class LocalSyncBatchRepository implements SyncBatchRepository {
   }
 
   @override
+  Future<domain.SyncBatch> repairFailedRequest({
+    required String id,
+    required String requestJson,
+    required String requestSha256,
+    required DateTime at,
+  }) async {
+    final current = await _required(id);
+    if (current.state != domain.SyncBatchState.failed ||
+        current.receiptId != null ||
+        !_isPayloadHashFailure(current.lastError)) {
+      throw StateError('Only a rejected payload-hash batch can be repaired.');
+    }
+    await _update(
+      id,
+      db.SyncBatchesCompanion(
+        requestJson: Value(requestJson),
+        requestSha256: Value(requestSha256),
+        state: Value(domain.SyncBatchState.pending.name),
+        lastError: const Value(null),
+        updatedAtMs: Value(_ms(at)),
+        nextRetryAtMs: const Value(null),
+      ),
+    );
+    return (await _get(id))!;
+  }
+
+  @override
   Future<domain.SyncBatch?> unresolvedForCase(String caseId) async {
     final row =
         await (database.select(database.syncBatches)
@@ -1393,6 +1420,10 @@ final class LocalSyncBatchRepository implements SyncBatchRepository {
     return batch;
   }
 }
+
+bool _isPayloadHashFailure(String? error) =>
+    error?.contains('PAYLOAD_HASH_MISMATCH') == true ||
+    error?.contains('payloadSha256 does not match') == true;
 
 domain.SyncBatch _mapBatch(db.SyncBatchRow row) => domain.SyncBatch(
   id: row.id,
