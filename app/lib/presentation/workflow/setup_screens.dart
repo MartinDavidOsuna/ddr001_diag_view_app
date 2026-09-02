@@ -242,6 +242,7 @@ final class _MethodScreenState extends ConsumerState<MethodScreen> {
               children:
                   const [
                         MeasurementMethod.ble,
+                        MeasurementMethod.manual,
                         MeasurementMethod.visual,
                         MeasurementMethod.simulation,
                       ]
@@ -332,7 +333,8 @@ final class _MethodScreenState extends ConsumerState<MethodScreen> {
             FilledButton(
               key: const Key('method-continue'),
               onPressed:
-                  state.selectedMethod == MeasurementMethod.simulation ||
+                  state.selectedMethod == MeasurementMethod.manual ||
+                      state.selectedMethod == MeasurementMethod.simulation ||
                       state.hardwareState == HardwareState.ready
                   ? controller.continueToSetup
                   : null,
@@ -378,7 +380,7 @@ final class _MethodPanel extends StatelessWidget {
     if (method == MeasurementMethod.manual) {
       return const StatusBanner(
         text:
-            'Cada toque del botón de pulso incrementará N y persistirá Vref = N × K.',
+            'Captura manual de pulsos · Cada toque incrementa N una vez y persiste Vref = N × K.',
         color: AppColors.amber,
         icon: Icons.touch_app_outlined,
       );

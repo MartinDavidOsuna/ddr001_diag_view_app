@@ -1,5 +1,11 @@
 # CHANGELOG funcional
 
+## Versión 1.3.2+12 — reactivación productiva de captura MANUAL — 2026-09-01
+- MANUAL vuelve al selector productivo tras haber sido ocultado por `6ffec407`; reutiliza la implementación existente desde Stage 3 y no crea un workflow paralelo.
+- Un único botón `+1 PULSO` emite `PulseEvent.manual` hacia `PulseProgressService`, persiste cada incremento y Vref, y queda deshabilitado mientras se procesa el tap para evitar dobles eventos accidentales.
+- MANUAL no exige BLE, ESP32, backend o Internet y conserva Cámara, Evidence, recovery RUNNING, cierre, metrología, Historial y los cuatro exportes comunes.
+- Se preservan Simulación, BLE/ESP32, Drift schema 12, escala canónica de 1000 L/vuelta y aislamiento de Samples entre Cases.
+
 ## Versión 1.3.1+11 — escala de dial y selección aislada de reportes — 2026-09-01
 - Preparación y Cámara comparten `litersPerRevolution` como escala canónica positiva; Cámara conserva 1000 L/vuelta y deriva el multiplicador histórico sin limitar el dominio a 100 L/vuelta.
 - CAPTURAR LECTURAS distingue el total acumulado del medidor de la posición de aguja dentro de una vuelta. El total no queda limitado por L/vuelta; la aguja conserva su frontera metrológica.

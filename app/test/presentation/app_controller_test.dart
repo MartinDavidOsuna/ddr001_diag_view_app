@@ -285,6 +285,8 @@ void main() {
   });
 
   test('manual pulse increments count and persists Vref', () async {
+    expect(fixture.dependencies.bleDiscovery, isNull);
+    expect(fixture.dependencies.backendSyncConfigured, isFalse);
     await _prepare(controller, method: MeasurementMethod.manual);
     controller.updateSetup(
       litersPerPulse: 2,
@@ -301,6 +303,7 @@ void main() {
     );
     expect(persisted?.pulseCount, 2);
     expect(persisted?.referenceLitersProgress, 4);
+    expect(controller.state.selectedBleDevice, isNull);
     expect(firstPulseAt.isBefore(armedAt), isFalse);
     expect(persisted?.startedAt, firstPulseAt);
   });
@@ -347,12 +350,27 @@ void main() {
     await _prepare(controller, method: MeasurementMethod.manual);
     await controller.startSample();
     await controller.addManualPulse();
+    await controller.addManualPulse();
+    final evidenceBefore = await fixture.dependencies.evidence.listBySample(
+      controller.state.sample!.id,
+    );
     final restarted = AppController(fixture.dependencies);
     await restarted.initialize();
     expect(restarted.state.page, AppPage.recovery);
     expect(restarted.state.sample?.id, controller.state.sample?.id);
+    expect(restarted.state.sample?.pulseCount, 2);
+    expect(restarted.state.sample?.referenceLitersProgress, 2);
     await restarted.resumeSample();
     expect(restarted.state.page, AppPage.run);
+    expect(restarted.state.sample?.pulseCount, 2);
+    expect(
+      await fixture.dependencies.evidence.listBySample(
+        restarted.state.sample!.id,
+      ),
+      hasLength(evidenceBefore.length),
+    );
+    await restarted.addManualPulse();
+    expect(restarted.state.sample?.pulseCount, 3);
   });
 
   test(

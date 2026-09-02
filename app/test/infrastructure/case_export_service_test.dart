@@ -165,8 +165,11 @@ void main() {
               as Map);
       expect(exportedSample['is_simulation'], isFalse);
       expect(exportedSample['simulation_scenario'], isNull);
+      expect(exportedSample['measurement_source'], 'MANUAL');
       expect(html, isNot(contains('PRUEBA SIMULADA')));
+      expect(html, contains('Método:</b> MANUAL'));
       expect(csv, contains('diagnostic_error_pct'));
+      expect(csv, contains('MANUAL'));
       expect(pdf.take(4), orderedEquals('%PDF'.codeUnits));
       expect(pdf.length, greaterThan(1000));
     },

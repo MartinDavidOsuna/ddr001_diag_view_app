@@ -19,8 +19,8 @@ void main() {
     PackageInfo.setMockInitialValues(
       appName: 'DDR001',
       packageName: 'mx.aquafim.ddr001',
-      version: '1.3.1',
-      buildNumber: '11',
+      version: '1.3.2',
+      buildNumber: '12',
       buildSignature: '',
     );
     fixture = await PresentationFixture.create();
@@ -33,7 +33,7 @@ void main() {
     expect(find.byKey(const Key('login-display-name')), findsOneWidget);
     expect(find.byKey(const Key('login-email')), findsOneWidget);
     expect(find.text('VERIFICADOR FUNCIONAL'), findsOneWidget);
-    expect(find.text('Versión: 1.3.1+11'), findsOneWidget);
+    expect(find.text('Versión: 1.3.2+12'), findsOneWidget);
   });
 
   testWidgets('bootstrap navigates home with persistent session', (
@@ -44,7 +44,7 @@ void main() {
     expect(find.text('NUEVA VERIFICACIÓN'), findsOneWidget);
     expect(find.text('Hola, Técnico de Campo'), findsOneWidget);
     expect(find.textContaining('Modo offline'), findsOneWidget);
-    expect(find.text('Versión: 1.3.1+11'), findsOneWidget);
+    expect(find.text('Versión: 1.3.2+12'), findsOneWidget);
     expect(find.byKey(const Key('aquafim-logo-symbol')), findsOneWidget);
   });
 
@@ -92,7 +92,7 @@ void main() {
     );
   });
 
-  testWidgets('method UI exposes only BLE and disabled VISUAL', (tester) async {
+  testWidgets('MANUAL is selectable without BLE hardware', (tester) async {
     await fixture.seedSession();
     await _pump(tester, fixture);
     await tester.tap(find.byKey(const Key('new-verification')));
@@ -107,7 +107,7 @@ void main() {
     await _settle(tester);
     expect(find.text('LECTURA VISUAL'), findsOneWidget);
     expect(find.text('LECTURA VISUAL · DESACTIVADA'), findsNothing);
-    expect(find.byKey(const Key('method-manual')), findsNothing);
+    expect(find.byKey(const Key('method-manual')), findsOneWidget);
     expect(find.byKey(const Key('method-led')), findsNothing);
     expect(find.text('BLUETOOTH'), findsOneWidget);
     expect(find.text('Simulación'), findsNothing);
@@ -116,6 +116,15 @@ void main() {
           .widget<FilledButton>(find.byKey(const Key('method-continue')))
           .onPressed,
       isNull,
+    );
+    await tester.tap(find.byKey(const Key('method-manual')));
+    await tester.pump();
+    expect(find.textContaining('Captura manual de pulsos'), findsOneWidget);
+    expect(
+      tester
+          .widget<FilledButton>(find.byKey(const Key('method-continue')))
+          .onPressed,
+      isNotNull,
     );
   });
 
@@ -131,7 +140,7 @@ void main() {
     expect(find.text('Correo'), findsOneWidget);
     expect(find.text('Teléfono'), findsOneWidget);
     expect(find.byKey(const Key('manual-de-uso')), findsOneWidget);
-    expect(find.text('Versión: 1.3.1+11'), findsOneWidget);
+    expect(find.text('Versión: 1.3.2+12'), findsOneWidget);
     expect(find.byKey(const Key('visual-calibration-debug')), findsNothing);
     expect(find.textContaining('Contraseña'), findsNothing);
     await tester.tap(find.byKey(const Key('logout')));

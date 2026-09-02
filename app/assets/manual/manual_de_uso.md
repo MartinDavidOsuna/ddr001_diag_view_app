@@ -112,7 +112,7 @@ SIMULACIÓN no fuerza un resultado ni crea un reporte prefabricado: genera Vref/
 
 ## 7. Método MANUAL
 
-Configure **K en L/pulso**. Durante la prueba, cada acción sobre el botón de pulso representa exactamente un pulso real y aumenta el contador una unidad. El volumen patrón mostrado se obtiene multiplicando el contador por K.
+Seleccione **MANUAL** sin conectar Bluetooth o ESP32 y configure **K en L/pulso**. Durante la prueba, cada acción sobre el único botón **+1 PULSO** representa exactamente un pulso real y aumenta el contador una unidad. Espere a que el botón vuelva a habilitarse antes del siguiente tap. El volumen patrón mostrado se obtiene multiplicando el contador por K y cada incremento queda persistido para recovery.
 
 No pulse varias veces por un único evento ni omita eventos físicos. Los puntos del registro se generan mediante las evidencias obligatorias de la corrida.
 
@@ -147,7 +147,7 @@ El simulador web es una herramienta externa de validación y no forma parte de l
 
 ## 11. Preparación de la prueba
 
-La ficha **CONFIGURACIÓN** muestra Q1/Q2 como caudales calculados y los valores K para ambas corridas. K ya no se captura en esta pantalla. Aquí se configuran la escala del odómetro en L/unidad, la escala real de la aguja en L/vuelta (por ejemplo, 1000 L/vuelta), la cantidad de enteros y entre cero y tres decimales; estos valores quedan congelados en la corrida y Cámara debe conservarlos sin reducirlos. El selector productivo muestra únicamente BLUETOOTH, primero y seleccionado, y LECTURA VISUAL, visible pero no seleccionable temporalmente. Al entrar, la app busca un ESP32 DDR001 y selecciona automáticamente solo cuando encuentra exactamente uno. El botón de búsqueda siempre ejecuta un scan nuevo y actualiza la lista aun cuando exista conexión. **CONFIGURAR PRUEBA** se habilita cuando el ESP32 llega a READY.
+La ficha **CONFIGURACIÓN** muestra Q1/Q2 como caudales calculados y los valores K para ambas corridas. K ya no se captura en esta pantalla. Aquí se configuran la escala del odómetro en L/unidad, la escala real de la aguja en L/vuelta (por ejemplo, 1000 L/vuelta), la cantidad de enteros y entre cero y tres decimales; estos valores quedan congelados en la corrida y Cámara debe conservarlos sin reducirlos. El selector productivo muestra BLUETOOTH, MANUAL, SIMULACIÓN y LECTURA VISUAL visible pero no seleccionable temporalmente. MANUAL permite **CONFIGURAR PRUEBA** sin hardware. Para BLUETOOTH, al entrar la app busca un ESP32 DDR001 y selecciona automáticamente solo cuando encuentra exactamente uno. El botón de búsqueda siempre ejecuta un scan nuevo y actualiza la lista aun cuando exista conexión; BLUETOOTH se habilita cuando el ESP32 llega a READY.
 
 En **PREPARACIÓN DE CÁMARA**, las lupas de los extremos disminuyen o aumentan el zoom y el slider permite ajuste continuo. Después de cambiar zoom, pulse **NUEVA SUGERENCIA DE REGIONES** para volver a detectar y reposicionar totalizador y diales con el encuadre actual. Las sugerencias siguen siendo opcionales y ajustables manualmente.
 

@@ -272,10 +272,10 @@ final class _TestRunScreenState extends ConsumerState<TestRunScreen> {
                         backgroundColor: AppColors.amber,
                         minimumSize: const Size.fromHeight(76),
                       ),
-                      onPressed: controller.addManualPulse,
+                      onPressed: state.busy ? null : controller.addManualPulse,
                       icon: const Icon(Icons.circle),
                       label: Text(
-                        'PULSO (+${config.litersPerPulse.toStringAsFixed(1)} L)',
+                        '+1 PULSO (+${config.litersPerPulse.toStringAsFixed(1)} L)',
                         style: const TextStyle(fontSize: 19),
                       ),
                     )
