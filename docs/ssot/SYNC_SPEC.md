@@ -17,7 +17,7 @@ y válida toda la información local y sólo cambia el estado de la cola.
 
 Se reutiliza Field auth de `ddr001_api` con
 `client_app=ddr001_diag_view` e `installation_id` UUID estable. Access/refresh,
-work session y rv user ID se guardarán de forma segura y separada de otras apps.
+work session y rv user ID se guardan de forma segura y separada de otras apps.
 Timeout/5xx no limpia sesión local ni datos; 401/403 sólo exige autenticar para
 reanudar operaciones remotas.
 
@@ -33,7 +33,7 @@ del JWT. Nunca se reescribe una muestra/caso histórico para cambiar su user ID.
    encolar.
 5. Con conectividad y sesión remota válida, subir cada archivo por
    `POST /api/v1/functional-diagnostics/evidence`.
-6. Guardar localmente ACK, storage key opaca, hash servidor e integridad. Un ACK
+6. Guardar localmente ACK, storage key opaca y confirmación. Un ACK
    perdido se recupera reintentando el mismo UUID/hash.
 7. Enviar un lote JSON sin binarios a
    `POST /api/v1/functional-diagnostics/sync/push`, incluyendo Meter, Case,
@@ -70,8 +70,15 @@ incorrecto, validación y versión canónica desconocida.
 
 `SyncItem`: `pending | inProgress | failed | synced`. Evidence conserva
 `local | pending | syncing | synced | conflict | error`. Attempts, lastError y
-nextRetryAt son sólo locales; el servidor mantiene receipts propios. Backoff con
-jitter y reintento manual futuro no alteran entidades.
+nextRetryAt son sólo locales. `SyncBatch` persiste el JSON exacto y
+`pending | sending | ambiguous | synced | conflict | failed`, además de
+`receiptId`, intentos, error y backoff. Un timeout posterior al envío queda
+`ambiguous`: el siguiente intento consulta `/sync/status` antes de reenviar.
+Ningún estado altera entidades funcionales.
+
+El motor procesa Evidence con concurrencia 1 y Cases secuencialmente. Un Case
+con error o conflicto produce su resultado y no detiene los siguientes. Los
+reintentos transitorios no hacen polling permanente y conservan el mismo lote.
 
 ## Atomicidad y orden
 

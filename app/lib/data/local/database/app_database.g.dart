@@ -69,6 +69,17 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _remoteUserIdMeta = const VerificationMeta(
+    'remoteUserId',
+  );
+  @override
+  late final GeneratedColumn<String> remoteUserId = GeneratedColumn<String>(
+    'remote_user_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -77,6 +88,7 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
     displayName,
     createdAtMs,
     lastLoginAtMs,
+    remoteUserId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -140,6 +152,15 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
         ),
       );
     }
+    if (data.containsKey('remote_user_id')) {
+      context.handle(
+        _remoteUserIdMeta,
+        remoteUserId.isAcceptableOrUnknown(
+          data['remote_user_id']!,
+          _remoteUserIdMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -173,6 +194,10 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
         DriftSqlType.int,
         data['${effectivePrefix}last_login_at_ms'],
       ),
+      remoteUserId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}remote_user_id'],
+      ),
     );
   }
 
@@ -189,6 +214,7 @@ class User extends DataClass implements Insertable<User> {
   final String? displayName;
   final int createdAtMs;
   final int? lastLoginAtMs;
+  final String? remoteUserId;
   const User({
     required this.id,
     required this.email,
@@ -196,6 +222,7 @@ class User extends DataClass implements Insertable<User> {
     this.displayName,
     required this.createdAtMs,
     this.lastLoginAtMs,
+    this.remoteUserId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -209,6 +236,9 @@ class User extends DataClass implements Insertable<User> {
     map['created_at_ms'] = Variable<int>(createdAtMs);
     if (!nullToAbsent || lastLoginAtMs != null) {
       map['last_login_at_ms'] = Variable<int>(lastLoginAtMs);
+    }
+    if (!nullToAbsent || remoteUserId != null) {
+      map['remote_user_id'] = Variable<String>(remoteUserId);
     }
     return map;
   }
@@ -225,6 +255,9 @@ class User extends DataClass implements Insertable<User> {
       lastLoginAtMs: lastLoginAtMs == null && nullToAbsent
           ? const Value.absent()
           : Value(lastLoginAtMs),
+      remoteUserId: remoteUserId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(remoteUserId),
     );
   }
 
@@ -240,6 +273,7 @@ class User extends DataClass implements Insertable<User> {
       displayName: serializer.fromJson<String?>(json['displayName']),
       createdAtMs: serializer.fromJson<int>(json['createdAtMs']),
       lastLoginAtMs: serializer.fromJson<int?>(json['lastLoginAtMs']),
+      remoteUserId: serializer.fromJson<String?>(json['remoteUserId']),
     );
   }
   @override
@@ -252,6 +286,7 @@ class User extends DataClass implements Insertable<User> {
       'displayName': serializer.toJson<String?>(displayName),
       'createdAtMs': serializer.toJson<int>(createdAtMs),
       'lastLoginAtMs': serializer.toJson<int?>(lastLoginAtMs),
+      'remoteUserId': serializer.toJson<String?>(remoteUserId),
     };
   }
 
@@ -262,6 +297,7 @@ class User extends DataClass implements Insertable<User> {
     Value<String?> displayName = const Value.absent(),
     int? createdAtMs,
     Value<int?> lastLoginAtMs = const Value.absent(),
+    Value<String?> remoteUserId = const Value.absent(),
   }) => User(
     id: id ?? this.id,
     email: email ?? this.email,
@@ -271,6 +307,7 @@ class User extends DataClass implements Insertable<User> {
     lastLoginAtMs: lastLoginAtMs.present
         ? lastLoginAtMs.value
         : this.lastLoginAtMs,
+    remoteUserId: remoteUserId.present ? remoteUserId.value : this.remoteUserId,
   );
   User copyWithCompanion(UsersCompanion data) {
     return User(
@@ -286,6 +323,9 @@ class User extends DataClass implements Insertable<User> {
       lastLoginAtMs: data.lastLoginAtMs.present
           ? data.lastLoginAtMs.value
           : this.lastLoginAtMs,
+      remoteUserId: data.remoteUserId.present
+          ? data.remoteUserId.value
+          : this.remoteUserId,
     );
   }
 
@@ -297,14 +337,22 @@ class User extends DataClass implements Insertable<User> {
           ..write('phone: $phone, ')
           ..write('displayName: $displayName, ')
           ..write('createdAtMs: $createdAtMs, ')
-          ..write('lastLoginAtMs: $lastLoginAtMs')
+          ..write('lastLoginAtMs: $lastLoginAtMs, ')
+          ..write('remoteUserId: $remoteUserId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, email, phone, displayName, createdAtMs, lastLoginAtMs);
+  int get hashCode => Object.hash(
+    id,
+    email,
+    phone,
+    displayName,
+    createdAtMs,
+    lastLoginAtMs,
+    remoteUserId,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -314,7 +362,8 @@ class User extends DataClass implements Insertable<User> {
           other.phone == this.phone &&
           other.displayName == this.displayName &&
           other.createdAtMs == this.createdAtMs &&
-          other.lastLoginAtMs == this.lastLoginAtMs);
+          other.lastLoginAtMs == this.lastLoginAtMs &&
+          other.remoteUserId == this.remoteUserId);
 }
 
 class UsersCompanion extends UpdateCompanion<User> {
@@ -324,6 +373,7 @@ class UsersCompanion extends UpdateCompanion<User> {
   final Value<String?> displayName;
   final Value<int> createdAtMs;
   final Value<int?> lastLoginAtMs;
+  final Value<String?> remoteUserId;
   final Value<int> rowid;
   const UsersCompanion({
     this.id = const Value.absent(),
@@ -332,6 +382,7 @@ class UsersCompanion extends UpdateCompanion<User> {
     this.displayName = const Value.absent(),
     this.createdAtMs = const Value.absent(),
     this.lastLoginAtMs = const Value.absent(),
+    this.remoteUserId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   UsersCompanion.insert({
@@ -341,6 +392,7 @@ class UsersCompanion extends UpdateCompanion<User> {
     this.displayName = const Value.absent(),
     required int createdAtMs,
     this.lastLoginAtMs = const Value.absent(),
+    this.remoteUserId = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        email = Value(email),
@@ -353,6 +405,7 @@ class UsersCompanion extends UpdateCompanion<User> {
     Expression<String>? displayName,
     Expression<int>? createdAtMs,
     Expression<int>? lastLoginAtMs,
+    Expression<String>? remoteUserId,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -362,6 +415,7 @@ class UsersCompanion extends UpdateCompanion<User> {
       if (displayName != null) 'display_name': displayName,
       if (createdAtMs != null) 'created_at_ms': createdAtMs,
       if (lastLoginAtMs != null) 'last_login_at_ms': lastLoginAtMs,
+      if (remoteUserId != null) 'remote_user_id': remoteUserId,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -373,6 +427,7 @@ class UsersCompanion extends UpdateCompanion<User> {
     Value<String?>? displayName,
     Value<int>? createdAtMs,
     Value<int?>? lastLoginAtMs,
+    Value<String?>? remoteUserId,
     Value<int>? rowid,
   }) {
     return UsersCompanion(
@@ -382,6 +437,7 @@ class UsersCompanion extends UpdateCompanion<User> {
       displayName: displayName ?? this.displayName,
       createdAtMs: createdAtMs ?? this.createdAtMs,
       lastLoginAtMs: lastLoginAtMs ?? this.lastLoginAtMs,
+      remoteUserId: remoteUserId ?? this.remoteUserId,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -407,6 +463,9 @@ class UsersCompanion extends UpdateCompanion<User> {
     if (lastLoginAtMs.present) {
       map['last_login_at_ms'] = Variable<int>(lastLoginAtMs.value);
     }
+    if (remoteUserId.present) {
+      map['remote_user_id'] = Variable<String>(remoteUserId.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -422,6 +481,7 @@ class UsersCompanion extends UpdateCompanion<User> {
           ..write('displayName: $displayName, ')
           ..write('createdAtMs: $createdAtMs, ')
           ..write('lastLoginAtMs: $lastLoginAtMs, ')
+          ..write('remoteUserId: $remoteUserId, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3503,6 +3563,27 @@ class $EvidenceItemsTable extends EvidenceItems
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _serverConfirmedAtMsMeta =
+      const VerificationMeta('serverConfirmedAtMs');
+  @override
+  late final GeneratedColumn<int> serverConfirmedAtMs = GeneratedColumn<int>(
+    'server_confirmed_at_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastSyncErrorMeta = const VerificationMeta(
+    'lastSyncError',
+  );
+  @override
+  late final GeneratedColumn<String> lastSyncError = GeneratedColumn<String>(
+    'last_sync_error',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -3517,6 +3598,8 @@ class $EvidenceItemsTable extends EvidenceItems
     localPath,
     serverStorageKey,
     syncStatus,
+    serverConfirmedAtMs,
+    lastSyncError,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3622,6 +3705,24 @@ class $EvidenceItemsTable extends EvidenceItems
     } else if (isInserting) {
       context.missing(_syncStatusMeta);
     }
+    if (data.containsKey('server_confirmed_at_ms')) {
+      context.handle(
+        _serverConfirmedAtMsMeta,
+        serverConfirmedAtMs.isAcceptableOrUnknown(
+          data['server_confirmed_at_ms']!,
+          _serverConfirmedAtMsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_sync_error')) {
+      context.handle(
+        _lastSyncErrorMeta,
+        lastSyncError.isAcceptableOrUnknown(
+          data['last_sync_error']!,
+          _lastSyncErrorMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -3679,6 +3780,14 @@ class $EvidenceItemsTable extends EvidenceItems
         DriftSqlType.string,
         data['${effectivePrefix}sync_status'],
       )!,
+      serverConfirmedAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}server_confirmed_at_ms'],
+      ),
+      lastSyncError: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_sync_error'],
+      ),
     );
   }
 
@@ -3701,6 +3810,8 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
   final String localPath;
   final String? serverStorageKey;
   final String syncStatus;
+  final int? serverConfirmedAtMs;
+  final String? lastSyncError;
   const EvidenceRow({
     required this.id,
     required this.sampleId,
@@ -3714,6 +3825,8 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
     required this.localPath,
     this.serverStorageKey,
     required this.syncStatus,
+    this.serverConfirmedAtMs,
+    this.lastSyncError,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3740,6 +3853,12 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
       map['server_storage_key'] = Variable<String>(serverStorageKey);
     }
     map['sync_status'] = Variable<String>(syncStatus);
+    if (!nullToAbsent || serverConfirmedAtMs != null) {
+      map['server_confirmed_at_ms'] = Variable<int>(serverConfirmedAtMs);
+    }
+    if (!nullToAbsent || lastSyncError != null) {
+      map['last_sync_error'] = Variable<String>(lastSyncError);
+    }
     return map;
   }
 
@@ -3767,6 +3886,12 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
           ? const Value.absent()
           : Value(serverStorageKey),
       syncStatus: Value(syncStatus),
+      serverConfirmedAtMs: serverConfirmedAtMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(serverConfirmedAtMs),
+      lastSyncError: lastSyncError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSyncError),
     );
   }
 
@@ -3788,6 +3913,10 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
       localPath: serializer.fromJson<String>(json['localPath']),
       serverStorageKey: serializer.fromJson<String?>(json['serverStorageKey']),
       syncStatus: serializer.fromJson<String>(json['syncStatus']),
+      serverConfirmedAtMs: serializer.fromJson<int?>(
+        json['serverConfirmedAtMs'],
+      ),
+      lastSyncError: serializer.fromJson<String?>(json['lastSyncError']),
     );
   }
   @override
@@ -3806,6 +3935,8 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
       'localPath': serializer.toJson<String>(localPath),
       'serverStorageKey': serializer.toJson<String?>(serverStorageKey),
       'syncStatus': serializer.toJson<String>(syncStatus),
+      'serverConfirmedAtMs': serializer.toJson<int?>(serverConfirmedAtMs),
+      'lastSyncError': serializer.toJson<String?>(lastSyncError),
     };
   }
 
@@ -3822,6 +3953,8 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
     String? localPath,
     Value<String?> serverStorageKey = const Value.absent(),
     String? syncStatus,
+    Value<int?> serverConfirmedAtMs = const Value.absent(),
+    Value<String?> lastSyncError = const Value.absent(),
   }) => EvidenceRow(
     id: id ?? this.id,
     sampleId: sampleId ?? this.sampleId,
@@ -3839,6 +3972,12 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
         ? serverStorageKey.value
         : this.serverStorageKey,
     syncStatus: syncStatus ?? this.syncStatus,
+    serverConfirmedAtMs: serverConfirmedAtMs.present
+        ? serverConfirmedAtMs.value
+        : this.serverConfirmedAtMs,
+    lastSyncError: lastSyncError.present
+        ? lastSyncError.value
+        : this.lastSyncError,
   );
   EvidenceRow copyWithCompanion(EvidenceItemsCompanion data) {
     return EvidenceRow(
@@ -3864,6 +4003,12 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
       syncStatus: data.syncStatus.present
           ? data.syncStatus.value
           : this.syncStatus,
+      serverConfirmedAtMs: data.serverConfirmedAtMs.present
+          ? data.serverConfirmedAtMs.value
+          : this.serverConfirmedAtMs,
+      lastSyncError: data.lastSyncError.present
+          ? data.lastSyncError.value
+          : this.lastSyncError,
     );
   }
 
@@ -3881,7 +4026,9 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
           ..write('sha256: $sha256, ')
           ..write('localPath: $localPath, ')
           ..write('serverStorageKey: $serverStorageKey, ')
-          ..write('syncStatus: $syncStatus')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('serverConfirmedAtMs: $serverConfirmedAtMs, ')
+          ..write('lastSyncError: $lastSyncError')
           ..write(')'))
         .toString();
   }
@@ -3900,6 +4047,8 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
     localPath,
     serverStorageKey,
     syncStatus,
+    serverConfirmedAtMs,
+    lastSyncError,
   );
   @override
   bool operator ==(Object other) =>
@@ -3916,7 +4065,9 @@ class EvidenceRow extends DataClass implements Insertable<EvidenceRow> {
           other.sha256 == this.sha256 &&
           other.localPath == this.localPath &&
           other.serverStorageKey == this.serverStorageKey &&
-          other.syncStatus == this.syncStatus);
+          other.syncStatus == this.syncStatus &&
+          other.serverConfirmedAtMs == this.serverConfirmedAtMs &&
+          other.lastSyncError == this.lastSyncError);
 }
 
 class EvidenceItemsCompanion extends UpdateCompanion<EvidenceRow> {
@@ -3932,6 +4083,8 @@ class EvidenceItemsCompanion extends UpdateCompanion<EvidenceRow> {
   final Value<String> localPath;
   final Value<String?> serverStorageKey;
   final Value<String> syncStatus;
+  final Value<int?> serverConfirmedAtMs;
+  final Value<String?> lastSyncError;
   final Value<int> rowid;
   const EvidenceItemsCompanion({
     this.id = const Value.absent(),
@@ -3946,6 +4099,8 @@ class EvidenceItemsCompanion extends UpdateCompanion<EvidenceRow> {
     this.localPath = const Value.absent(),
     this.serverStorageKey = const Value.absent(),
     this.syncStatus = const Value.absent(),
+    this.serverConfirmedAtMs = const Value.absent(),
+    this.lastSyncError = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   EvidenceItemsCompanion.insert({
@@ -3961,6 +4116,8 @@ class EvidenceItemsCompanion extends UpdateCompanion<EvidenceRow> {
     required String localPath,
     this.serverStorageKey = const Value.absent(),
     required String syncStatus,
+    this.serverConfirmedAtMs = const Value.absent(),
+    this.lastSyncError = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        sampleId = Value(sampleId),
@@ -3982,6 +4139,8 @@ class EvidenceItemsCompanion extends UpdateCompanion<EvidenceRow> {
     Expression<String>? localPath,
     Expression<String>? serverStorageKey,
     Expression<String>? syncStatus,
+    Expression<int>? serverConfirmedAtMs,
+    Expression<String>? lastSyncError,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -3997,6 +4156,9 @@ class EvidenceItemsCompanion extends UpdateCompanion<EvidenceRow> {
       if (localPath != null) 'local_path': localPath,
       if (serverStorageKey != null) 'server_storage_key': serverStorageKey,
       if (syncStatus != null) 'sync_status': syncStatus,
+      if (serverConfirmedAtMs != null)
+        'server_confirmed_at_ms': serverConfirmedAtMs,
+      if (lastSyncError != null) 'last_sync_error': lastSyncError,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -4014,6 +4176,8 @@ class EvidenceItemsCompanion extends UpdateCompanion<EvidenceRow> {
     Value<String>? localPath,
     Value<String?>? serverStorageKey,
     Value<String>? syncStatus,
+    Value<int?>? serverConfirmedAtMs,
+    Value<String?>? lastSyncError,
     Value<int>? rowid,
   }) {
     return EvidenceItemsCompanion(
@@ -4029,6 +4193,8 @@ class EvidenceItemsCompanion extends UpdateCompanion<EvidenceRow> {
       localPath: localPath ?? this.localPath,
       serverStorageKey: serverStorageKey ?? this.serverStorageKey,
       syncStatus: syncStatus ?? this.syncStatus,
+      serverConfirmedAtMs: serverConfirmedAtMs ?? this.serverConfirmedAtMs,
+      lastSyncError: lastSyncError ?? this.lastSyncError,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -4072,6 +4238,12 @@ class EvidenceItemsCompanion extends UpdateCompanion<EvidenceRow> {
     if (syncStatus.present) {
       map['sync_status'] = Variable<String>(syncStatus.value);
     }
+    if (serverConfirmedAtMs.present) {
+      map['server_confirmed_at_ms'] = Variable<int>(serverConfirmedAtMs.value);
+    }
+    if (lastSyncError.present) {
+      map['last_sync_error'] = Variable<String>(lastSyncError.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -4093,6 +4265,8 @@ class EvidenceItemsCompanion extends UpdateCompanion<EvidenceRow> {
           ..write('localPath: $localPath, ')
           ..write('serverStorageKey: $serverStorageKey, ')
           ..write('syncStatus: $syncStatus, ')
+          ..write('serverConfirmedAtMs: $serverConfirmedAtMs, ')
+          ..write('lastSyncError: $lastSyncError, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -9410,6 +9584,689 @@ class SyncItemsCompanion extends UpdateCompanion<SyncItemRow> {
   }
 }
 
+class $SyncBatchesTable extends SyncBatches
+    with TableInfo<$SyncBatchesTable, SyncBatchRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SyncBatchesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _caseIdMeta = const VerificationMeta('caseId');
+  @override
+  late final GeneratedColumn<String> caseId = GeneratedColumn<String>(
+    'case_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES verification_cases (id)',
+    ),
+  );
+  static const VerificationMeta _requestJsonMeta = const VerificationMeta(
+    'requestJson',
+  );
+  @override
+  late final GeneratedColumn<String> requestJson = GeneratedColumn<String>(
+    'request_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _requestSha256Meta = const VerificationMeta(
+    'requestSha256',
+  );
+  @override
+  late final GeneratedColumn<String> requestSha256 = GeneratedColumn<String>(
+    'request_sha256',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _stateMeta = const VerificationMeta('state');
+  @override
+  late final GeneratedColumn<String> state = GeneratedColumn<String>(
+    'state',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _receiptIdMeta = const VerificationMeta(
+    'receiptId',
+  );
+  @override
+  late final GeneratedColumn<String> receiptId = GeneratedColumn<String>(
+    'receipt_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _attemptsMeta = const VerificationMeta(
+    'attempts',
+  );
+  @override
+  late final GeneratedColumn<int> attempts = GeneratedColumn<int>(
+    'attempts',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _lastErrorMeta = const VerificationMeta(
+    'lastError',
+  );
+  @override
+  late final GeneratedColumn<String> lastError = GeneratedColumn<String>(
+    'last_error',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMsMeta = const VerificationMeta(
+    'createdAtMs',
+  );
+  @override
+  late final GeneratedColumn<int> createdAtMs = GeneratedColumn<int>(
+    'created_at_ms',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMsMeta = const VerificationMeta(
+    'updatedAtMs',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAtMs = GeneratedColumn<int>(
+    'updated_at_ms',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nextRetryAtMsMeta = const VerificationMeta(
+    'nextRetryAtMs',
+  );
+  @override
+  late final GeneratedColumn<int> nextRetryAtMs = GeneratedColumn<int>(
+    'next_retry_at_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    caseId,
+    requestJson,
+    requestSha256,
+    state,
+    receiptId,
+    attempts,
+    lastError,
+    createdAtMs,
+    updatedAtMs,
+    nextRetryAtMs,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sync_batches';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SyncBatchRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('case_id')) {
+      context.handle(
+        _caseIdMeta,
+        caseId.isAcceptableOrUnknown(data['case_id']!, _caseIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_caseIdMeta);
+    }
+    if (data.containsKey('request_json')) {
+      context.handle(
+        _requestJsonMeta,
+        requestJson.isAcceptableOrUnknown(
+          data['request_json']!,
+          _requestJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_requestJsonMeta);
+    }
+    if (data.containsKey('request_sha256')) {
+      context.handle(
+        _requestSha256Meta,
+        requestSha256.isAcceptableOrUnknown(
+          data['request_sha256']!,
+          _requestSha256Meta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_requestSha256Meta);
+    }
+    if (data.containsKey('state')) {
+      context.handle(
+        _stateMeta,
+        state.isAcceptableOrUnknown(data['state']!, _stateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_stateMeta);
+    }
+    if (data.containsKey('receipt_id')) {
+      context.handle(
+        _receiptIdMeta,
+        receiptId.isAcceptableOrUnknown(data['receipt_id']!, _receiptIdMeta),
+      );
+    }
+    if (data.containsKey('attempts')) {
+      context.handle(
+        _attemptsMeta,
+        attempts.isAcceptableOrUnknown(data['attempts']!, _attemptsMeta),
+      );
+    }
+    if (data.containsKey('last_error')) {
+      context.handle(
+        _lastErrorMeta,
+        lastError.isAcceptableOrUnknown(data['last_error']!, _lastErrorMeta),
+      );
+    }
+    if (data.containsKey('created_at_ms')) {
+      context.handle(
+        _createdAtMsMeta,
+        createdAtMs.isAcceptableOrUnknown(
+          data['created_at_ms']!,
+          _createdAtMsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMsMeta);
+    }
+    if (data.containsKey('updated_at_ms')) {
+      context.handle(
+        _updatedAtMsMeta,
+        updatedAtMs.isAcceptableOrUnknown(
+          data['updated_at_ms']!,
+          _updatedAtMsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMsMeta);
+    }
+    if (data.containsKey('next_retry_at_ms')) {
+      context.handle(
+        _nextRetryAtMsMeta,
+        nextRetryAtMs.isAcceptableOrUnknown(
+          data['next_retry_at_ms']!,
+          _nextRetryAtMsMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SyncBatchRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SyncBatchRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      caseId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}case_id'],
+      )!,
+      requestJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}request_json'],
+      )!,
+      requestSha256: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}request_sha256'],
+      )!,
+      state: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}state'],
+      )!,
+      receiptId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}receipt_id'],
+      ),
+      attempts: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}attempts'],
+      )!,
+      lastError: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_error'],
+      ),
+      createdAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at_ms'],
+      )!,
+      updatedAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at_ms'],
+      )!,
+      nextRetryAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}next_retry_at_ms'],
+      ),
+    );
+  }
+
+  @override
+  $SyncBatchesTable createAlias(String alias) {
+    return $SyncBatchesTable(attachedDatabase, alias);
+  }
+}
+
+class SyncBatchRow extends DataClass implements Insertable<SyncBatchRow> {
+  final String id;
+  final String caseId;
+  final String requestJson;
+  final String requestSha256;
+  final String state;
+  final String? receiptId;
+  final int attempts;
+  final String? lastError;
+  final int createdAtMs;
+  final int updatedAtMs;
+  final int? nextRetryAtMs;
+  const SyncBatchRow({
+    required this.id,
+    required this.caseId,
+    required this.requestJson,
+    required this.requestSha256,
+    required this.state,
+    this.receiptId,
+    required this.attempts,
+    this.lastError,
+    required this.createdAtMs,
+    required this.updatedAtMs,
+    this.nextRetryAtMs,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['case_id'] = Variable<String>(caseId);
+    map['request_json'] = Variable<String>(requestJson);
+    map['request_sha256'] = Variable<String>(requestSha256);
+    map['state'] = Variable<String>(state);
+    if (!nullToAbsent || receiptId != null) {
+      map['receipt_id'] = Variable<String>(receiptId);
+    }
+    map['attempts'] = Variable<int>(attempts);
+    if (!nullToAbsent || lastError != null) {
+      map['last_error'] = Variable<String>(lastError);
+    }
+    map['created_at_ms'] = Variable<int>(createdAtMs);
+    map['updated_at_ms'] = Variable<int>(updatedAtMs);
+    if (!nullToAbsent || nextRetryAtMs != null) {
+      map['next_retry_at_ms'] = Variable<int>(nextRetryAtMs);
+    }
+    return map;
+  }
+
+  SyncBatchesCompanion toCompanion(bool nullToAbsent) {
+    return SyncBatchesCompanion(
+      id: Value(id),
+      caseId: Value(caseId),
+      requestJson: Value(requestJson),
+      requestSha256: Value(requestSha256),
+      state: Value(state),
+      receiptId: receiptId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(receiptId),
+      attempts: Value(attempts),
+      lastError: lastError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastError),
+      createdAtMs: Value(createdAtMs),
+      updatedAtMs: Value(updatedAtMs),
+      nextRetryAtMs: nextRetryAtMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nextRetryAtMs),
+    );
+  }
+
+  factory SyncBatchRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SyncBatchRow(
+      id: serializer.fromJson<String>(json['id']),
+      caseId: serializer.fromJson<String>(json['caseId']),
+      requestJson: serializer.fromJson<String>(json['requestJson']),
+      requestSha256: serializer.fromJson<String>(json['requestSha256']),
+      state: serializer.fromJson<String>(json['state']),
+      receiptId: serializer.fromJson<String?>(json['receiptId']),
+      attempts: serializer.fromJson<int>(json['attempts']),
+      lastError: serializer.fromJson<String?>(json['lastError']),
+      createdAtMs: serializer.fromJson<int>(json['createdAtMs']),
+      updatedAtMs: serializer.fromJson<int>(json['updatedAtMs']),
+      nextRetryAtMs: serializer.fromJson<int?>(json['nextRetryAtMs']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'caseId': serializer.toJson<String>(caseId),
+      'requestJson': serializer.toJson<String>(requestJson),
+      'requestSha256': serializer.toJson<String>(requestSha256),
+      'state': serializer.toJson<String>(state),
+      'receiptId': serializer.toJson<String?>(receiptId),
+      'attempts': serializer.toJson<int>(attempts),
+      'lastError': serializer.toJson<String?>(lastError),
+      'createdAtMs': serializer.toJson<int>(createdAtMs),
+      'updatedAtMs': serializer.toJson<int>(updatedAtMs),
+      'nextRetryAtMs': serializer.toJson<int?>(nextRetryAtMs),
+    };
+  }
+
+  SyncBatchRow copyWith({
+    String? id,
+    String? caseId,
+    String? requestJson,
+    String? requestSha256,
+    String? state,
+    Value<String?> receiptId = const Value.absent(),
+    int? attempts,
+    Value<String?> lastError = const Value.absent(),
+    int? createdAtMs,
+    int? updatedAtMs,
+    Value<int?> nextRetryAtMs = const Value.absent(),
+  }) => SyncBatchRow(
+    id: id ?? this.id,
+    caseId: caseId ?? this.caseId,
+    requestJson: requestJson ?? this.requestJson,
+    requestSha256: requestSha256 ?? this.requestSha256,
+    state: state ?? this.state,
+    receiptId: receiptId.present ? receiptId.value : this.receiptId,
+    attempts: attempts ?? this.attempts,
+    lastError: lastError.present ? lastError.value : this.lastError,
+    createdAtMs: createdAtMs ?? this.createdAtMs,
+    updatedAtMs: updatedAtMs ?? this.updatedAtMs,
+    nextRetryAtMs: nextRetryAtMs.present
+        ? nextRetryAtMs.value
+        : this.nextRetryAtMs,
+  );
+  SyncBatchRow copyWithCompanion(SyncBatchesCompanion data) {
+    return SyncBatchRow(
+      id: data.id.present ? data.id.value : this.id,
+      caseId: data.caseId.present ? data.caseId.value : this.caseId,
+      requestJson: data.requestJson.present
+          ? data.requestJson.value
+          : this.requestJson,
+      requestSha256: data.requestSha256.present
+          ? data.requestSha256.value
+          : this.requestSha256,
+      state: data.state.present ? data.state.value : this.state,
+      receiptId: data.receiptId.present ? data.receiptId.value : this.receiptId,
+      attempts: data.attempts.present ? data.attempts.value : this.attempts,
+      lastError: data.lastError.present ? data.lastError.value : this.lastError,
+      createdAtMs: data.createdAtMs.present
+          ? data.createdAtMs.value
+          : this.createdAtMs,
+      updatedAtMs: data.updatedAtMs.present
+          ? data.updatedAtMs.value
+          : this.updatedAtMs,
+      nextRetryAtMs: data.nextRetryAtMs.present
+          ? data.nextRetryAtMs.value
+          : this.nextRetryAtMs,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncBatchRow(')
+          ..write('id: $id, ')
+          ..write('caseId: $caseId, ')
+          ..write('requestJson: $requestJson, ')
+          ..write('requestSha256: $requestSha256, ')
+          ..write('state: $state, ')
+          ..write('receiptId: $receiptId, ')
+          ..write('attempts: $attempts, ')
+          ..write('lastError: $lastError, ')
+          ..write('createdAtMs: $createdAtMs, ')
+          ..write('updatedAtMs: $updatedAtMs, ')
+          ..write('nextRetryAtMs: $nextRetryAtMs')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    caseId,
+    requestJson,
+    requestSha256,
+    state,
+    receiptId,
+    attempts,
+    lastError,
+    createdAtMs,
+    updatedAtMs,
+    nextRetryAtMs,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SyncBatchRow &&
+          other.id == this.id &&
+          other.caseId == this.caseId &&
+          other.requestJson == this.requestJson &&
+          other.requestSha256 == this.requestSha256 &&
+          other.state == this.state &&
+          other.receiptId == this.receiptId &&
+          other.attempts == this.attempts &&
+          other.lastError == this.lastError &&
+          other.createdAtMs == this.createdAtMs &&
+          other.updatedAtMs == this.updatedAtMs &&
+          other.nextRetryAtMs == this.nextRetryAtMs);
+}
+
+class SyncBatchesCompanion extends UpdateCompanion<SyncBatchRow> {
+  final Value<String> id;
+  final Value<String> caseId;
+  final Value<String> requestJson;
+  final Value<String> requestSha256;
+  final Value<String> state;
+  final Value<String?> receiptId;
+  final Value<int> attempts;
+  final Value<String?> lastError;
+  final Value<int> createdAtMs;
+  final Value<int> updatedAtMs;
+  final Value<int?> nextRetryAtMs;
+  final Value<int> rowid;
+  const SyncBatchesCompanion({
+    this.id = const Value.absent(),
+    this.caseId = const Value.absent(),
+    this.requestJson = const Value.absent(),
+    this.requestSha256 = const Value.absent(),
+    this.state = const Value.absent(),
+    this.receiptId = const Value.absent(),
+    this.attempts = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.createdAtMs = const Value.absent(),
+    this.updatedAtMs = const Value.absent(),
+    this.nextRetryAtMs = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SyncBatchesCompanion.insert({
+    required String id,
+    required String caseId,
+    required String requestJson,
+    required String requestSha256,
+    required String state,
+    this.receiptId = const Value.absent(),
+    this.attempts = const Value.absent(),
+    this.lastError = const Value.absent(),
+    required int createdAtMs,
+    required int updatedAtMs,
+    this.nextRetryAtMs = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       caseId = Value(caseId),
+       requestJson = Value(requestJson),
+       requestSha256 = Value(requestSha256),
+       state = Value(state),
+       createdAtMs = Value(createdAtMs),
+       updatedAtMs = Value(updatedAtMs);
+  static Insertable<SyncBatchRow> custom({
+    Expression<String>? id,
+    Expression<String>? caseId,
+    Expression<String>? requestJson,
+    Expression<String>? requestSha256,
+    Expression<String>? state,
+    Expression<String>? receiptId,
+    Expression<int>? attempts,
+    Expression<String>? lastError,
+    Expression<int>? createdAtMs,
+    Expression<int>? updatedAtMs,
+    Expression<int>? nextRetryAtMs,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (caseId != null) 'case_id': caseId,
+      if (requestJson != null) 'request_json': requestJson,
+      if (requestSha256 != null) 'request_sha256': requestSha256,
+      if (state != null) 'state': state,
+      if (receiptId != null) 'receipt_id': receiptId,
+      if (attempts != null) 'attempts': attempts,
+      if (lastError != null) 'last_error': lastError,
+      if (createdAtMs != null) 'created_at_ms': createdAtMs,
+      if (updatedAtMs != null) 'updated_at_ms': updatedAtMs,
+      if (nextRetryAtMs != null) 'next_retry_at_ms': nextRetryAtMs,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SyncBatchesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? caseId,
+    Value<String>? requestJson,
+    Value<String>? requestSha256,
+    Value<String>? state,
+    Value<String?>? receiptId,
+    Value<int>? attempts,
+    Value<String?>? lastError,
+    Value<int>? createdAtMs,
+    Value<int>? updatedAtMs,
+    Value<int?>? nextRetryAtMs,
+    Value<int>? rowid,
+  }) {
+    return SyncBatchesCompanion(
+      id: id ?? this.id,
+      caseId: caseId ?? this.caseId,
+      requestJson: requestJson ?? this.requestJson,
+      requestSha256: requestSha256 ?? this.requestSha256,
+      state: state ?? this.state,
+      receiptId: receiptId ?? this.receiptId,
+      attempts: attempts ?? this.attempts,
+      lastError: lastError ?? this.lastError,
+      createdAtMs: createdAtMs ?? this.createdAtMs,
+      updatedAtMs: updatedAtMs ?? this.updatedAtMs,
+      nextRetryAtMs: nextRetryAtMs ?? this.nextRetryAtMs,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (caseId.present) {
+      map['case_id'] = Variable<String>(caseId.value);
+    }
+    if (requestJson.present) {
+      map['request_json'] = Variable<String>(requestJson.value);
+    }
+    if (requestSha256.present) {
+      map['request_sha256'] = Variable<String>(requestSha256.value);
+    }
+    if (state.present) {
+      map['state'] = Variable<String>(state.value);
+    }
+    if (receiptId.present) {
+      map['receipt_id'] = Variable<String>(receiptId.value);
+    }
+    if (attempts.present) {
+      map['attempts'] = Variable<int>(attempts.value);
+    }
+    if (lastError.present) {
+      map['last_error'] = Variable<String>(lastError.value);
+    }
+    if (createdAtMs.present) {
+      map['created_at_ms'] = Variable<int>(createdAtMs.value);
+    }
+    if (updatedAtMs.present) {
+      map['updated_at_ms'] = Variable<int>(updatedAtMs.value);
+    }
+    if (nextRetryAtMs.present) {
+      map['next_retry_at_ms'] = Variable<int>(nextRetryAtMs.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncBatchesCompanion(')
+          ..write('id: $id, ')
+          ..write('caseId: $caseId, ')
+          ..write('requestJson: $requestJson, ')
+          ..write('requestSha256: $requestSha256, ')
+          ..write('state: $state, ')
+          ..write('receiptId: $receiptId, ')
+          ..write('attempts: $attempts, ')
+          ..write('lastError: $lastError, ')
+          ..write('createdAtMs: $createdAtMs, ')
+          ..write('updatedAtMs: $updatedAtMs, ')
+          ..write('nextRetryAtMs: $nextRetryAtMs, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -9422,6 +10279,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $EvidenceItemsTable evidenceItems = $EvidenceItemsTable(this);
   late final $SamplesTable samples = $SamplesTable(this);
   late final $SyncItemsTable syncItems = $SyncItemsTable(this);
+  late final $SyncBatchesTable syncBatches = $SyncBatchesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -9435,6 +10293,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     evidenceItems,
     samples,
     syncItems,
+    syncBatches,
   ];
 }
 
@@ -9446,6 +10305,7 @@ typedef $$UsersTableCreateCompanionBuilder =
       Value<String?> displayName,
       required int createdAtMs,
       Value<int?> lastLoginAtMs,
+      Value<String?> remoteUserId,
       Value<int> rowid,
     });
 typedef $$UsersTableUpdateCompanionBuilder =
@@ -9456,6 +10316,7 @@ typedef $$UsersTableUpdateCompanionBuilder =
       Value<String?> displayName,
       Value<int> createdAtMs,
       Value<int?> lastLoginAtMs,
+      Value<String?> remoteUserId,
       Value<int> rowid,
     });
 
@@ -9523,6 +10384,11 @@ class $$UsersTableFilterComposer extends Composer<_$AppDatabase, $UsersTable> {
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get remoteUserId => $composableBuilder(
+    column: $table.remoteUserId,
+    builder: (column) => ColumnFilters(column),
+  );
+
   Expression<bool> verificationCasesRefs(
     Expression<bool> Function($$VerificationCasesTableFilterComposer f) f,
   ) {
@@ -9587,6 +10453,11 @@ class $$UsersTableOrderingComposer
     column: $table.lastLoginAtMs,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get remoteUserId => $composableBuilder(
+    column: $table.remoteUserId,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$UsersTableAnnotationComposer
@@ -9619,6 +10490,11 @@ class $$UsersTableAnnotationComposer
 
   GeneratedColumn<int> get lastLoginAtMs => $composableBuilder(
     column: $table.lastLoginAtMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get remoteUserId => $composableBuilder(
+    column: $table.remoteUserId,
     builder: (column) => column,
   );
 
@@ -9683,6 +10559,7 @@ class $$UsersTableTableManager
                 Value<String?> displayName = const Value.absent(),
                 Value<int> createdAtMs = const Value.absent(),
                 Value<int?> lastLoginAtMs = const Value.absent(),
+                Value<String?> remoteUserId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => UsersCompanion(
                 id: id,
@@ -9691,6 +10568,7 @@ class $$UsersTableTableManager
                 displayName: displayName,
                 createdAtMs: createdAtMs,
                 lastLoginAtMs: lastLoginAtMs,
+                remoteUserId: remoteUserId,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -9701,6 +10579,7 @@ class $$UsersTableTableManager
                 Value<String?> displayName = const Value.absent(),
                 required int createdAtMs,
                 Value<int?> lastLoginAtMs = const Value.absent(),
+                Value<String?> remoteUserId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => UsersCompanion.insert(
                 id: id,
@@ -9709,6 +10588,7 @@ class $$UsersTableTableManager
                 displayName: displayName,
                 createdAtMs: createdAtMs,
                 lastLoginAtMs: lastLoginAtMs,
+                remoteUserId: remoteUserId,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -10200,6 +11080,24 @@ final class $$VerificationCasesTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<$SyncBatchesTable, List<SyncBatchRow>>
+  _syncBatchesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.syncBatches,
+    aliasName: 'verification_cases__id__sync_batches__case_id',
+  );
+
+  $$SyncBatchesTableProcessedTableManager get syncBatchesRefs {
+    final manager = $$SyncBatchesTableTableManager(
+      $_db,
+      $_db.syncBatches,
+    ).filter((f) => f.caseId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_syncBatchesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$VerificationCasesTableFilterComposer
@@ -10333,6 +11231,31 @@ class $$VerificationCasesTableFilterComposer
           }) => $$FlowPointsTableFilterComposer(
             $db: $db,
             $table: $db.flowPoints,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> syncBatchesRefs(
+    Expression<bool> Function($$SyncBatchesTableFilterComposer f) f,
+  ) {
+    final $$SyncBatchesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.syncBatches,
+      getReferencedColumn: (t) => t.caseId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyncBatchesTableFilterComposer(
+            $db: $db,
+            $table: $db.syncBatches,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -10590,6 +11513,31 @@ class $$VerificationCasesTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> syncBatchesRefs<T extends Object>(
+    Expression<T> Function($$SyncBatchesTableAnnotationComposer a) f,
+  ) {
+    final $$SyncBatchesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.syncBatches,
+      getReferencedColumn: (t) => t.caseId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyncBatchesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.syncBatches,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$VerificationCasesTableTableManager
@@ -10609,6 +11557,7 @@ class $$VerificationCasesTableTableManager
             bool meterId,
             bool userId,
             bool flowPointsRefs,
+            bool syncBatchesRefs,
           })
         > {
   $$VerificationCasesTableTableManager(
@@ -10704,10 +11653,18 @@ class $$VerificationCasesTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({meterId = false, userId = false, flowPointsRefs = false}) {
+              ({
+                meterId = false,
+                userId = false,
+                flowPointsRefs = false,
+                syncBatchesRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
-                  explicitlyWatchedTables: [if (flowPointsRefs) db.flowPoints],
+                  explicitlyWatchedTables: [
+                    if (flowPointsRefs) db.flowPoints,
+                    if (syncBatchesRefs) db.syncBatches,
+                  ],
                   addJoins:
                       <
                         T extends TableManagerState<
@@ -10780,6 +11737,27 @@ class $$VerificationCasesTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (syncBatchesRefs)
+                        await $_getPrefetchedData<
+                          VerificationCaseRow,
+                          $VerificationCasesTable,
+                          SyncBatchRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$VerificationCasesTableReferences
+                              ._syncBatchesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$VerificationCasesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).syncBatchesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.caseId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -10800,7 +11778,12 @@ typedef $$VerificationCasesTableProcessedTableManager =
       $$VerificationCasesTableUpdateCompanionBuilder,
       (VerificationCaseRow, $$VerificationCasesTableReferences),
       VerificationCaseRow,
-      PrefetchHooks Function({bool meterId, bool userId, bool flowPointsRefs})
+      PrefetchHooks Function({
+        bool meterId,
+        bool userId,
+        bool flowPointsRefs,
+        bool syncBatchesRefs,
+      })
     >;
 typedef $$FlowPointsTableCreateCompanionBuilder =
     FlowPointsCompanion Function({
@@ -11973,6 +12956,8 @@ typedef $$EvidenceItemsTableCreateCompanionBuilder =
       required String localPath,
       Value<String?> serverStorageKey,
       required String syncStatus,
+      Value<int?> serverConfirmedAtMs,
+      Value<String?> lastSyncError,
       Value<int> rowid,
     });
 typedef $$EvidenceItemsTableUpdateCompanionBuilder =
@@ -11989,6 +12974,8 @@ typedef $$EvidenceItemsTableUpdateCompanionBuilder =
       Value<String> localPath,
       Value<String?> serverStorageKey,
       Value<String> syncStatus,
+      Value<int?> serverConfirmedAtMs,
+      Value<String?> lastSyncError,
       Value<int> rowid,
     });
 
@@ -12131,6 +13118,16 @@ class $$EvidenceItemsTableFilterComposer
 
   ColumnFilters<String> get syncStatus => $composableBuilder(
     column: $table.syncStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get serverConfirmedAtMs => $composableBuilder(
+    column: $table.serverConfirmedAtMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastSyncError => $composableBuilder(
+    column: $table.lastSyncError,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -12290,6 +13287,16 @@ class $$EvidenceItemsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get serverConfirmedAtMs => $composableBuilder(
+    column: $table.serverConfirmedAtMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastSyncError => $composableBuilder(
+    column: $table.lastSyncError,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$SamplesTableOrderingComposer get sampleId {
     final $$SamplesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -12383,6 +13390,16 @@ class $$EvidenceItemsTableAnnotationComposer
 
   GeneratedColumn<String> get syncStatus => $composableBuilder(
     column: $table.syncStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get serverConfirmedAtMs => $composableBuilder(
+    column: $table.serverConfirmedAtMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lastSyncError => $composableBuilder(
+    column: $table.lastSyncError,
     builder: (column) => column,
   );
 
@@ -12528,6 +13545,8 @@ class $$EvidenceItemsTableTableManager
                 Value<String> localPath = const Value.absent(),
                 Value<String?> serverStorageKey = const Value.absent(),
                 Value<String> syncStatus = const Value.absent(),
+                Value<int?> serverConfirmedAtMs = const Value.absent(),
+                Value<String?> lastSyncError = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => EvidenceItemsCompanion(
                 id: id,
@@ -12542,6 +13561,8 @@ class $$EvidenceItemsTableTableManager
                 localPath: localPath,
                 serverStorageKey: serverStorageKey,
                 syncStatus: syncStatus,
+                serverConfirmedAtMs: serverConfirmedAtMs,
+                lastSyncError: lastSyncError,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -12558,6 +13579,8 @@ class $$EvidenceItemsTableTableManager
                 required String localPath,
                 Value<String?> serverStorageKey = const Value.absent(),
                 required String syncStatus,
+                Value<int?> serverConfirmedAtMs = const Value.absent(),
+                Value<String?> lastSyncError = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => EvidenceItemsCompanion.insert(
                 id: id,
@@ -12572,6 +13595,8 @@ class $$EvidenceItemsTableTableManager
                 localPath: localPath,
                 serverStorageKey: serverStorageKey,
                 syncStatus: syncStatus,
+                serverConfirmedAtMs: serverConfirmedAtMs,
+                lastSyncError: lastSyncError,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -15273,6 +16298,449 @@ typedef $$SyncItemsTableProcessedTableManager =
       SyncItemRow,
       PrefetchHooks Function()
     >;
+typedef $$SyncBatchesTableCreateCompanionBuilder =
+    SyncBatchesCompanion Function({
+      required String id,
+      required String caseId,
+      required String requestJson,
+      required String requestSha256,
+      required String state,
+      Value<String?> receiptId,
+      Value<int> attempts,
+      Value<String?> lastError,
+      required int createdAtMs,
+      required int updatedAtMs,
+      Value<int?> nextRetryAtMs,
+      Value<int> rowid,
+    });
+typedef $$SyncBatchesTableUpdateCompanionBuilder =
+    SyncBatchesCompanion Function({
+      Value<String> id,
+      Value<String> caseId,
+      Value<String> requestJson,
+      Value<String> requestSha256,
+      Value<String> state,
+      Value<String?> receiptId,
+      Value<int> attempts,
+      Value<String?> lastError,
+      Value<int> createdAtMs,
+      Value<int> updatedAtMs,
+      Value<int?> nextRetryAtMs,
+      Value<int> rowid,
+    });
+
+final class $$SyncBatchesTableReferences
+    extends BaseReferences<_$AppDatabase, $SyncBatchesTable, SyncBatchRow> {
+  $$SyncBatchesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $VerificationCasesTable _caseIdTable(_$AppDatabase db) => db
+      .verificationCases
+      .createAlias('sync_batches__case_id__verification_cases__id');
+
+  $$VerificationCasesTableProcessedTableManager get caseId {
+    final $_column = $_itemColumn<String>('case_id')!;
+
+    final manager = $$VerificationCasesTableTableManager(
+      $_db,
+      $_db.verificationCases,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_caseIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$SyncBatchesTableFilterComposer
+    extends Composer<_$AppDatabase, $SyncBatchesTable> {
+  $$SyncBatchesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get requestJson => $composableBuilder(
+    column: $table.requestJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get requestSha256 => $composableBuilder(
+    column: $table.requestSha256,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get state => $composableBuilder(
+    column: $table.state,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get receiptId => $composableBuilder(
+    column: $table.receiptId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get attempts => $composableBuilder(
+    column: $table.attempts,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAtMs => $composableBuilder(
+    column: $table.createdAtMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAtMs => $composableBuilder(
+    column: $table.updatedAtMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get nextRetryAtMs => $composableBuilder(
+    column: $table.nextRetryAtMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$VerificationCasesTableFilterComposer get caseId {
+    final $$VerificationCasesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.caseId,
+      referencedTable: $db.verificationCases,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$VerificationCasesTableFilterComposer(
+            $db: $db,
+            $table: $db.verificationCases,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SyncBatchesTableOrderingComposer
+    extends Composer<_$AppDatabase, $SyncBatchesTable> {
+  $$SyncBatchesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get requestJson => $composableBuilder(
+    column: $table.requestJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get requestSha256 => $composableBuilder(
+    column: $table.requestSha256,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get state => $composableBuilder(
+    column: $table.state,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get receiptId => $composableBuilder(
+    column: $table.receiptId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get attempts => $composableBuilder(
+    column: $table.attempts,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAtMs => $composableBuilder(
+    column: $table.createdAtMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAtMs => $composableBuilder(
+    column: $table.updatedAtMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get nextRetryAtMs => $composableBuilder(
+    column: $table.nextRetryAtMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$VerificationCasesTableOrderingComposer get caseId {
+    final $$VerificationCasesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.caseId,
+      referencedTable: $db.verificationCases,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$VerificationCasesTableOrderingComposer(
+            $db: $db,
+            $table: $db.verificationCases,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SyncBatchesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SyncBatchesTable> {
+  $$SyncBatchesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get requestJson => $composableBuilder(
+    column: $table.requestJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get requestSha256 => $composableBuilder(
+    column: $table.requestSha256,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get state =>
+      $composableBuilder(column: $table.state, builder: (column) => column);
+
+  GeneratedColumn<String> get receiptId =>
+      $composableBuilder(column: $table.receiptId, builder: (column) => column);
+
+  GeneratedColumn<int> get attempts =>
+      $composableBuilder(column: $table.attempts, builder: (column) => column);
+
+  GeneratedColumn<String> get lastError =>
+      $composableBuilder(column: $table.lastError, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAtMs => $composableBuilder(
+    column: $table.createdAtMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get updatedAtMs => $composableBuilder(
+    column: $table.updatedAtMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get nextRetryAtMs => $composableBuilder(
+    column: $table.nextRetryAtMs,
+    builder: (column) => column,
+  );
+
+  $$VerificationCasesTableAnnotationComposer get caseId {
+    final $$VerificationCasesTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.caseId,
+          referencedTable: $db.verificationCases,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$VerificationCasesTableAnnotationComposer(
+                $db: $db,
+                $table: $db.verificationCases,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+}
+
+class $$SyncBatchesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SyncBatchesTable,
+          SyncBatchRow,
+          $$SyncBatchesTableFilterComposer,
+          $$SyncBatchesTableOrderingComposer,
+          $$SyncBatchesTableAnnotationComposer,
+          $$SyncBatchesTableCreateCompanionBuilder,
+          $$SyncBatchesTableUpdateCompanionBuilder,
+          (SyncBatchRow, $$SyncBatchesTableReferences),
+          SyncBatchRow,
+          PrefetchHooks Function({bool caseId})
+        > {
+  $$SyncBatchesTableTableManager(_$AppDatabase db, $SyncBatchesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SyncBatchesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SyncBatchesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SyncBatchesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> caseId = const Value.absent(),
+                Value<String> requestJson = const Value.absent(),
+                Value<String> requestSha256 = const Value.absent(),
+                Value<String> state = const Value.absent(),
+                Value<String?> receiptId = const Value.absent(),
+                Value<int> attempts = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
+                Value<int> createdAtMs = const Value.absent(),
+                Value<int> updatedAtMs = const Value.absent(),
+                Value<int?> nextRetryAtMs = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SyncBatchesCompanion(
+                id: id,
+                caseId: caseId,
+                requestJson: requestJson,
+                requestSha256: requestSha256,
+                state: state,
+                receiptId: receiptId,
+                attempts: attempts,
+                lastError: lastError,
+                createdAtMs: createdAtMs,
+                updatedAtMs: updatedAtMs,
+                nextRetryAtMs: nextRetryAtMs,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String caseId,
+                required String requestJson,
+                required String requestSha256,
+                required String state,
+                Value<String?> receiptId = const Value.absent(),
+                Value<int> attempts = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
+                required int createdAtMs,
+                required int updatedAtMs,
+                Value<int?> nextRetryAtMs = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SyncBatchesCompanion.insert(
+                id: id,
+                caseId: caseId,
+                requestJson: requestJson,
+                requestSha256: requestSha256,
+                state: state,
+                receiptId: receiptId,
+                attempts: attempts,
+                lastError: lastError,
+                createdAtMs: createdAtMs,
+                updatedAtMs: updatedAtMs,
+                nextRetryAtMs: nextRetryAtMs,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$SyncBatchesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({caseId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (caseId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.caseId,
+                                referencedTable: $$SyncBatchesTableReferences
+                                    ._caseIdTable(db),
+                                referencedColumn: $$SyncBatchesTableReferences
+                                    ._caseIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$SyncBatchesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SyncBatchesTable,
+      SyncBatchRow,
+      $$SyncBatchesTableFilterComposer,
+      $$SyncBatchesTableOrderingComposer,
+      $$SyncBatchesTableAnnotationComposer,
+      $$SyncBatchesTableCreateCompanionBuilder,
+      $$SyncBatchesTableUpdateCompanionBuilder,
+      (SyncBatchRow, $$SyncBatchesTableReferences),
+      SyncBatchRow,
+      PrefetchHooks Function({bool caseId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -15293,4 +16761,6 @@ class $AppDatabaseManager {
       $$SamplesTableTableManager(_db, _db.samples);
   $$SyncItemsTableTableManager get syncItems =>
       $$SyncItemsTableTableManager(_db, _db.syncItems);
+  $$SyncBatchesTableTableManager get syncBatches =>
+      $$SyncBatchesTableTableManager(_db, _db.syncBatches);
 }

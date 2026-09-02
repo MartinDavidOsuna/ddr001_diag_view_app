@@ -3,7 +3,7 @@
 ## Jerarquía
 `User → Meter → VerificationCase → FlowPoint → Sample → Point / Evidence`
 
-Drift `schemaVersion = 12` es la implementación local real y la autoridad de
+Drift `schemaVersion = 13` es la implementación local real y la autoridad de
 campo. Los JSON Schemas de `packages/shared-contracts/` son contratos
 serializables actuales que el futuro serializer de sync deberá ampliar sin
 perder compatibilidad. La representación remota oficial vive en SQL Server 2014
@@ -16,6 +16,8 @@ bajo `functional_diag`; Prisma/PostgreSQL deja de ser objetivo productivo.
 - `phone` normalizado.
 - `display_name` requerido para nuevos accesos desde Stage 3; permanece nullable en almacenamiento para compatibilidad con usuarios locales legados, que se completan en el siguiente login sin cambiar `user_id`.
 - `created_at`, `last_login_at`.
+- `remote_user_id` nullable enlaza aditivamente la identidad local con
+  `rv.users.user_id`; nunca sustituye ni reescribe el UUID local.
 - Sin password.
 
 ## Meter
@@ -69,7 +71,10 @@ bajo `functional_diag`; Prisma/PostgreSQL deja de ser objetivo productivo.
 - La canonicalización v6 incorpora `simulation_scenario` únicamente para muestras simuladas; checksums históricos conservan su versión previa.
 - Una `CLOSED_VALID` es inmutable.
 
-Drift `schemaVersion = 12` reconstruye controladamente `samples` desde v11 para ampliar el CHECK de fuente y agregar `simulation_scenario`, copiando todas las columnas existentes. No elimina expedientes, Samples RUNNING, Evidence ni archivos.
+Drift `schemaVersion = 13` agrega de forma aditiva identidad remota, metadata de
+ACK de Evidence y lotes persistentes. La migración 12→13 no reconstruye tablas,
+no reescribe checksums y no elimina expedientes, Samples RUNNING, Evidence,
+usuarios, cola ni archivos.
 
 ## Point
 - `point_id`.
@@ -90,12 +95,14 @@ Drift `schemaVersion = 12` reconstruye controladamente `samples` desde v11 para 
 - `local_path`.
 - `server_storage_key` nullable.
 - `sync_status`.
+- `server_confirmed_at` y `last_sync_error`, metadata remota mutable que no
+  altera la imagen, su hash ni la inmutabilidad metrológica.
 
 ## AuthSession (local/server)
 Representa la política de sesión persistente; no usar password. El secreto/token nunca forma parte de exportes ni reportes.
 La sesión creada por la identidad maestra es local y no fabrica un bearer token de servidor; sus entidades continúan sujetas a la misma persistencia y sincronización que cualquier trabajo offline.
 
-La sesión remota futura reutiliza `ddr001_api` Field auth con
+La sesión remota reutiliza `ddr001_api` Field auth con
 `client_app=ddr001_diag_view`, `installation_id` UUID estable, access/refresh
 tokens, device y work session multi-app. Las credenciales se almacenan con keys
 exclusivas de esta app. El owner remoto se deriva del JWT y nunca de un user ID
@@ -103,6 +110,13 @@ aceptado desde el body.
 
 ## SyncItem
 - entity type/id, checksum, state, attempts, last_error, timestamps.
+
+## SyncBatch
+- `batch_id` UUID, `case_id`, JSON exacto y SHA-256 canónico del request.
+- estado `PENDING | SENDING | AMBIGUOUS | SYNCED | CONFLICT | FAILED`.
+- receipt remoto, intentos, último error, timestamps y próximo reintento.
+- persiste antes del HTTP para que app restart/reboot conserve la identidad del
+  lote y pueda consultar un ACK perdido sin generar duplicados.
 
 ## Report
 - `report_id`, `case_id`, versión, html_path/local, pdf_path nullable, checksum, created_at.

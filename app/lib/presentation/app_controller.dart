@@ -490,7 +490,14 @@ final class AppController extends StateNotifier<AppViewState> {
         email: email,
         phone: phone,
       );
-      state = state.copyWith(user: user, page: AppPage.home);
+      final notice = dependencies.auth is OfflineFirstRemoteAuthService
+          ? (dependencies.auth as OfflineFirstRemoteAuthService).remoteNotice
+          : null;
+      state = state.copyWith(
+        user: user,
+        page: AppPage.home,
+        syncMessage: notice ?? 'Pendiente local',
+      );
     });
   }
 
@@ -570,6 +577,7 @@ final class AppController extends StateNotifier<AppViewState> {
             .where((sample) => sample.status == SampleStatus.closedValid)
             .map((sample) => sample.id)
             .toSet(),
+        syncMessage: await _persistedSyncMessage(caseId),
         clearExportedFiles: true,
         page: AppPage.caseSummary,
       );
@@ -755,26 +763,6 @@ final class AppController extends StateNotifier<AppViewState> {
         createdAt: existingMeter?.createdAt ?? now,
         updatedAt: now,
       );
-      final api = dependencies.remoteApi;
-      final token = await dependencies.tokenStore?.read();
-      if (api != null && token != null) {
-        state = state.copyWith(hydrantLookupInProgress: true);
-        try {
-          final remote = await api.lookupMeter(id, token);
-          meter = Meter(
-            id: remote.id,
-            externalStatus: remote.externalStatus,
-            externalSnapshotJson: remote.externalSnapshotJson,
-            externalCheckedAt: remote.externalCheckedAt,
-            createdAt: existingMeter?.createdAt ?? remote.createdAt,
-            updatedAt: now,
-          );
-        } catch (_) {
-          // Identification remains usable offline or while the external
-          // read-only adapter is unavailable.
-        }
-        state = state.copyWith(hydrantLookupInProgress: false);
-      }
       await dependencies.meters.save(meter);
       var verificationCase = state.activeCase;
       if (verificationCase == null ||
@@ -1968,6 +1956,7 @@ final class AppController extends StateNotifier<AppViewState> {
             .where((sample) => sample.status == SampleStatus.closedValid)
             .map((sample) => sample.id)
             .toSet(),
+        syncMessage: await _persistedSyncMessage(verificationCase.id),
       );
     });
   }
@@ -2044,11 +2033,10 @@ final class AppController extends StateNotifier<AppViewState> {
   }
 
   Future<void> syncCurrentCase() async {
-    final api = dependencies.remoteApi;
-    final token = await dependencies.tokenStore?.read();
+    final engine = dependencies.syncEngine;
     final verificationCase = state.activeCase;
     final user = state.user;
-    if (api == null || token == null) {
+    if (engine == null) {
       state = state.copyWith(
         syncMessage: 'Pendiente local · backend no configurado',
       );
@@ -2057,117 +2045,26 @@ final class AppController extends StateNotifier<AppViewState> {
     if (verificationCase == null || user == null) return;
     await _guard(() async {
       state = state.copyWith(syncMessage: 'Sincronizando…');
-      final flows = await dependencies.flows.listByCase(verificationCase.id);
-      final samples = <Sample>[];
-      for (final flow in flows) {
-        samples.addAll(
-          (await dependencies.samples.listByFlow(
-            flow.id,
-          )).where((sample) => sample.status == SampleStatus.closedValid),
-        );
-      }
-      // Binary evidence is staged first. The server associates it when the
-      // immutable Sample metadata arrives.
-      for (final sample in samples) {
-        for (final evidence in await dependencies.evidence.listBySample(
-          sample.id,
-        )) {
-          await api.uploadEvidence(token: token, evidence: evidence);
-        }
-      }
-      await api.postJson('/api/v1/cases', token, {
-        'case_id': verificationCase.id,
-        'meter_id': verificationCase.meterId,
-        'user_id': verificationCase.userId,
-        'status': verificationCase.status.name.toUpperCase(),
-        'overall_verdict': _overallVerdictApi(verificationCase.overallVerdict),
-        'report_version': verificationCase.reportVersion,
-        'test_bench_id': verificationCase.testBenchId,
-        'device': {
-          'id': verificationCase.deviceId,
-          'android_version': verificationCase.androidVersion,
-          'brand': verificationCase.deviceBrand,
-          'model': verificationCase.deviceModel,
-        },
-        'checksum': verificationCase.checksum,
-        'created_at': verificationCase.createdAt.toUtc().toIso8601String(),
-        'closed_at': verificationCase.closedAt?.toUtc().toIso8601String(),
-      });
-      for (final flow in flows) {
-        await api.postJson(
-          '/api/v1/cases/${verificationCase.id}/flow-points',
-          token,
-          {
-            'flow_point_id': flow.id,
-            'code': flow.code.name.toUpperCase(),
-            'status': flow.status.name.toUpperCase(),
-            'lps_approx': flow.lpsApprox,
-            'mpe_pct': flow.mpePct,
-            'created_at': flow.createdAt.toUtc().toIso8601String(),
-          },
-        );
-      }
-      for (final sample in samples) {
-        await api.postJson('/api/v1/samples', token, _sampleSyncJson(sample));
-      }
-      final syncedEntityIds = <String>{
-        verificationCase.id,
-        ...flows.map((flow) => flow.id),
-        ...samples.map((sample) => sample.id),
-      };
-      for (final sample in samples) {
-        syncedEntityIds.addAll(
-          (await dependencies.evidence.listBySample(
-            sample.id,
-          )).map((evidence) => evidence.id),
-        );
-      }
-      for (final item in await dependencies.sync.listPending()) {
-        if (syncedEntityIds.contains(item.entityId)) {
-          await dependencies.sync.markSynced(
-            item.id,
-            at: DateTime.now().toUtc(),
-          );
-        }
-      }
-      state = state.copyWith(syncMessage: 'Sincronizado');
+      final result = await engine.syncCase(
+        caseId: verificationCase.id,
+        localUserId: user.id,
+      );
+      state = state.copyWith(syncMessage: result.message);
     });
   }
 
-  Map<String, Object?> _sampleSyncJson(Sample sample) => {
-    'sample_id': sample.id,
-    'flow_point_id': sample.flowPointId,
-    'sample_number': sample.sampleNumber,
-    'status': 'CLOSED_VALID',
-    'checksum': sample.checksum,
-    'created_at': sample.createdAt.toUtc().toIso8601String(),
-    'started_at': sample.startedAt?.toUtc().toIso8601String(),
-    'ended_at': sample.endedAt?.toUtc().toIso8601String(),
-    'measurement_source': sample.configuration.measurementMethod.name
-        .toUpperCase(),
-    'is_simulation': sample.isSimulation,
-    'simulation_scenario': sample.simulationScenario?.contractName,
-    'pulse_count': sample.pulseCount,
-    'acquisition_integrity': sample.acquisitionIntegrity.status.name
-        .toUpperCase(),
-    'result': sample.result == null
-        ? null
-        : {
-            'v_ref_l': sample.result!.referenceLiters,
-            'v_ind_l': sample.result!.indicatedLiters,
-            'error_pct': sample.result!.errorPct,
-            'uncertainty_pct': sample.result!.uncertaintyPct,
-            'mpe_pct': sample.result!.mpePct,
-            'verdict': sample.result!.verdict.name.toUpperCase(),
-          },
-  };
-
-  String? _overallVerdictApi(OverallVerdict? verdict) => switch (verdict) {
-    OverallVerdict.approved => 'APROBADO',
-    OverallVerdict.rejected => 'RECHAZADO',
-    OverallVerdict.inconclusive => 'NO_CONCLUYENTE',
-    null => null,
-  };
+  Future<String> _persistedSyncMessage(String caseId) async {
+    final batch = await dependencies.syncBatches.latestForCase(caseId);
+    if (batch == null) return 'Pendiente';
+    return switch (batch.state) {
+      SyncBatchState.pending => 'Pendiente',
+      SyncBatchState.sending => 'Sincronizando…',
+      SyncBatchState.ambiguous => 'Pendiente · confirmando ACK',
+      SyncBatchState.synced => 'Sincronizado',
+      SyncBatchState.conflict => 'Conflicto',
+      SyncBatchState.failed => 'Error',
+    };
+  }
 
   Future<void> resumeSample() async {
     final sample = state.sample;

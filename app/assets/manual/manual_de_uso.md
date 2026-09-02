@@ -1,7 +1,7 @@
 # Manual de uso — AQ VF DDR001 · Verificador Funcional
 
-**Versión del manual:** 1.2
-**Última actualización del contenido:** 1 de septiembre de 2026
+**Versión del manual:** 1.3
+**Última actualización del contenido:** 2 de septiembre de 2026
 
 Inicio y Ajustes muestran por separado la versión instalada de la aplicación con el formato `Versión: #.#.#+##`. Este manual es la fuente canónica del procedimiento visible para el técnico y funciona completamente sin internet.
 
@@ -334,7 +334,11 @@ Con una sesión local válida funcionan sin servidor: identificación libre, GPS
 
 ## 30. Sincronización
 
-La sincronización solo aparece cuando el backend está configurado. Cuando no lo está, no hay un botón remoto inútil: el trabajo se conserva localmente. Al configurar servidor, la app puede subir evidencias y metadata de forma idempotente y mostrar estados reales de sincronización o conflicto.
+La sincronización solo aparece cuando el backend está configurado. Pulse **SYNC** desde el expediente: la app comprueba el acceso, verifica y sube cada fotografía y después entrega el lote de metadata. La fotografía local nunca se sustituye ni se borra.
+
+El estado distingue **Pendiente**, **Sincronizando**, **Sincronizado**, **Conflicto** y **Error**. Un timeout, falta de acceso o conflicto no oculta el expediente ni cambia su checksum; vuelva a intentar cuando corresponda. Si la respuesta se perdió después de enviar, la app consulta el ACK guardado por el servidor antes de repetir el mismo lote.
+
+Sin Internet puede iniciar sesión con una identidad local conocida o nueva y completar toda la prueba. El trabajo queda pendiente hasta que exista una sesión DDR001 autorizada. Cerrar sesión elimina tokens remotos, pero conserva expedientes, muestras, cola y fotografías.
 
 ## 31. Ajustes
 

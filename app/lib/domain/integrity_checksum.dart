@@ -33,20 +33,7 @@ String calculateSampleChecksum({
   final evidence = [...requiredEvidence]..sort((a, b) => a.id.compareTo(b.id));
   final c = sample.configuration;
   final fields = <String>[
-    _field(
-      'canonicalVersion',
-      sample.isSimulation
-          ? 6
-          : c.controlStartMaximumLps.isFinite
-          ? 5
-          : sample.pulseAcquisitionConfiguration != null
-          ? 4
-          : sample.meterFaceConfiguration?.totalizerConfiguration != null
-          ? 3
-          : sample.meterFaceConfiguration == null
-          ? 1
-          : 2,
-    ),
+    _field('canonicalVersion', sampleCanonicalVersion(sample)),
     _field('sampleId', sample.id),
     _field('flowPointId', sample.flowPointId),
     _field('sampleNumber', sample.sampleNumber),
@@ -166,6 +153,30 @@ String calculateSampleChecksum({
   return sha256.convert(utf8.encode(fields.join())).toString();
 }
 
+int sampleCanonicalVersion(Sample sample) {
+  final c = sample.configuration;
+  return sample.isSimulation
+      ? 6
+      : c.controlStartMaximumLps.isFinite
+      ? 5
+      : sample.pulseAcquisitionConfiguration != null
+      ? 4
+      : sample.meterFaceConfiguration?.totalizerConfiguration != null
+      ? 3
+      : sample.meterFaceConfiguration == null
+      ? 1
+      : 2;
+}
+
+int caseCanonicalVersion(VerificationCase verificationCase) =>
+    verificationCase.testBenchId.isNotEmpty ||
+        verificationCase.deviceId != null ||
+        verificationCase.androidVersion != null ||
+        verificationCase.deviceBrand != null ||
+        verificationCase.deviceModel != null
+    ? 2
+    : 1;
+
 String calculateCaseChecksum({
   required VerificationCase verificationCase,
   required OverallVerdict verdict,
@@ -178,12 +189,7 @@ String calculateCaseChecksum({
 }) {
   final sortedFlows = [...flows]..sort((a, b) => a.code.compareTo(b.code));
   final sortedRequired = requiredFlowCodes.toList()..sort();
-  final hasDeviceProvenance =
-      verificationCase.testBenchId.isNotEmpty ||
-      verificationCase.deviceId != null ||
-      verificationCase.androidVersion != null ||
-      verificationCase.deviceBrand != null ||
-      verificationCase.deviceModel != null;
+  final hasDeviceProvenance = caseCanonicalVersion(verificationCase) == 2;
   final fields = <String>[
     _field('canonicalVersion', hasDeviceProvenance ? 2 : 1),
     _field('caseId', verificationCase.id),

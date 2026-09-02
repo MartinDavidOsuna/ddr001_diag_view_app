@@ -63,6 +63,8 @@ enum EvidenceSyncStatus { local, pending, syncing, synced, conflict, error }
 
 enum SyncState { pending, inProgress, failed, synced }
 
+enum SyncBatchState { pending, sending, ambiguous, synced, conflict, failed }
+
 final class User {
   User({
     required this.id,
@@ -71,6 +73,7 @@ final class User {
     required this.createdAt,
     String? displayName,
     this.lastLoginAt,
+    this.remoteUserId,
   }) : email = normalizeEmail(email),
        phone = normalizePhone(phone),
        displayName = normalizeOptionalDisplayName(displayName);
@@ -81,6 +84,7 @@ final class User {
   final String? displayName;
   final DateTime createdAt;
   final DateTime? lastLoginAt;
+  final String? remoteUserId;
 }
 
 final class Meter {
@@ -538,6 +542,8 @@ final class Evidence {
     this.pulseCount,
     this.sha256,
     this.serverStorageKey,
+    this.serverConfirmedAt,
+    this.lastSyncError,
   });
 
   final String id;
@@ -552,6 +558,8 @@ final class Evidence {
   final String localPath;
   final String? serverStorageKey;
   final EvidenceSyncStatus syncStatus;
+  final DateTime? serverConfirmedAt;
+  final String? lastSyncError;
 }
 
 final class SyncItem {
@@ -573,6 +581,34 @@ final class SyncItem {
   final String entityId;
   final String checksum;
   final SyncState state;
+  final int attempts;
+  final String? lastError;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? nextRetryAt;
+}
+
+final class SyncBatch {
+  const SyncBatch({
+    required this.id,
+    required this.caseId,
+    required this.requestJson,
+    required this.requestSha256,
+    required this.state,
+    required this.attempts,
+    required this.createdAt,
+    required this.updatedAt,
+    this.receiptId,
+    this.lastError,
+    this.nextRetryAt,
+  });
+
+  final String id;
+  final String caseId;
+  final String requestJson;
+  final String requestSha256;
+  final SyncBatchState state;
+  final String? receiptId;
   final int attempts;
   final String? lastError;
   final DateTime createdAt;

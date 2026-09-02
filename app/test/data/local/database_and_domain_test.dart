@@ -27,52 +27,50 @@ void main() {
     await directory.delete(recursive: true);
   });
 
-  test(
-    'schema version 12 creates domain and operational settings tables',
-    () async {
-      expect(database.schemaVersion, 12);
-      final rows = await database
-          .customSelect(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
-          )
-          .get();
-      expect(
-        rows.map((r) => r.read<String>('name')).toSet(),
-        containsAll({
-          'users',
-          'meters',
-          'verification_cases',
-          'flow_points',
-          'samples',
-          'test_points',
-          'evidence_items',
-          'sync_items',
-          'sample_operational_settings',
-        }),
-      );
-      final pointColumns = await database
-          .customSelect('PRAGMA table_info(test_points)')
-          .get();
-      expect(
-        pointColumns.map((row) => row.read<String>('name')),
-        contains('flow_lps'),
-      );
-      final sampleColumns = await database
-          .customSelect('PRAGMA table_info(samples)')
-          .get();
-      expect(
-        sampleColumns.map((row) => row.read<String>('name')),
-        containsAll({
-          'initial_reading_evidence_id',
-          'final_reading_evidence_id',
-          'totalizer_left',
-          'dial_center_x',
-          'dial_multiplier',
-          'dial_configuration_source',
-        }),
-      );
-    },
-  );
+  test('schema version 13 creates domain and remote sync state tables', () async {
+    expect(database.schemaVersion, 13);
+    final rows = await database
+        .customSelect(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
+        )
+        .get();
+    expect(
+      rows.map((r) => r.read<String>('name')).toSet(),
+      containsAll({
+        'users',
+        'meters',
+        'verification_cases',
+        'flow_points',
+        'samples',
+        'test_points',
+        'evidence_items',
+        'sync_items',
+        'sync_batches',
+        'sample_operational_settings',
+      }),
+    );
+    final pointColumns = await database
+        .customSelect('PRAGMA table_info(test_points)')
+        .get();
+    expect(
+      pointColumns.map((row) => row.read<String>('name')),
+      contains('flow_lps'),
+    );
+    final sampleColumns = await database
+        .customSelect('PRAGMA table_info(samples)')
+        .get();
+    expect(
+      sampleColumns.map((row) => row.read<String>('name')),
+      containsAll({
+        'initial_reading_evidence_id',
+        'final_reading_evidence_id',
+        'totalizer_left',
+        'dial_center_x',
+        'dial_multiplier',
+        'dial_configuration_source',
+      }),
+    );
+  });
 
   test('user normalizes email and phone and supports lookup', () async {
     final user = User(
@@ -237,6 +235,58 @@ void main() {
       expect(
         migratedSql.read<String>('sql'),
         allOf(contains("'simulation'"), contains('simulation_scenario')),
+      );
+      await diskDb.close();
+      database = memoryDatabase();
+    },
+  );
+
+  test(
+    'v12 to v13 migration preserves work and adds remote sync metadata',
+    () async {
+      await database.close();
+      final path =
+          '${directory.path}${Platform.pathSeparator}migration-v13.sqlite';
+      var diskDb = AppDatabase(NativeDatabase(File(path)));
+      final diskFixture = OfflineFixture(diskDb, directory);
+      await diskFixture.seed();
+      await diskFixture.prepareClosable();
+      final closed = await diskFixture.sampleClosure.closeValid(
+        'sample-1',
+        at: fixedTime.add(const Duration(minutes: 5)),
+      );
+      await diskDb.customStatement('DROP TABLE sync_batches');
+      await diskDb.customStatement(
+        'ALTER TABLE users DROP COLUMN remote_user_id',
+      );
+      await diskDb.customStatement(
+        'ALTER TABLE evidence_items DROP COLUMN server_confirmed_at_ms',
+      );
+      await diskDb.customStatement(
+        'ALTER TABLE evidence_items DROP COLUMN last_sync_error',
+      );
+      await diskDb.customStatement('PRAGMA user_version = 12');
+      await diskDb.close();
+
+      diskDb = AppDatabase(NativeDatabase(File(path)));
+      expect(
+        (await LocalSampleRepository(diskDb).getById('sample-1'))?.checksum,
+        closed.checksum,
+      );
+      expect(await LocalSyncQueueRepository(diskDb).listPending(), isNotEmpty);
+      final tables = await diskDb
+          .customSelect("SELECT name FROM sqlite_master WHERE type='table'")
+          .get();
+      expect(
+        tables.map((row) => row.read<String>('name')),
+        contains('sync_batches'),
+      );
+      final evidenceColumns = await diskDb
+          .customSelect('PRAGMA table_info(evidence_items)')
+          .get();
+      expect(
+        evidenceColumns.map((row) => row.read<String>('name')),
+        containsAll(['server_confirmed_at_ms', 'last_sync_error']),
       );
       await diskDb.close();
       database = memoryDatabase();

@@ -2,7 +2,9 @@ import 'dart:io';
 
 import 'package:ddr001_diag_view_app/core/metrology/metrology.dart';
 import 'package:ddr001_diag_view_app/data/local/database/app_database.dart';
+import 'package:ddr001_diag_view_app/data/local/repositories/local_repositories.dart';
 import 'package:ddr001_diag_view_app/domain/models.dart';
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/offline_fixture.dart';
@@ -174,5 +176,35 @@ void main() {
     expect(pending.lastError, 'offline');
     await fixture.sync.markSynced(item.id, at: fixedTime);
     expect(await fixture.sync.listPending(), isEmpty);
+  });
+
+  test('sync queue survives database close and app restart', () async {
+    await database.close();
+    final path =
+        '${directory.path}${Platform.pathSeparator}sync-restart.sqlite';
+    var diskDb = AppDatabase(NativeDatabase(File(path)));
+    var diskQueue = LocalSyncQueueRepository(diskDb);
+    final item = await diskQueue.enqueue(
+      entityType: 'sample',
+      entityId: 'sample-restart',
+      checksum: 'checksum-restart',
+      at: fixedTime,
+    );
+    await diskQueue.markFailed(
+      item.id,
+      error: 'offline',
+      at: fixedTime,
+      nextRetryAt: fixedTime.add(const Duration(minutes: 2)),
+    );
+    await diskDb.close();
+
+    diskDb = AppDatabase(NativeDatabase(File(path)));
+    diskQueue = LocalSyncQueueRepository(diskDb);
+    final recovered = (await diskQueue.listPending()).single;
+    expect(recovered.id, item.id);
+    expect(recovered.state, SyncState.failed);
+    expect(recovered.lastError, 'offline');
+    await diskDb.close();
+    database = memoryDatabase();
   });
 }

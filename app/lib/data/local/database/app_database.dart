@@ -10,6 +10,7 @@ class Users extends Table {
   TextColumn get displayName => text().nullable()();
   IntColumn get createdAtMs => integer()();
   IntColumn get lastLoginAtMs => integer().nullable()();
+  TextColumn get remoteUserId => text().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -242,6 +243,8 @@ class EvidenceItems extends Table {
   TextColumn get localPath => text()();
   TextColumn get serverStorageKey => text().nullable()();
   TextColumn get syncStatus => text()();
+  IntColumn get serverConfirmedAtMs => integer().nullable()();
+  TextColumn get lastSyncError => text().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -251,6 +254,30 @@ class EvidenceItems extends Table {
     "CHECK (type IN ('start','intermediate','finalEvidence','extra'))",
     'CHECK (pulse_count IS NULL OR pulse_count >= 0)',
     "CHECK (sync_status IN ('local','pending','syncing','synced','conflict','error'))",
+  ];
+}
+
+@DataClassName('SyncBatchRow')
+class SyncBatches extends Table {
+  TextColumn get id => text()();
+  TextColumn get caseId => text().references(VerificationCases, #id)();
+  TextColumn get requestJson => text()();
+  TextColumn get requestSha256 => text()();
+  TextColumn get state => text()();
+  TextColumn get receiptId => text().nullable()();
+  IntColumn get attempts => integer().withDefault(const Constant(0))();
+  TextColumn get lastError => text().nullable()();
+  IntColumn get createdAtMs => integer()();
+  IntColumn get updatedAtMs => integer()();
+  IntColumn get nextRetryAtMs => integer().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+
+  @override
+  List<String> get customConstraints => [
+    "CHECK (state IN ('pending','sending','ambiguous','synced','conflict','failed'))",
+    'CHECK (attempts >= 0)',
   ];
 }
 
@@ -292,6 +319,7 @@ class SyncItems extends Table {
     TestPoints,
     EvidenceItems,
     SyncItems,
+    SyncBatches,
   ],
 )
 final class AppDatabase extends _$AppDatabase {
@@ -301,7 +329,7 @@ final class AppDatabase extends _$AppDatabase {
     : super(driftDatabase(name: 'ddr001', native: const DriftNativeOptions()));
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -461,6 +489,34 @@ final class AppDatabase extends _$AppDatabase {
           ),
         );
       }
+      if (from < 13) {
+        final userColumns = (await customSelect(
+          'PRAGMA table_info(users)',
+        ).get()).map((row) => row.read<String>('name')).toSet();
+        if (!userColumns.contains('remote_user_id')) {
+          await migrator.addColumn(users, users.remoteUserId);
+        }
+        final evidenceColumns = (await customSelect(
+          'PRAGMA table_info(evidence_items)',
+        ).get()).map((row) => row.read<String>('name')).toSet();
+        if (!evidenceColumns.contains('server_confirmed_at_ms')) {
+          await migrator.addColumn(
+            evidenceItems,
+            evidenceItems.serverConfirmedAtMs,
+          );
+        }
+        if (!evidenceColumns.contains('last_sync_error')) {
+          await migrator.addColumn(evidenceItems, evidenceItems.lastSyncError);
+        }
+        await migrator.createTable(syncBatches);
+        await customStatement(
+          'DROP TRIGGER IF EXISTS protect_closed_sample_evidence_update',
+        );
+        await _createEvidenceUpdateProtectionTrigger();
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_sync_batches_case_state ON sync_batches(case_id, state, created_at_ms)',
+        );
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
@@ -512,6 +568,9 @@ final class AppDatabase extends _$AppDatabase {
     await customStatement(
       'CREATE INDEX idx_sync_state_created ON sync_items(state, created_at_ms)',
     );
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_sync_batches_case_state ON sync_batches(case_id, state, created_at_ms)',
+    );
   }
 
   Future<void> _createProtectionTriggers() async {
@@ -533,12 +592,7 @@ final class AppDatabase extends _$AppDatabase {
       WHEN (SELECT status FROM samples WHERE id = NEW.sample_id) = 'closedValid'
       BEGIN SELECT RAISE(ABORT, 'closed sample evidence is immutable'); END
     ''');
-    await customStatement('''
-      CREATE TRIGGER protect_closed_sample_evidence_update
-      BEFORE UPDATE ON evidence_items
-      WHEN (SELECT status FROM samples WHERE id = OLD.sample_id) = 'closedValid'
-      BEGIN SELECT RAISE(ABORT, 'closed sample evidence is immutable'); END
-    ''');
+    await _createEvidenceUpdateProtectionTrigger();
     await customStatement('''
       CREATE TRIGGER protect_closed_sample_evidence_delete
       BEFORE DELETE ON evidence_items
@@ -588,4 +642,20 @@ final class AppDatabase extends _$AppDatabase {
       BEGIN SELECT RAISE(ABORT, 'closed case cannot accept samples'); END
     ''');
   }
+
+  Future<void> _createEvidenceUpdateProtectionTrigger() => customStatement('''
+    CREATE TRIGGER protect_closed_sample_evidence_update
+    BEFORE UPDATE ON evidence_items
+    WHEN (SELECT status FROM samples WHERE id = OLD.sample_id) = 'closedValid'
+      AND (
+        OLD.id IS NOT NEW.id OR OLD.sample_id IS NOT NEW.sample_id OR
+        OLD.point_id IS NOT NEW.point_id OR OLD.type IS NOT NEW.type OR
+        OLD.required IS NOT NEW.required OR
+        OLD.volume_ref_liters IS NOT NEW.volume_ref_liters OR
+        OLD.pulse_count IS NOT NEW.pulse_count OR
+        OLD.captured_at_ms IS NOT NEW.captured_at_ms OR
+        OLD.sha256 IS NOT NEW.sha256 OR OLD.local_path IS NOT NEW.local_path
+      )
+    BEGIN SELECT RAISE(ABORT, 'closed sample evidence is immutable'); END
+  ''');
 }

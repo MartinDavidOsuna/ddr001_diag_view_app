@@ -1,19 +1,19 @@
 # PROJECT_TRUTH — DDR001 Verificador de Medidores
 
-- Versión de aplicación vigente: `1.3.4+14`. Login, Inicio y Ajustes muestran la versión instalada. La identidad funcional visible es **VERIFICADOR FUNCIONAL** y Android muestra **AQ VF DDR001**; el encabezado común y el splash Flutter conservan la identidad Aquafim.
+- Versión de aplicación vigente: `1.4.0+15`. Login, Inicio y Ajustes muestran la versión instalada. La identidad funcional visible es **VERIFICADOR FUNCIONAL** y Android muestra **AQ VF DDR001**; el encabezado común y el splash Flutter conservan la identidad Aquafim.
 - Política de incrementos y archivos coordinados: `VERSIONING.md`.
 
 > **Estado:** SSOT consolidada — Etapa 0 cerrada el 2026-08-08.
 > Este archivo es la referencia principal para ChatGPT/Codex. Ante discrepancias entre prototipo, capturas, código o documentos anteriores, prevalece `docs/ssot/`.
 
 ## 1. Misión
-Migrar el verificador web legado a una aplicación **Flutter nativa para Android** con backend **Node.js + TypeScript + Express**, persistencia **PostgreSQL + Prisma** y operación **offline-first**. La nueva app conserva el flujo y apariencia validados del prototipo, pero corrige y endurece metrología, persistencia, evidencia, visión, autenticación y sincronización.
+Migrar el verificador web legado a una aplicación **Flutter nativa para Android**, integrada de forma offline-first con el backend oficial **ddr001_api** (Node.js + TypeScript + Express + SQL Server 2014). La nueva app conserva el flujo y apariencia validados del prototipo, pero corrige y endurece metrología, persistencia, evidencia, visión, autenticación y sincronización.
 
 ## 2. Alcance inmediato
 - Plataforma móvil: **Android únicamente**, orientación **portrait**.
 - App: Flutter + Riverpod + Drift/SQLite.
-- Backend: Node.js + TypeScript + Express + Prisma + PostgreSQL.
-- Repositorio: **monorepo** por ahora.
+- Backend oficial: repositorio `ddr001_api`, Node.js + TypeScript + Express + SQL Server 2014; `backend/` es referencia histórica Prisma/PostgreSQL no desplegable.
+- Repositorios oficiales separados para app y API.
 - Servidor inicial: **Windows Server 2018**.
 - Panel web: no se construye en esta etapa, pero el backend debe exponer endpoints suficientes para un panel posterior.
 - iOS y layout horizontal quedan fuera del alcance inmediato.
@@ -120,9 +120,9 @@ Las muestras cerradas no se editan. Una corrección requiere una nueva muestra. 
 - El reporte incluye configuración metrológica, ESP32, repetibilidad y mapa del GPS. Integridad/adquisición, endpoints, trazabilidad de evidencias y geometría de cámara permanecen consultables en el resumen local de pruebas finalizadas.
 
 ## 14. Backend y almacenamiento
-- PostgreSQL + Prisma.
-- Node.js + TypeScript + Express.
-- Evidencias físicas inicialmente en filesystem administrado por el backend en Windows Server 2018; PostgreSQL guarda metadata, hashes y rutas lógicas.
+- SQL Server 2014 bajo el schema aislado `functional_diag`; única FK compartida a `rv.users`.
+- `ddr001_api`: Node.js + TypeScript + Express. `backend/` Prisma/PostgreSQL permanece sólo como referencia histórica.
+- Evidencias físicas en filesystem administrado por el API bajo `functional-diagnostics`; SQL Server guarda metadata, hashes y storage keys opacas.
 - La capa de storage debe estar abstraída para migrar posteriormente a S3-compatible sin cambiar el dominio.
 - Endpoints de lectura/listado deben servir también a un panel administrativo posterior.
 

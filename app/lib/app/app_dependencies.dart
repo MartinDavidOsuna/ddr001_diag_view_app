@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:android_id/android_id.dart';
 import 'package:uuid/uuid.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../data/local/database/app_database.dart' hide User;
 import '../data/local/filesystem/evidence_file_store.dart';
@@ -23,6 +24,7 @@ import '../infrastructure/vision/vision_pipeline.dart';
 import '../infrastructure/pulse/ble_discovery.dart';
 import '../infrastructure/export/case_export_service.dart';
 import '../infrastructure/remote/remote_api.dart';
+import '../infrastructure/remote/functional_sync_engine.dart';
 import '../domain/simulation/simulation_workflow_service.dart';
 import '../infrastructure/simulation/simulation_evidence_capture.dart';
 
@@ -199,24 +201,28 @@ final class LocalAuthService implements AuthService {
   Future<void> logout() => sessionStore.clear();
 }
 
-final class ServerBackedAuthService implements AuthService {
-  ServerBackedAuthService({
+final class OfflineFirstRemoteAuthService implements AuthService {
+  OfflineFirstRemoteAuthService({
+    required this.local,
     required this.users,
-    required this.sessionStore,
-    required this.tokens,
+    required this.credentials,
     required this.api,
+    required this.installationIds,
+    required this.deviceMetadata,
+    required this.appVersion,
   });
 
+  final LocalAuthService local;
   final UserRepository users;
-  final SessionStore sessionStore;
-  final TokenStore tokens;
+  final RemoteCredentialStore credentials;
   final RemoteApiClient api;
+  final InstallationIdStore installationIds;
+  final DeviceMetadataPort deviceMetadata;
+  final Future<String> Function() appVersion;
+  String? remoteNotice;
 
   @override
-  Future<User?> restoreSession() async {
-    final id = await sessionStore.readActiveUserId();
-    return id == null ? null : users.getById(id);
-  }
+  Future<User?> restoreSession() => local.restoreSession();
 
   @override
   Future<User> login({
@@ -224,39 +230,56 @@ final class ServerBackedAuthService implements AuthService {
     required String email,
     required String phone,
   }) async {
-    final remote = await api.login(
+    final user = await local.login(
       displayName: displayName,
       email: email,
       phone: phone,
     );
-    final existing = await users.getById(remote.user.id);
-    final user = User(
-      id: remote.user.id,
-      displayName: existing?.displayName ?? remote.user.displayName,
-      email: remote.user.email,
-      phone: remote.user.phone,
-      createdAt: existing?.createdAt ?? remote.user.createdAt,
-      lastLoginAt: remote.user.lastLoginAt,
-    );
-    await users.save(user);
-    await tokens.write(remote.token);
-    await sessionStore.saveActiveUserId(user.id);
-    return user;
+    remoteNotice = null;
+    final previousCredentials = await credentials.readCredentials();
+    if (previousCredentials != null &&
+        (user.remoteUserId == null ||
+            previousCredentials.remoteUserId.toLowerCase() !=
+                user.remoteUserId!.toLowerCase())) {
+      await credentials.clear();
+    }
+    try {
+      final metadata = await deviceMetadata.read();
+      final remote = await api.login(
+        displayName: user.displayName ?? displayName,
+        email: user.email,
+        phone: user.phone,
+        device: RemoteDeviceRegistration(
+          installationId: await installationIds.readOrCreate(),
+          platform: 'android',
+          manufacturer: metadata.brand ?? 'unknown',
+          model: metadata.model ?? 'unknown',
+          androidVersion: metadata.androidVersion ?? 'unknown',
+          appVersion: await appVersion(),
+        ),
+      );
+      await users.linkRemoteUser(user.id, remote.remoteUserId);
+      final access = await api.access();
+      if (!access.enabled) {
+        remoteNotice =
+            'Sin acceso remoto. La captura local continúa disponible.';
+      }
+    } on RemoteApiException catch (error) {
+      remoteNotice =
+          'Sesión local activa. Sin conexión remota: ${error.message}';
+    }
+    return (await users.getById(user.id))!;
   }
 
   @override
   Future<void> logout() async {
-    final token = await tokens.read();
-    if (token != null) {
-      try {
-        await api.logout(token);
-      } catch (_) {
-        // Local explicit logout always completes; remote revocation retries are
-        // impossible after the local secret is deliberately discarded.
-      }
+    try {
+      await api.logout();
+    } catch (_) {
+      // Logout local is authoritative even when remote revocation is offline.
     }
-    await tokens.clear();
-    await sessionStore.clear();
+    await credentials.clear();
+    await local.logout();
   }
 }
 
@@ -330,13 +353,14 @@ final class MasterAccessAuthService implements AuthService {
     required String displayName,
     required String email,
     required String phone,
-  }) {
+  }) async {
     final identity = MasterAccessIdentity.find(
       displayName: displayName,
       email: email,
       phone: phone,
     );
     if (identity != null) {
+      await tokens.clear();
       return local.login(
         displayName: identity.displayName,
         email: identity.email,
@@ -507,6 +531,7 @@ final class AppDependencies {
     required this.points,
     required this.evidence,
     required this.sync,
+    required this.syncBatches,
     required this.sampleClosure,
     required this.caseClosure,
     required this.auth,
@@ -519,6 +544,8 @@ final class AppDependencies {
     this.location,
     this.deviceMetadata,
     this.remoteApi,
+    this.syncEngine,
+    this.installationIdStore,
     this.tokenStore,
     this.camera,
     this.visualPipeline,
@@ -533,17 +560,25 @@ final class AppDependencies {
       sessionStore: SharedPreferencesSessionStore(),
     );
     const apiBaseUrl = String.fromEnvironment('DDR001_API_BASE_URL');
-    final tokenStore = const SecureTokenStore();
+    const tokenStore = SecureRemoteCredentialStore();
+    const installationIdStore = SecureInstallationIdStore();
     final remoteApi = apiBaseUrl.isEmpty
         ? null
-        : RemoteApiClient(baseUrl: apiBaseUrl);
+        : RemoteApiClient(baseUrl: apiBaseUrl, credentials: tokenStore);
+    final localAuth = LocalAuthService(base.users, base.sessionStore);
     final primaryAuth = remoteApi == null
-        ? LocalAuthService(base.users, base.sessionStore)
-        : ServerBackedAuthService(
+        ? localAuth
+        : OfflineFirstRemoteAuthService(
+            local: localAuth,
             users: base.users,
-            sessionStore: base.sessionStore,
-            tokens: tokenStore,
+            credentials: tokenStore,
             api: remoteApi,
+            installationIds: installationIdStore,
+            deviceMetadata: AndroidDeviceMetadataAdapter(),
+            appVersion: () async {
+              final info = await PackageInfo.fromPlatform();
+              return '${info.version}+${info.buildNumber}';
+            },
           );
     return base.copyWith(
       evidenceCapture: CameraEvidenceCaptureAdapter(fileStore, base.evidence),
@@ -564,6 +599,22 @@ final class AppDependencies {
       ),
       remoteApi: remoteApi,
       tokenStore: tokenStore,
+      installationIdStore: installationIdStore,
+      syncEngine: remoteApi == null
+          ? null
+          : FunctionalSyncEngine(
+              api: remoteApi,
+              installationIds: installationIdStore,
+              users: base.users,
+              meters: base.meters,
+              cases: base.cases,
+              flows: base.flows,
+              samples: base.samples,
+              points: base.points,
+              evidence: base.evidence,
+              queue: base.sync,
+              batches: base.syncBatches,
+            ),
     );
   }
 
@@ -580,6 +631,7 @@ final class AppDependencies {
     final points = LocalPointRepository(database);
     final evidence = LocalEvidenceRepository(database);
     final sync = LocalSyncQueueRepository(database);
+    final syncBatches = LocalSyncBatchRepository(database);
     final simulationEvidence = SimulationEvidenceCaptureAdapter(
       fileStore,
       evidence,
@@ -597,6 +649,7 @@ final class AppDependencies {
       points: points,
       evidence: evidence,
       sync: sync,
+      syncBatches: syncBatches,
       sampleClosure: sampleClosure,
       caseClosure: LocalVerificationCaseClosureService(database),
       auth: LocalAuthService(users, sessionStore),
@@ -625,6 +678,7 @@ final class AppDependencies {
   final PointRepository points;
   final EvidenceRepository evidence;
   final SyncQueueRepository sync;
+  final SyncBatchRepository syncBatches;
   final SampleClosureService sampleClosure;
   final VerificationCaseClosureService caseClosure;
   final AuthService auth;
@@ -637,12 +691,14 @@ final class AppDependencies {
   final LocationPort? location;
   final DeviceMetadataPort? deviceMetadata;
   final RemoteApiClient? remoteApi;
+  final FunctionalSyncEngine? syncEngine;
+  final InstallationIdStore? installationIdStore;
   final TokenStore? tokenStore;
   final CameraPort? camera;
   final VisualReadingPipeline? visualPipeline;
 
   bool get backendSyncConfigured => remoteApi != null;
-  bool get hydrantLookupConfigured => remoteApi != null;
+  bool get hydrantLookupConfigured => false;
   bool get locationAvailable => location != null;
 
   AppDependencies copyWith({
@@ -655,6 +711,8 @@ final class AppDependencies {
     DeviceMetadataPort? deviceMetadata,
     AuthService? auth,
     RemoteApiClient? remoteApi,
+    FunctionalSyncEngine? syncEngine,
+    InstallationIdStore? installationIdStore,
     TokenStore? tokenStore,
     SimulationWorkflowService? simulationWorkflow,
   }) => AppDependencies(
@@ -668,6 +726,7 @@ final class AppDependencies {
     points: points,
     evidence: evidence,
     sync: sync,
+    syncBatches: syncBatches,
     sampleClosure: sampleClosure,
     caseClosure: caseClosure,
     auth: auth ?? this.auth,
@@ -680,6 +739,8 @@ final class AppDependencies {
     location: location ?? this.location,
     deviceMetadata: deviceMetadata ?? this.deviceMetadata,
     remoteApi: remoteApi ?? this.remoteApi,
+    syncEngine: syncEngine ?? this.syncEngine,
+    installationIdStore: installationIdStore ?? this.installationIdStore,
     tokenStore: tokenStore ?? this.tokenStore,
     camera: camera ?? this.camera,
     visualPipeline: visualPipeline ?? this.visualPipeline,

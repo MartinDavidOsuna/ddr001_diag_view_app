@@ -5,6 +5,7 @@ abstract interface class UserRepository {
   Future<void> save(User user);
   Future<User?> getById(String id);
   Future<User?> getByEmailAndPhone(String email, String phone);
+  Future<void> linkRemoteUser(String localUserId, String remoteUserId);
 }
 
 abstract interface class MeterRepository {
@@ -70,6 +71,42 @@ abstract interface class EvidenceRepository {
   Future<List<Evidence>> listBySample(String sampleId);
   Future<bool> hasCompleteRequiredSet(String sampleId);
   Future<void> deleteFromOpenSample(String evidenceId);
+  Future<void> updateRemoteState({
+    required String evidenceId,
+    required EvidenceSyncStatus status,
+    String? serverStorageKey,
+    DateTime? confirmedAt,
+    String? error,
+  });
+}
+
+abstract interface class SyncBatchRepository {
+  Future<SyncBatch> savePending(SyncBatch batch);
+  Future<SyncBatch?> unresolvedForCase(String caseId);
+  Future<SyncBatch?> latestForCase(String caseId);
+  Future<List<SyncBatch>> listRunnable({DateTime? at});
+  Future<void> markSending(String id, {required DateTime at});
+  Future<void> markAmbiguous(
+    String id, {
+    required String error,
+    required DateTime at,
+  });
+  Future<void> markFailed(
+    String id, {
+    required String error,
+    required DateTime at,
+    DateTime? nextRetryAt,
+  });
+  Future<void> markConflict(
+    String id, {
+    required String error,
+    required DateTime at,
+  });
+  Future<void> markSynced(
+    String id, {
+    required String receiptId,
+    required DateTime at,
+  });
 }
 
 abstract interface class SyncQueueRepository {

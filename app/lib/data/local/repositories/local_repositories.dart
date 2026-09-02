@@ -27,6 +27,7 @@ final class LocalUserRepository implements UserRepository {
           lastLoginAtMs: Value(
             user.lastLoginAt == null ? null : _ms(user.lastLoginAt!),
           ),
+          remoteUserId: Value(user.remoteUserId),
         ),
       );
 
@@ -52,6 +53,15 @@ final class LocalUserRepository implements UserRepository {
     return row == null ? null : _user(row);
   }
 
+  @override
+  Future<void> linkRemoteUser(String localUserId, String remoteUserId) async {
+    final changed =
+        await (database.update(database.users)
+              ..where((table) => table.id.equals(localUserId)))
+            .write(db.UsersCompanion(remoteUserId: Value(remoteUserId)));
+    if (changed != 1) throw StateError('Local user not found.');
+  }
+
   domain.User _user(db.User row) => domain.User(
     id: row.id,
     email: row.email,
@@ -59,6 +69,7 @@ final class LocalUserRepository implements UserRepository {
     displayName: row.displayName,
     createdAt: _date(row.createdAtMs),
     lastLoginAt: row.lastLoginAtMs == null ? null : _date(row.lastLoginAtMs!),
+    remoteUserId: row.remoteUserId,
   );
 }
 
@@ -1025,6 +1036,32 @@ final class LocalEvidenceRepository implements EvidenceRepository {
       database.evidenceItems,
     )..where((table) => table.id.equals(evidenceId))).go();
   }
+
+  @override
+  Future<void> updateRemoteState({
+    required String evidenceId,
+    required domain.EvidenceSyncStatus status,
+    String? serverStorageKey,
+    DateTime? confirmedAt,
+    String? error,
+  }) async {
+    final changed =
+        await (database.update(
+          database.evidenceItems,
+        )..where((table) => table.id.equals(evidenceId))).write(
+          db.EvidenceItemsCompanion(
+            syncStatus: Value(status.name),
+            serverStorageKey: serverStorageKey == null
+                ? const Value.absent()
+                : Value(serverStorageKey),
+            serverConfirmedAtMs: confirmedAt == null
+                ? const Value.absent()
+                : Value(_ms(confirmedAt)),
+            lastSyncError: Value(error),
+          ),
+        );
+    if (changed != 1) throw StateError('Evidence not found.');
+  }
 }
 
 db.EvidenceItemsCompanion _evidenceCompanion(domain.Evidence value) =>
@@ -1041,6 +1078,10 @@ db.EvidenceItemsCompanion _evidenceCompanion(domain.Evidence value) =>
       localPath: value.localPath,
       serverStorageKey: Value(value.serverStorageKey),
       syncStatus: value.syncStatus.name,
+      serverConfirmedAtMs: Value(
+        value.serverConfirmedAt == null ? null : _ms(value.serverConfirmedAt!),
+      ),
+      lastSyncError: Value(value.lastSyncError),
     );
 
 domain.Evidence mapEvidence(db.EvidenceRow row) => domain.Evidence(
@@ -1056,6 +1097,10 @@ domain.Evidence mapEvidence(db.EvidenceRow row) => domain.Evidence(
   localPath: row.localPath,
   serverStorageKey: row.serverStorageKey,
   syncStatus: domain.EvidenceSyncStatus.values.byName(row.syncStatus),
+  serverConfirmedAt: row.serverConfirmedAtMs == null
+      ? null
+      : _date(row.serverConfirmedAtMs!),
+  lastSyncError: row.lastSyncError,
 );
 
 final class LocalSyncQueueRepository implements SyncQueueRepository {
@@ -1178,6 +1223,184 @@ domain.SyncItem mapSync(db.SyncItemRow row) => domain.SyncItem(
   entityId: row.entityId,
   checksum: row.checksum,
   state: domain.SyncState.values.byName(row.state),
+  attempts: row.attempts,
+  lastError: row.lastError,
+  createdAt: _date(row.createdAtMs),
+  updatedAt: _date(row.updatedAtMs),
+  nextRetryAt: row.nextRetryAtMs == null ? null : _date(row.nextRetryAtMs!),
+);
+
+final class LocalSyncBatchRepository implements SyncBatchRepository {
+  LocalSyncBatchRepository(this.database);
+  final db.AppDatabase database;
+
+  @override
+  Future<domain.SyncBatch> savePending(domain.SyncBatch batch) async {
+    await database
+        .into(database.syncBatches)
+        .insert(
+          db.SyncBatchesCompanion.insert(
+            id: batch.id,
+            caseId: batch.caseId,
+            requestJson: batch.requestJson,
+            requestSha256: batch.requestSha256,
+            state: domain.SyncBatchState.pending.name,
+            createdAtMs: _ms(batch.createdAt),
+            updatedAtMs: _ms(batch.updatedAt),
+          ),
+        );
+    return (await _get(batch.id))!;
+  }
+
+  @override
+  Future<domain.SyncBatch?> unresolvedForCase(String caseId) async {
+    final row =
+        await (database.select(database.syncBatches)
+              ..where(
+                (table) =>
+                    table.caseId.equals(caseId) &
+                    table.state.isNotIn([domain.SyncBatchState.synced.name]),
+              )
+              ..orderBy([(table) => OrderingTerm.desc(table.createdAtMs)])
+              ..limit(1))
+            .getSingleOrNull();
+    return row == null ? null : _mapBatch(row);
+  }
+
+  @override
+  Future<domain.SyncBatch?> latestForCase(String caseId) async {
+    final row =
+        await (database.select(database.syncBatches)
+              ..where((table) => table.caseId.equals(caseId))
+              ..orderBy([(table) => OrderingTerm.desc(table.createdAtMs)])
+              ..limit(1))
+            .getSingleOrNull();
+    return row == null ? null : _mapBatch(row);
+  }
+
+  @override
+  Future<List<domain.SyncBatch>> listRunnable({DateTime? at}) async {
+    final now = _ms(at ?? DateTime.now().toUtc());
+    final rows =
+        await (database.select(database.syncBatches)
+              ..where(
+                (table) =>
+                    table.state.isIn([
+                      domain.SyncBatchState.pending.name,
+                      domain.SyncBatchState.ambiguous.name,
+                      domain.SyncBatchState.failed.name,
+                    ]) &
+                    (table.nextRetryAtMs.isNull() |
+                        table.nextRetryAtMs.isSmallerOrEqualValue(now)),
+              )
+              ..orderBy([(table) => OrderingTerm.asc(table.createdAtMs)]))
+            .get();
+    return rows.map(_mapBatch).toList(growable: false);
+  }
+
+  @override
+  Future<void> markSending(String id, {required DateTime at}) async {
+    final current = await _required(id);
+    await _update(
+      id,
+      db.SyncBatchesCompanion(
+        state: Value(domain.SyncBatchState.sending.name),
+        attempts: Value(current.attempts + 1),
+        lastError: const Value(null),
+        updatedAtMs: Value(_ms(at)),
+        nextRetryAtMs: const Value(null),
+      ),
+    );
+  }
+
+  @override
+  Future<void> markAmbiguous(
+    String id, {
+    required String error,
+    required DateTime at,
+  }) => _mark(id, domain.SyncBatchState.ambiguous, error, at);
+
+  @override
+  Future<void> markFailed(
+    String id, {
+    required String error,
+    required DateTime at,
+    DateTime? nextRetryAt,
+  }) => _mark(
+    id,
+    domain.SyncBatchState.failed,
+    error,
+    at,
+    nextRetryAt: nextRetryAt,
+  );
+
+  @override
+  Future<void> markConflict(
+    String id, {
+    required String error,
+    required DateTime at,
+  }) => _mark(id, domain.SyncBatchState.conflict, error, at);
+
+  @override
+  Future<void> markSynced(
+    String id, {
+    required String receiptId,
+    required DateTime at,
+  }) => _update(
+    id,
+    db.SyncBatchesCompanion(
+      state: Value(domain.SyncBatchState.synced.name),
+      receiptId: Value(receiptId),
+      lastError: const Value(null),
+      updatedAtMs: Value(_ms(at)),
+      nextRetryAtMs: const Value(null),
+    ),
+  );
+
+  Future<void> _mark(
+    String id,
+    domain.SyncBatchState state,
+    String error,
+    DateTime at, {
+    DateTime? nextRetryAt,
+  }) => _update(
+    id,
+    db.SyncBatchesCompanion(
+      state: Value(state.name),
+      lastError: Value(error),
+      updatedAtMs: Value(_ms(at)),
+      nextRetryAtMs: Value(nextRetryAt == null ? null : _ms(nextRetryAt)),
+    ),
+  );
+
+  Future<void> _update(String id, db.SyncBatchesCompanion values) async {
+    await _required(id);
+    await (database.update(
+      database.syncBatches,
+    )..where((table) => table.id.equals(id))).write(values);
+  }
+
+  Future<domain.SyncBatch?> _get(String id) async {
+    final row = await (database.select(
+      database.syncBatches,
+    )..where((table) => table.id.equals(id))).getSingleOrNull();
+    return row == null ? null : _mapBatch(row);
+  }
+
+  Future<domain.SyncBatch> _required(String id) async {
+    final batch = await _get(id);
+    if (batch == null) throw StateError('Sync batch not found.');
+    return batch;
+  }
+}
+
+domain.SyncBatch _mapBatch(db.SyncBatchRow row) => domain.SyncBatch(
+  id: row.id,
+  caseId: row.caseId,
+  requestJson: row.requestJson,
+  requestSha256: row.requestSha256,
+  state: domain.SyncBatchState.values.byName(row.state),
+  receiptId: row.receiptId,
   attempts: row.attempts,
   lastError: row.lastError,
   createdAt: _date(row.createdAtMs),

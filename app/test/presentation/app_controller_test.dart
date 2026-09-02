@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -16,8 +15,6 @@ import 'package:ddr001_diag_view_app/infrastructure/remote/remote_api.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
 
 import '../support/presentation_fixture.dart';
 
@@ -883,36 +880,9 @@ void main() {
     expect(locationController.state.gpsCaptureState, GpsCaptureState.captured);
   });
 
-  test(
-    'configured hydrant capability reports Consultando only during request',
-    () async {
-      final response = Completer<http.Response>();
-      final dependencies = fixture.dependencies.copyWith(
-        remoteApi: RemoteApiClient(
-          baseUrl: 'https://configured.invalid',
-          client: MockClient((request) => response.future),
-        ),
-        tokenStore: _FakeTokenStore(),
-      );
-      final remoteController = AppController(dependencies);
-      await remoteController.login('Técnico', 'field@aquafim.mx', '4491234567');
-      final lookup = remoteController.identifyMeter(
-        meterId: 'H-100',
-        lpsApprox: 20,
-      );
-      await Future<void>.delayed(Duration.zero);
-      expect(remoteController.state.hydrantLookupInProgress, isTrue);
-      response.complete(
-        http.Response(jsonEncode({'status': 'NOT_FOUND', 'data': null}), 200),
-      );
-      await lookup;
-      expect(remoteController.state.hydrantLookupInProgress, isFalse);
-      expect(
-        remoteController.state.meter?.externalStatus,
-        ExternalMeterStatus.notFound,
-      );
-    },
-  );
+  test('functional client does not depend on the RV hydrant catalog', () {
+    expect(fixture.dependencies.hydrantLookupConfigured, isFalse);
+  });
 
   test(
     'GPS captured at start is persisted and restored with RUNNING sample',

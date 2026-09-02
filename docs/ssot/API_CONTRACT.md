@@ -1,6 +1,6 @@
 # API_CONTRACT — DDR001 Verificador Funcional online/offline-first
 
-> Estado: contrato de diseño congelado en Macroetapa 1. El backend productivo es
+> Estado: contrato implementado en Flutter contra la Field API de Macroetapa 2. El backend productivo es
 > `ddr001_api` sobre SQL Server 2014. `backend/` en este repositorio es referencia
 > histórica Prisma/PostgreSQL y no se despliega.
 
@@ -11,7 +11,7 @@ parte del camino crítico de captura.
 La especificación exhaustiva de tablas, payloads, respuestas, seguridad y
 trazabilidad vive en
 `ddr001_api/docs/functional-diagnostics-online-contract.md`. Este SSOT fija el
-contrato que deberá consumir Flutter.
+contrato que consume Flutter.
 
 ## 1. Auth compartido
 
@@ -22,15 +22,14 @@ No se implementa un segundo login. Se adopta el auth Field real de `ddr001_api`:
 - `GET /api/v1/field-sessions/current`;
 - `POST /api/v1/field-sessions/:id/end`.
 
-La app enviará `client_app=ddr001_diag_view` y un `installation_id` UUID estable
+La app envía `client_app=ddr001_diag_view` y un `installation_id` UUID estable
 de instalación. Este identificador cumple el contrato multi-app actual. El API
-deberá admitir inicio de sesión sin cuadrilla para este `client_app`; no se usará
+admite inicio de sesión sin cuadrilla para este `client_app`; no se usa
 `rv.crews` como catálogo ni como dependencia del diagnóstico funcional.
 
-Flutter deberá migrar `RemoteApiClient` desde `/api/v1/auth/login` y token único
-a access/refresh tokens Field, almacenar credenciales con keys exclusivas de
-esta app, refrescar sin destruir trabajo offline ante fallas de red y terminar
-solamente su propia sesión al hacer logout explícito. El teléfono se normaliza
+`RemoteApiClient` usa access/refresh tokens Field, credenciales con keys
+exclusivas de esta app, un único refresh ante 401 y cierre exclusivo de su work
+session al hacer logout. El teléfono se normaliza
 al contrato DDR001 de diez dígitos antes del login remoto.
 
 El UUID de `User` local puede diferir de `rv.users.user_id`. El body conserva el
@@ -112,7 +111,10 @@ Evidence. Las únicas exclusiones deliberadas son:
 
 La configuración y resultado congelados incluyen versiones de contrato,
 canonicalización y algoritmo. Las Samples simuladas envían simultáneamente
-`measurementSource=SIMULATION`, `isSimulation=true` y escenario; las reales
+`measurementSource=SIMULATION`, `isSimulation=true` y el vocabulario aceptado
+por el API (`PASS|FAIL|INCONCLUSIVE`). `SUCCESSFUL`/`FAILED` se proyectan
+directamente; en `FAIL_THEN_PASS` cada Sample se proyecta por su veredicto y el
+escenario original permanece en Drift. Las reales
 exigen `isSimulation=false` y escenario null.
 
 ## 6. Consultas Field
