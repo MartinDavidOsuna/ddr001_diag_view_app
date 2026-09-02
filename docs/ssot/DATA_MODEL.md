@@ -45,7 +45,8 @@ Los JSON Schemas de `packages/shared-contracts/` son contratos serializables. Pr
 - `flow_point_id`.
 - `sample_number` secuencial dentro del caudal.
 - `status`: `DRAFT | RUNNING | INVALID_EVIDENCE | CLOSED_VALID`.
-- `measurement_source`: `VISUAL | MANUAL | LED | BLE`. `VISUAL` corresponde a **LECTURA VISUAL** productiva sobre un medidor real; no significa simulación.
+- `measurement_source`: `VISUAL | MANUAL | LED | BLE | SIMULATION`. `VISUAL` corresponde a **LECTURA VISUAL** productiva sobre un medidor real; `SIMULATION` es una fuente local de QA inequívocamente no física.
+- `simulation_scenario`: nullable `SUCCESSFUL | FAILED | FAIL_THEN_PASS`. Es obligatorio únicamente cuando `measurement_source = SIMULATION` y debe ser null para muestras reales.
 - timestamps inicio/fin. En métodos de pulsos, el inicio se reemplaza una sola vez con `PulseEvent.receivedAt` del primer pulso aceptado; en LECTURA VISUAL conserva el momento de inicio de la Sample.
 - GPS nullable.
 - configuración congelada: K, paso, volumen mínimo/máximo operativo, volumen objetivo/orientativo, incertidumbre y parámetros relevantes.
@@ -58,7 +59,10 @@ Los JSON Schemas de `packages/shared-contracts/` son contratos serializables. Pr
 - lecturas inicial/final con origen (`AUTO_CONFIRMED | MANUAL`) y `evidence_id` nullable; en captura visual productiva enlaza la imagen exacta que originó la propuesta confirmada.
 - resultado: V_ref, V_ind, E, U, MPE, decision_metric(s), verdict.
 - `checksum` al cierre.
+- La canonicalización v6 incorpora `simulation_scenario` únicamente para muestras simuladas; checksums históricos conservan su versión previa.
 - Una `CLOSED_VALID` es inmutable.
+
+Drift `schemaVersion = 12` reconstruye controladamente `samples` desde v11 para ampliar el CHECK de fuente y agregar `simulation_scenario`, copiando todas las columnas existentes. No elimina expedientes, Samples RUNNING, Evidence ni archivos.
 
 ## Point
 - `point_id`.

@@ -5,7 +5,7 @@
 - UI fiel a `design/screenshots/`; no replicar controles del navegador.
 - Offline-first.
 - Muestras cerradas inmutables.
-- El simulador web legado es únicamente una herramienta externa de validación y no se integra. La **funcionalidad de lectura visual** que representa sí es productiva y se utilizará con medidores reales en campo.
+- El simulador web legado es únicamente una herramienta externa de validación y no se integra. **LECTURA VISUAL** es productiva y se utiliza con medidores reales; el modo **SIMULACIÓN** de QA es una fuente nueva, separada y siempre trazable.
 
 ## 1. Login persistente (`features/auth`)
 - Campos, en orden: nombre, correo y teléfono. El nombre es obligatorio en la UI, admite Unicode y se persiste sin espacios exteriores.
@@ -30,12 +30,13 @@
 - GPS: latitud, longitud, precisión y timestamp. Si se pulsa CONTINUAR sin posición capturada, un modal exige confirmar `CONTINUAR SIN UBICACIÓN` o volver para capturarla. Aceptar avanza directamente y la ubicación permanece nullable.
 
 ## 3. Fuente / método de medición (`features/pulse_source`)
-- El selector productivo muestra únicamente BLUETOOTH, primero y seleccionado por defecto, y LECTURA VISUAL en segundo lugar, visible pero no seleccionable temporalmente. MANUAL y LED conservan su implementación interna pero no aparecen en este selector. Al entrar sin un módulo seleccionado se ejecuta un scan DDR001; exactamente un dispositivo compatible se selecciona automáticamente, mientras cero o varios conservan resolución manual. `BUSCAR ESP32` siempre ejecuta un scan nuevo y lista todos los candidatos válidos aunque ya exista conexión. Un candidato debe anunciar simultáneamente el prefijo y servicio DDR001 y validar por GATT la característica y payload del contador. `DESCONECTAR ESP32` es la única acción de usuario que destruye explícitamente el transporte BLE.
+- El selector muestra BLUETOOTH, LECTURA VISUAL temporalmente deshabilitada y SIMULACIÓN. MANUAL y LED conservan su implementación interna pero no aparecen en este selector. Elegir SIMULACIÓN evita scan/conexión BLE. Para BLUETOOTH, al entrar sin un módulo seleccionado se ejecuta un scan DDR001; exactamente un dispositivo compatible se selecciona automáticamente, mientras cero o varios conservan resolución manual. `BUSCAR ESP32` siempre ejecuta un scan nuevo y lista todos los candidatos válidos aunque ya exista conexión. Un candidato debe anunciar simultáneamente el prefijo y servicio DDR001 y validar por GATT la característica y payload del contador. `DESCONECTAR ESP32` es la única acción de usuario que destruye explícitamente el transporte BLE.
 Modos productivos:
 - **LECTURA VISUAL:** funcionalidad de campo para medidores reales. Utiliza cámara/visión sobre la carátula para obtener las lecturas visuales necesarias y determinar el avance del medidor durante la prueba. **No es un simulador.**
 - **Manual:** botón de pulso; cada pulso suma `K` litros.
 - **LED ESP32:** cámara detecta el destello emitido por el ESP32 dentro de ROI configurable, con umbral/histéresis/anti-rebote; cada evento válido suma `K` litros.
 - **BLE ESP32:** cada notificación/evento válido representa un pulso y suma `K` litros.
+- **SIMULACIÓN:** fuente local de QA con escenarios exitosa, fallida y mixta. Produce pulsos/volúmenes deterministas acelerados y visibles, pero usa el pipeline real de Sample, progreso, Evidence, cierre, metrología y reportes. Nunca fuerza el veredicto.
 - El ESP32 DDR001 publica contador BLE v1 acumulativo. La app congela baseline, persiste el último contador y reconcilia saltos. Adquisición no verificable se marca `COMPROMISED` y no cierra válida.
 - GPIO25/GPIO27 del firmware productivo usan el filtro de glitches PCNT y una segunda validación que exige LOW continuo mínimo 17 ms y rearme HIGH antes de incrementar o notificar. El nombre BLE contiene serie y versión bajo el prefijo contractual `DDR001-PULSE-`.
 - La conexión BLE del ESP32 ejecuta keepalive leyendo el contador cada 10 s. Si no responde, intenta recuperar la conexión tres veces antes de declararlo no conectado; el contador acumulativo permite reconciliar el intervalo recuperado.
@@ -45,7 +46,14 @@ Modos productivos:
 
 Manual, LED y BLE comparten una interfaz común de eventos de pulso. **LECTURA VISUAL** comparte el mismo dominio de muestra, evidencias y cálculo metrológico, pero su adquisición proviene de las lecturas visuales del medidor y no debe forzarse artificialmente a emitir pulsos.
 
-El modo que en el prototipo web se denominaba **Simulación** debe migrarse a Flutter como **LECTURA VISUAL**, eliminando cualquier semántica de simulación en la app productiva. El simulador web externo permanece sin cambios y se usa para validar esta implementación.
+El simulador web externo permanece sin cambios. El modo QA SIMULACIÓN no reutiliza ese HTML ni sustituye LECTURA VISUAL; se marca permanentemente `MODO SIMULACIÓN` y `PRUEBA SIMULADA — NO CORRESPONDE A UNA VERIFICACIÓN FÍSICA`.
+
+### 3.1 Escenarios de simulación
+- **Prueba exitosa:** genera Vind dentro de la banda de guarda; el motor real devuelve APRUEBA.
+- **Prueba fallida:** genera Vind fuera de MPE; el motor real devuelve RECHAZA.
+- **Mixta:** persiste una primera Sample RECHAZA y crea una segunda Sample APRUEBA sin ocultar ni reemplazar la anterior.
+- El generador respeta Q y MPE congelados. La adquisición usa progreso real acelerado, START, INTERMEDIATE planificadas y FINAL con un asset local almacenado como archivo real y hasheado.
+- Una SIMULACIÓN RUNNING se recupera desde Drift y continúa sin depender de estado en memoria.
 
 ## 4. Carátula y cámara (`features/camera_dial`)
 - Antes del inicio se abre `PREPARACIÓN DE CÁMARA`. Las regiones se ajustan directamente sobre el preview vivo; no se toma ni conserva fotografía y no se crea Evidence ni lectura INICIO. Una verificación nueva hereda la última geometría confirmada y no ejecuta sugerencia automática; si no hay geometría previa se permite un intento inicial no vinculante. `NUEVA SUGERENCIA DE REGIONES` avanza por candidatos detectados distintos antes de repetirlos. No produce lecturas y la selección humana permanece como autoridad. La Evidence INICIO oficial se captura al accionar INICIAR con la configuración congelada.
@@ -148,6 +156,7 @@ El error de puntos es solo diagnóstico. El resultado oficial siempre es endpoin
 - El reporte presenta configuración metrológica congelada, identidad/protocolo ESP32 y repetibilidad por caudal. Cuando hay GPS incluye un mapa autocontenido con el punto y un enlace opcional a un mapa detallado; sin GPS declara que la ubicación no fue registrada.
 - El resumen local de cada prueba finalizada permite desplegar integridad de adquisición, endpoints y duración, contadores, trazabilidad de cada evidencia con su integridad y configuración exacta de zoom/regiones. Esta información técnica local no recarga el reporte entregable.
 - Debe generarse offline.
+- Toda selección que contenga una Sample simulada identifica `is_simulation` y `simulation_scenario` en CSV/JSON y muestra una advertencia no física en HTML/PDF. Las muestras reales conservan sus contratos y presentación sin esa marca.
 
 ## 10. Sincronización (`features/sync`)
 - Todo se guarda primero en Drift/archivos locales.

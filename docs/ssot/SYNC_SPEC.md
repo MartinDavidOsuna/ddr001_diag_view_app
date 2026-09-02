@@ -27,8 +27,10 @@ Una muestra cerrada con mismo ID y checksum distinto nunca se sobrescribe. Se ma
 No existe purga automática en el alcance actual. Borradores, expedientes y fotografías sincronizadas permanecen en el dispositivo hasta que una política futura, documentada por ADR, indique otra cosa.
 
 ## Auth offline
-Si ya existe sesión local persistente, la falta de red no bloquea el uso. El primer login/alta automática sí requiere conectividad con nuestro backend.
-La identidad maestra documentada es la única excepción de primer acceso: crea una sesión local sin API. Esto no equivale a autenticación de servidor; cualquier sincronización posterior sigue requiriendo credenciales remotas válidas.
+La falta de red no bloquea el uso ni el primer login/alta automática local. Nombre, correo y teléfono crean o recuperan la identidad local passwordless; la sincronización remota sólo se habilita cuando el backend está configurado explícitamente.
+
+## Simulación
+Las Samples simuladas se conservan y encolan con `is_simulation` y `simulation_scenario` en el payload preparado. Ejecutar la simulación nunca inicia ni requiere sincronización, autenticación remota, Internet o backend. Un consumidor remoto futuro debe conservar la marca no física y no presentarla como verificación de campo.
 
 ## API externa de hidrantes
 Si no hay red, la identificación puede continuar con cualquier ID y queda `UNKNOWN_OFFLINE`; la consulta se realiza cuando exista conectividad. Nunca bloquea la verificación por no encontrar la cuenta.

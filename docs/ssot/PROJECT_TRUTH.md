@@ -1,6 +1,6 @@
 # PROJECT_TRUTH — DDR001 Verificador de Medidores
 
-- Versión de aplicación vigente: `1.2.1+09`. Login, Inicio y Ajustes muestran la versión instalada. La identidad funcional visible es **VERIFICADOR FUNCIONAL** y Android muestra **AQ VF DDR001**; el encabezado común y el splash Flutter conservan la identidad Aquafim.
+- Versión de aplicación vigente: `1.3.0+10`. Login, Inicio y Ajustes muestran la versión instalada. La identidad funcional visible es **VERIFICADOR FUNCIONAL** y Android muestra **AQ VF DDR001**; el encabezado común y el splash Flutter conservan la identidad Aquafim.
 - Política de incrementos y archivos coordinados: `VERSIONING.md`.
 
 > **Estado:** SSOT consolidada — Etapa 0 cerrada el 2026-08-08.
@@ -62,12 +62,14 @@ Jerarquía principal:
 - Cada muestra se calcula y cierra individualmente.
 - Al finalizar el expediente se genera un **veredicto global del medidor** según los caudales evaluados.
 
-## 8. Fuentes de pulso productivas
+## 8. Fuentes de adquisición y simulación trazable
 - **Manual/tap**.
 - **LED emitido por ESP32**, detectado por cámara. Un pulso detectado equivale al volumen configurado `K`.
 - **Bluetooth desde ESP32**. Cada evento/notificación válida equivale igualmente a `K` litros.
-- La funcionalidad que el prototipo/simulador identifica como simulación se conserva en producción bajo el nombre **LECTURA VISUAL**: se utilizará con medidores reales en campo, usando la cámara/visión para obtener la lectura del medidor y derivar el avance observado. El archivo web legado sigue siendo únicamente una herramienta externa de validación y no se integra ni se modifica.
-- Todas las fuentes implementan una abstracción común `PulseSource`.
+- **LECTURA VISUAL** se utiliza con medidores reales en campo y no es simulación. El archivo web legado sigue siendo únicamente una herramienta externa de validación y no se integra ni se modifica.
+- **SIMULACIÓN** es una fuente local exclusiva de QA, explícitamente rotulada como no física. Genera entradas deterministas, pulsa a través del servicio de progreso real, crea archivos Evidence con SHA-256 y cierra mediante el motor metrológico, persistencia y exportadores reales. Sus escenarios `SUCCESSFUL`, `FAILED` y `FAIL_THEN_PASS` no fijan veredictos: el motor decide con Vref, Vind, U y MPE.
+- Una Sample simulada persiste su escenario, participa en recovery y permanece marcada en Historial, CSV, JSON, HTML y PDF. No inicia BLE ni exige backend, Internet, cámara o ESP32.
+- Las fuentes de pulsos, incluida SIMULACIÓN, implementan la abstracción común `PulseSource`; LECTURA VISUAL comparte Sample/Evidence sin fabricar pulsos.
 - En ESP32 v2, GPIO27 recibe el flujómetro 1 de control calibrado y gobierna Vref/integridad; GPIO25 recibe pulsos opcionales del flujómetro 2 bajo prueba. La ausencia de pulsos GPIO25 no es una falla y el medidor 2 continúa documentándose mediante fotografías y lecturas.
 - Firmware ESP32 V1.0 filtra GPIO25/GPIO27 con PCNT integrado, exige un pulso LOW de al menos 17 ms, rearme HIGH y debounce. Cada unidad se configura con serie/versión; `--nombre ESP32-NS1001-V1.0` anuncia `DDR001-PULSE-NS1001-V1.0` para conservar el contrato de descubrimiento.
 - ESP32 y control remoto mantienen presencia mediante keepalive cada 10 s. Una falta de respuesta no declara desconexión hasta agotar tres reintentos; una respuesta válida restablece el ciclo.

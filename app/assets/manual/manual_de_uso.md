@@ -1,7 +1,7 @@
 # Manual de uso — AQ VF DDR001 · Verificador Funcional
 
-**Versión del manual:** 1.1  
-**Última actualización del contenido:** 16 de agosto de 2026
+**Versión del manual:** 1.2
+**Última actualización del contenido:** 1 de septiembre de 2026
 
 Inicio y Ajustes muestran por separado la versión instalada de la aplicación con el formato `Versión: #.#.#+##`. Este manual es la fuente canónica del procedimiento visible para el técnico y funciona completamente sin internet.
 
@@ -13,6 +13,7 @@ Inicio y Ajustes muestran por separado la versión instalada de la aplicación c
 4. Identificación del medidor
 5. GPS
 6. Métodos de medición
+6.1 Modo SIMULACIÓN para QA
 7. Método MANUAL
 8. Método BLUETOOTH
 9. Método LED
@@ -93,8 +94,21 @@ Nunca se inventan coordenadas. Este procedimiento usa GPS del dispositivo; no ag
 - **MANUAL:** cada pulsación del botón representa un pulso.
 - **LED:** la cámara cuenta destellos del LED integrado del ESP32.
 - **BLUETOOTH:** obtiene el contador acumulativo del ESP32 mediante BLE.
+- **SIMULACIÓN:** ejecuta una prueba local de QA sin medidor, cámara, Bluetooth, ESP32, backend ni Internet. Siempre queda marcada como no física.
 
 MANUAL, LED y BLUETOOTH convierten pulsos a volumen patrón con `Vref = pulsos × K`. LECTURA VISUAL registra su referencia explícita sin fabricar pulsos.
+
+### 6.1 Modo SIMULACIÓN para QA
+
+Seleccione **SIMULACIÓN** en Método de prueba y elija uno de estos escenarios:
+
+- **Prueba exitosa:** el motor metrológico real determina APRUEBA.
+- **Prueba fallida:** el motor metrológico real determina RECHAZA.
+- **Mixta: primera muestra falla / segunda aprueba:** conserva la primera muestra RECHAZA y crea una segunda muestra APRUEBA.
+
+La pantalla muestra **MODO SIMULACIÓN** durante el flujo. La adquisición avanza de forma acelerada para poder observar Prueba en curso y genera START, fotografías INTERMEDIATE planificadas y FINAL. Las imágenes llevan la leyenda **EVIDENCIA DE SIMULACIÓN** y se almacenan como Evidence reales con checksum.
+
+SIMULACIÓN no fuerza un resultado ni crea un reporte prefabricado: genera Vref/Vind coherentes con el Q seleccionado y utiliza las fórmulas, incertidumbre, MPE, banda de guarda, persistencia, Historial y exportadores vigentes. No use una simulación como constancia de una verificación física.
 
 ## 7. Método MANUAL
 
@@ -283,6 +297,8 @@ Una foto obligatoria faltante, ilegible como archivo o con SHA-256 incorrecto pr
 
 ## 26. Reportes y exportes
 
+Cuando la selección contiene una simulación, CSV y JSON incluyen la marca y el escenario; HTML y PDF muestran **PRUEBA SIMULADA — NO CORRESPONDE A UNA VERIFICACIÓN FÍSICA**. En el escenario mixto aparecen ambas muestras y no se oculta la primera fallida.
+
 Las pruebas aparecen en orden cronológico. Cada prueba muestra su fecha; la tabla usa **Tiempo** y presenta únicamente la hora local. `V.MEC L` corresponde al volumen del medidor del hidrante calculado con los pulsos GPIO25 y su K configurada. También se muestran los caudales puntuales mínimo, máximo y promedio obtenidos en las fotografías de evidencia.
 
 El ID técnico del teléfono, versión de Android, marca y modelo se guardan para trazabilidad interna cuando Android los proporciona. Puede consultarlos en **Ajustes > Usuario actual**, antes de la versión, pero no aparecen en el HTML/PDF entregable.
@@ -309,6 +325,8 @@ Historial local muestra expedientes abiertos y cerrados. Los cerrados son read-o
 Si Android detiene la app durante una Sample `RUNNING`, al relanzar se recuperan Evidence, progreso, método, contador, configuración visual, rectángulo, círculo, formato y escala persistidos. Pulse **REANUDAR PRUEBA**.
 
 En BLE/LED, la aplicación intenta recuperar el contador acumulativo. Si el intervalo no puede conciliarse, marca integridad comprometida; nunca fabrica pulsos para aparentar continuidad.
+
+Una SIMULACIÓN `RUNNING` también conserva escenario, progreso y Evidence. Al reanudar continúa desde el contador persistido y no duplica evidencias ya guardadas.
 
 ## 29. Funcionamiento offline
 

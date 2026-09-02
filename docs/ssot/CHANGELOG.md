@@ -1,5 +1,13 @@
 # CHANGELOG funcional
 
+## Versión 1.3.0+10 — modo de simulación trazable — 2026-09-01
+- Fuente SIMULACIÓN local con escenarios exitosa, fallida y mixta; el escenario genera entradas deterministas y el motor metrológico real decide APRUEBA/RECHAZA.
+- La adquisición acelerada usa el progreso de pulsos, persistencia Drift, SampleClosureService, plan START/INTERMEDIATE/FINAL, archivos Evidence reales y SHA-256.
+- El escenario mixto conserva la primera Sample RECHAZA y crea una segunda Sample APRUEBA dentro del mismo caudal.
+- Drift avanza 11→12 mediante reconstrucción controlada de `samples`, preserva filas RUNNING y agrega `simulation_scenario`; Sample contract avanza v8→v9 y checksum simulado usa canonical v6.
+- Historial, Registro, CSV, JSON v2, HTML y PDF muestran trazabilidad inequívoca de prueba no física. Los exportes de pruebas reales conservan JSON v1 y no reciben marcas de simulación.
+- SIMULACIÓN no inicia BLE ni requiere cámara, ESP32, backend o Internet. Las fuentes reales, protocolo BLE y firmware permanecen sin cambios.
+
 ## Recuperación Git del baseline funcional — 2026-09-01
 - Se restaura el primer acceso local passwordless para cualquier identidad válida cuando el backend no está configurado.
 - Se elimina el bloqueo que mostraba `El primer acceso requiere conexión al backend DDR001 configurado`, sin alterar datos, esquema Drift, metrología, Evidence, pulsos ni contratos.
