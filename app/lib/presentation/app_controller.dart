@@ -2353,9 +2353,10 @@ final class AppController extends StateNotifier<AppViewState> {
     }
     _openingIntermediateEvidence = true;
     _intermediateEvidenceRescanRequested = false;
-    _intermediateEvidenceTask = _drainDueIntermediateEvidence(
-      sampleId,
-    ).catchError((Object error, StackTrace stackTrace) {
+    _intermediateEvidenceTask = _drainDueIntermediateEvidence(sampleId).catchError((
+      Object error,
+      StackTrace stackTrace,
+    ) {
       state = state.copyWith(
         cameraState: CameraOperationState.error,
         clearCapturePurpose: true,
@@ -2371,7 +2372,8 @@ final class AppController extends StateNotifier<AppViewState> {
       while (state.sample?.id == sampleId && state.page == AppPage.run) {
         final sample = await dependencies.samples.getById(sampleId);
         if (sample == null || sample.status != SampleStatus.running) return;
-        final current = sample.configuration.measurementMethod.isPulseEventSource
+        final current =
+            sample.configuration.measurementMethod.isPulseEventSource
             ? sample.pulseCount * sample.configuration.litersPerPulse
             : sample.referenceLitersProgress ?? 0;
         if (current <= 0) return;

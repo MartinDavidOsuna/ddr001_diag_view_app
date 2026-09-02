@@ -406,7 +406,11 @@ void main() {
       final photoGate = Completer<void>();
       camera.nextCaptureGate = photoGate;
       await controller.addManualPulse();
-      for (var attempt = 0; attempt < 20 && camera.captureCount < 2; attempt++) {
+      for (
+        var attempt = 0;
+        attempt < 20 && camera.captureCount < 2;
+        attempt++
+      ) {
         await Future<void>.delayed(const Duration(milliseconds: 1));
       }
       expect(camera.captureCount, 2);
@@ -463,9 +467,7 @@ void main() {
     expect(restarted.state.page, AppPage.run);
     expect(restarted.state.sample?.pulseCount, 2);
     expect(
-      await dependencies.evidence.listBySample(
-        restarted.state.sample!.id,
-      ),
+      await dependencies.evidence.listBySample(restarted.state.sample!.id),
       hasLength(evidenceBefore.length),
     );
     await restarted.addManualPulse();

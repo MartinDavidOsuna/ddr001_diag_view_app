@@ -233,8 +233,7 @@ final class _TestRunScreenState extends ConsumerState<TestRunScreen> {
             referenceLiters: reference,
             measurementStarted: state.measurementStarted,
             finalizingMeasurement: state.finalizingMeasurement,
-            manualSource:
-                config.measurementMethod == MeasurementMethod.manual,
+            manualSource: config.measurementMethod == MeasurementMethod.manual,
             preStartControlPulses: state.preStartControlPulseCount,
             preStartControlFirstPulseAt: state.preStartControlFirstPulseAt,
             meterUnderTestPulses: state.meterUnderTestPulseCount,
