@@ -3,10 +3,15 @@
 ## Jerarquía
 `User → Meter → VerificationCase → FlowPoint → Sample → Point / Evidence`
 
-Los JSON Schemas de `packages/shared-contracts/` son contratos serializables. Prisma y Drift deben representar el mismo dominio.
+Drift `schemaVersion = 12` es la implementación local real y la autoridad de
+campo. Los JSON Schemas de `packages/shared-contracts/` son contratos
+serializables actuales que el futuro serializer de sync deberá ampliar sin
+perder compatibilidad. La representación remota oficial vive en SQL Server 2014
+bajo `functional_diag`; Prisma/PostgreSQL deja de ser objetivo productivo.
 
 ## User
-- `user_id` UUID.
+- `user_id` UUID local. Puede diferir del `rv.users.user_id` remoto; se conserva
+  como `client_user_id` en el Case remoto para mantener checksums históricos.
 - `email` único normalizado.
 - `phone` normalizado.
 - `display_name` requerido para nuevos accesos desde Stage 3; permanece nullable en almacenamiento para compatibilidad con usuarios locales legados, que se completan en el siguiente login sin cambiar `user_id`.
@@ -36,7 +41,8 @@ Los JSON Schemas de `packages/shared-contracts/` son contratos serializables. Pr
 - `case_id`.
 - `code`: `Q1 | Q2 | Q3 | Q4`.
 - `lps_approx` nullable y legado; verificaciones nuevas no lo solicitan.
-- `mpe_pct` congelado (5 para Q1; 2 para Q2/Q3/Q4 salvo regla normativa futura documentada).
+- `mpe_pct` congelado (2 para las corridas V1 Q1/Q2 y también para Q3/Q4
+  históricos bajo la política vigente; cualquier regla futura requiere ADR).
 - `status`: `OPEN | PASS | FAIL | INCONCLUSIVE`.
 - estadísticas nullable: n, mean_error, dispersion, sample_stddev, repeatability_pass.
 
@@ -89,14 +95,52 @@ Drift `schemaVersion = 12` reconstruye controladamente `samples` desde v11 para 
 Representa la política de sesión persistente; no usar password. El secreto/token nunca forma parte de exportes ni reportes.
 La sesión creada por la identidad maestra es local y no fabrica un bearer token de servidor; sus entidades continúan sujetas a la misma persistencia y sincronización que cualquier trabajo offline.
 
+La sesión remota futura reutiliza `ddr001_api` Field auth con
+`client_app=ddr001_diag_view`, `installation_id` UUID estable, access/refresh
+tokens, device y work session multi-app. Las credenciales se almacenan con keys
+exclusivas de esta app. El owner remoto se deriva del JWT y nunca de un user ID
+aceptado desde el body.
+
 ## SyncItem
 - entity type/id, checksum, state, attempts, last_error, timestamps.
 
 ## Report
 - `report_id`, `case_id`, versión, html_path/local, pdf_path nullable, checksum, created_at.
 
-## Metadata de despliegue servidor
-PostgreSQL conserva registros iniciales no operativos con versiones de esquema, API y sync. No se crean usuarios ni expedientes ficticios; el primer login crea la identidad real.
+La app actual genera HTML/PDF en filesystem pero todavía no persiste una tabla
+Report en Drift. La representación SQL queda reservada y su sync es opcional
+hasta agregar una migración local explícita en otra macroetapa.
+
+## Representación remota oficial
+
+El único backend productivo es `ddr001_api`. SQL Server 2014 agrega el schema
+aislado `functional_diag` con:
+
+- `app_users`, única capability funcional ligada por FK a `rv.users`;
+- `meters`, `cases`, `flow_points`, `samples`,
+  `sample_operational_settings`, `points` y `evidence`;
+- `reports` y `sync_receipts`;
+- `case_status_history`, `admin_reviews` y `audit_events` append-only.
+
+La única FK desde este dominio hacia otro es a `rv.users(user_id)`. No existen
+FK ni joins funcionales con hidrantes, inspecciones, fotos, reportes, auditoría,
+cuadrillas o Construction. Los IDs UUID generados en móvil son PK remotas salvo
+`Meter.id`, que es el identificador libre capturado.
+
+Case conserva ambos `user_id` remoto (JWT/FK) y `client_user_id` local
+(checksum). Sample conserva configuración, lecturas, pulsos, resultado,
+integridad, simulación, checksum, canonicalización, algoritmo y contrato sin
+recalcularlos. Point/Flow/Settings tienen además una huella canónica de payload
+para idempotencia de transporte.
+
+Evidence es propia de `functional_diag`, puede quedar pendiente por
+`claimed_sample_id`, y sólo se enlaza después de validar owner, UUID y hashes.
+Guarda hashes cliente/servidor, MIME, tamaño, storage key opaca e integridad;
+no usa `rv.photos`.
+
+El detalle de columnas SQL, constraints, índices y la matriz campo Drift -> API
+-> SQL -> dashboard está congelado en
+`ddr001_api/docs/functional-diagnostics-online-contract.md`.
 
 ## Inmutabilidad
 - `Sample(CLOSED_VALID)` no admite UPDATE funcional de lecturas, pulsos, evidencia ni resultado.
@@ -104,7 +148,12 @@ PostgreSQL conserva registros iniciales no operativos con versiones de esquema, 
 - Un expediente cerrado tampoco se reabre silenciosamente; cualquier política de revisión futura requiere ADR.
 
 ## Integración externa hidrantes
-Los datos externos se tratan como snapshot informativo. DDR001 Verificador no escribe sobre la API de hidrantes.
+Los datos externos existentes se tratan como snapshot informativo local. El
+nuevo dominio no consulta ni referencia `rv.hydrants`; una integración futura
+read-only requerirá contrato explícito y persistirá sólo snapshot.
 
 ## Almacenamiento de imágenes
-PostgreSQL guarda metadata/hash/storage key. Los binarios se guardan inicialmente en filesystem del Windows Server mediante una interfaz de storage desacoplada.
+SQL Server guarda metadata/hash/storage key. Los originales se conservan fuera
+de SQL, byte a byte, bajo un namespace físico
+`STORAGE_ROOT/functional-diagnostics/`; thumbnails son derivados. El cliente no
+elige rutas ni storage keys.

@@ -1,36 +1,106 @@
-# SYNC_SPEC — Offline-first
+# SYNC_SPEC — Offline-first con DDR001 API compartido
 
 ## Principio
-La app completa funciona sin señal una vez que existe sesión local. SQLite/Drift + filesystem local son la primera persistencia; PostgreSQL es la copia servidor sincronizada.
 
-## Flujo
-1. Crear/actualizar borrador local de expediente, congelando banco de pruebas y metadata disponible del teléfono.
-2. Ejecutar muestra y guardar puntos/evidencias localmente, incluido `flow_lps` puntual cuando corresponda.
-3. Validar que toda evidencia obligatoria exista y sea íntegra.
-4. Cerrar muestra, congelar datos y checksum.
-5. Encolar evidencias y entidades.
-6. Al recuperar red: subir cada evidencia/binario con metadata de enlace pendiente; luego muestra, caudal y expediente. El servidor enlaza atómicamente evidencias previamente preparadas cuando recibe la muestra.
-7. Confirmación idempotente → `synced`.
+Drift/SQLite y filesystem local son la persistencia primaria. La captura y el
+cierre no dependen de Internet, auth remoto, SQL Server ni confirmación HTTP.
 
-## Estados
-`local | pending | syncing | synced | conflict | error`.
+```text
+captura -> persistencia local -> validación -> cierre inmutable
+        -> cola persistente -> sync -> ACK servidor
+```
 
-## Idempotencia
-- Muestras/expedientes: ID + checksum.
-- Evidencias: SHA-256.
-- Reintentos no duplican registros.
+Nunca se guarda local después del éxito API. Una falla remota conserva visible
+y válida toda la información local y sólo cambia el estado de la cola.
 
-## Conflictos e inmutabilidad
-Una muestra cerrada con mismo ID y checksum distinto nunca se sobrescribe. Se marca conflicto para diagnóstico. La app no ofrece edición posterior como mecanismo de resolución.
+## Identidad remota
 
-## Conservación local
-No existe purga automática en el alcance actual. Borradores, expedientes y fotografías sincronizadas permanecen en el dispositivo hasta que una política futura, documentada por ADR, indique otra cosa.
+Se reutiliza Field auth de `ddr001_api` con
+`client_app=ddr001_diag_view` e `installation_id` UUID estable. Access/refresh,
+work session y rv user ID se guardarán de forma segura y separada de otras apps.
+Timeout/5xx no limpia sesión local ni datos; 401/403 sólo exige autenticar para
+reanudar operaciones remotas.
 
-## Auth offline
-La falta de red no bloquea el uso ni el primer login/alta automática local. Nombre, correo y teléfono crean o recuperan la identidad local passwordless; la sincronización remota sólo se habilita cuando el backend está configurado explícitamente.
+El user UUID local se conserva como `clientUserId`; ownership servidor se toma
+del JWT. Nunca se reescribe una muestra/caso histórico para cambiar su user ID.
+
+## Flujo V1
+
+1. Crear y modificar borradores sólo en Drift.
+2. Capturar Evidence al filesystem local y persistir metadata/hash.
+3. Validar conjunto obligatorio, adquisición, lecturas y metrología.
+4. Cerrar Sample/Case de forma transaccional, congelar checksum/versiones y
+   encolar.
+5. Con conectividad y sesión remota válida, subir cada archivo por
+   `POST /api/v1/functional-diagnostics/evidence`.
+6. Guardar localmente ACK, storage key opaca, hash servidor e integridad. Un ACK
+   perdido se recupera reintentando el mismo UUID/hash.
+7. Enviar un lote JSON sin binarios a
+   `POST /api/v1/functional-diagnostics/sync/push`, incluyendo Meter, Case,
+   FlowPoints, Samples, settings, Points, referencias de Evidence y Report
+   cuando exista entidad local.
+8. El servidor valida owner, parents, hashes y evidencia; enlaza los uploads en
+   la transacción del subgrafo Case.
+9. Aplicar cada resultado a su SyncItem. Sólo `created`, `exists` o `accepted`
+   confirman el ítem. Conflict/rejected permanecen visibles y no cambian el
+   dominio cerrado.
+10. Recuperar ACK incierto con `GET .../sync/status?receiptId=<batchId>`.
+
+## Idempotencia y receipts
+
+- Evidence: `evidenceId + SHA-256 + metadata`.
+- Case/Sample cerrados: UUID + checksum metrológico.
+- FlowPoint/Point/Settings/Report: UUID + SHA-256 del payload canónico.
+- Batch: `batchId + requestSha256`.
+
+Mismo identificador y misma huella devuelve `exists`/ACK previo. Mismo UUID de
+entidad inmutable con otra huella devuelve `conflict`; mismo batch con otro body
+devuelve HTTP 409. La cola no marca synced por un HTTP 200 global: inspecciona
+el estado individual.
+
+Estados de respuesta por ítem:
+
+`created | exists | accepted | conflict | rejected`
+
+Los rechazos informan `code`, `retryable` y detalles seguros. Se distinguen
+evidencia pendiente/no encontrada/hash distinto, parent faltante, owner
+incorrecto, validación y versión canónica desconocida.
+
+## Estados locales
+
+`SyncItem`: `pending | inProgress | failed | synced`. Evidence conserva
+`local | pending | syncing | synced | conflict | error`. Attempts, lastError y
+nextRetryAt son sólo locales; el servidor mantiene receipts propios. Backoff con
+jitter y reintento manual futuro no alteran entidades.
+
+## Atomicidad y orden
+
+El archivo se recibe antes que la referencia cerrada. El orden de ítems JSON no
+es contractual: el servidor ordena Meter -> Case -> FlowPoint -> Sample/Settings
+-> Point/Evidence link -> Report. Cada subgrafo Case es atómico; fallar un caso
+no revierte otro caso independiente del batch.
+
+Una Sample CLOSED_VALID sólo se acepta si sus Evidence required referenciadas
+están VERIFIED y coinciden. Una ausencia remota no cambia CLOSED_VALID local.
+INVALID_EVIDENCE puede sincronizarse opcionalmente para diagnóstico mediante su
+huella de payload, sin resultado/checksum y sin convertirse después en válida;
+la repetición correcta usa otra Sample. DRAFT y RUNNING permanecen sólo locales.
+
+## Conservación e inmutabilidad
+
+No hay purga local automática. Mismo Sample UUID con checksum distinto jamás se
+sobrescribe. La corrección crea otra Sample. El servidor no recalcula resultados
+ni reabre Cases; reviews administrativas son metadata separada append-only.
 
 ## Simulación
-Las Samples simuladas se conservan y encolan con `is_simulation` y `simulation_scenario` en el payload preparado. Ejecutar la simulación nunca inicia ni requiere sincronización, autenticación remota, Internet o backend. Un consumidor remoto futuro debe conservar la marca no física y no presentarla como verificación de campo.
 
-## API externa de hidrantes
-Si no hay red, la identificación puede continuar con cualquier ID y queda `UNKNOWN_OFFLINE`; la consulta se realiza cuando exista conectividad. Nunca bloquea la verificación por no encontrar la cuenta.
+SIMULATION sí se sincroniza y conserva escenario, fuente y flag. Lotes,
+consultas Field y dashboard pueden filtrarla; las consultas/estadísticas
+productivas aplican `isSimulation=false` por defecto. Nunca se disfraza como
+medición física.
+
+## Pull
+
+`GET /sync/pull` queda pospuesto. Las consultas `/cases` son vistas remotas
+read-only y no fusionan datos dentro de Drift. Un pull futuro requiere ADR para
+merge, tombstones, ownership e inmutabilidad.

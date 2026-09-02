@@ -1,5 +1,13 @@
 # CHANGELOG funcional
 
+## Macroetapa 1 — contrato online con DDR001 API — 2026-09-02
+- Se congela `ddr001_api` + SQL Server 2014 como único backend productivo y se clasifica `backend/` Prisma/PostgreSQL como referencia histórica no desplegable.
+- Se reserva el schema aislado `functional_diag`; la única FK compartida permitida es a `rv.users`, sin dependencias de negocio con RV, Construction u otras apps.
+- Se adopta auth Field multi-app con `client_app=ddr001_diag_view`, installation UUID estable, access/refresh tokens y sesiones independientes por app/dispositivo.
+- Se define Evidence independiente, subida previa, lote sync idempotente con receipts/ACK recuperable, conflicto UUID+checksum y filtro productivo que excluye simulación por defecto.
+- Se documentan Field/Admin APIs, modelo SQL propuesto, seguridad, auditoría/reviews append-only y trazabilidad completa Drift -> payload -> SQL -> response -> dashboard.
+- No se modifica runtime Flutter, backend histórico, API ejecutable, migraciones, UI ni producción.
+
 ## Versión 1.3.4+14 — Evidence intermedia sin bloquear pulsos — 2026-09-01
 - La captura y persistencia de Evidence INTERMEDIATE se ejecutan fuera de la cola de pulsos y ya no activan el `loading` global ni deshabilitan el ritmo de MANUAL o BLE/ESP32.
 - Los pulsos conservan serialización y persistencia inmediata mientras la cámara procesa la fotografía; si se cruzan varios umbrales, la cola de Evidence los completa en orden y sin duplicarlos.
