@@ -1,5 +1,10 @@
 # CHANGELOG funcional
 
+## Recuperación Git del baseline funcional — 2026-09-01
+- Se restaura el primer acceso local passwordless para cualquier identidad válida cuando el backend no está configurado.
+- Se elimina el bloqueo que mostraba `El primer acceso requiere conexión al backend DDR001 configurado`, sin alterar datos, esquema Drift, metrología, Evidence, pulsos ni contratos.
+- El proveedor remoto permanece preparado y sólo se selecciona cuando existe `DDR001_API_BASE_URL` explícito.
+
 ## Versión 1.2.1+09 — cierre manual aislado de adquisición — 2026-08-21
 - CAPTURAR LECTURAS queda aislada de pulsos, estado BLE y callbacks tardíos de cámara después de persistir FINAL.
 - GUARDAR Y CALCULAR RESULTADO usa las evidencias START/FINAL persistidas, sin depender de una captura activa ni de recortes transitorios en memoria.

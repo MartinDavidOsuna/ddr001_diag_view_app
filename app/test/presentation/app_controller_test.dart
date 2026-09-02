@@ -58,10 +58,7 @@ void main() {
 
   test('Rene and Omar are accepted as local master identities', () async {
     final service = MasterAccessAuthService(
-      primary: ExistingSessionOnlyAuthService(
-        fixture.dependencies.users,
-        fixture.session,
-      ),
+      primary: const _RejectingAuthService(),
       local: LocalAuthService(fixture.dependencies.users, fixture.session),
       users: fixture.dependencies.users,
       sessionStore: fixture.session,
@@ -98,10 +95,7 @@ void main() {
     'master identity creates a local session without primary auth',
     () async {
       final service = MasterAccessAuthService(
-        primary: ExistingSessionOnlyAuthService(
-          fixture.dependencies.users,
-          fixture.session,
-        ),
+        primary: const _RejectingAuthService(),
         local: LocalAuthService(fixture.dependencies.users, fixture.session),
         users: fixture.dependencies.users,
         sessionStore: fixture.session,
@@ -123,10 +117,7 @@ void main() {
 
   test('non-master identity still uses primary auth policy', () async {
     final service = MasterAccessAuthService(
-      primary: ExistingSessionOnlyAuthService(
-        fixture.dependencies.users,
-        fixture.session,
-      ),
+      primary: const _RejectingAuthService(),
       local: LocalAuthService(fixture.dependencies.users, fixture.session),
       users: fixture.dependencies.users,
       sessionStore: fixture.session,
@@ -905,6 +896,23 @@ final class _FakeVisualPipeline implements VisualReadingPipeline {
 
   @override
   Future<void> dispose() async {}
+}
+
+final class _RejectingAuthService implements AuthService {
+  const _RejectingAuthService();
+
+  @override
+  Future<User?> restoreSession() async => null;
+
+  @override
+  Future<User> login({
+    required String displayName,
+    required String email,
+    required String phone,
+  }) => throw StateError('Primary authentication unavailable.');
+
+  @override
+  Future<void> logout() async {}
 }
 
 Future<void> _prepare(

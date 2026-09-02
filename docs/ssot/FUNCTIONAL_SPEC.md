@@ -11,12 +11,12 @@
 - Campos, en orden: nombre, correo y teléfono. El nombre es obligatorio en la UI, admite Unicode y se persiste sin espacios exteriores.
 - No hay contraseña ni pantalla de registro.
 - La llave de identificación/autenticación sigue siendo `email + phone`; el nombre es únicamente perfil/identidad y no una tercera credencial.
-- Primer login online: backend busca `email + phone`; si no existe, crea usuario automáticamente con `display_name`. Si un usuario local legado coincide y no tiene nombre, se completa sobre el mismo `user_id`; un nombre existente no se sobrescribe durante login.
+- Primer login local: busca `email + phone`; si no existe, crea usuario automáticamente con `display_name`, sin conexión. Si un usuario local legado coincide y no tiene nombre, se completa sobre el mismo `user_id`; un nombre existente no se sobrescribe durante login.
 - Guarda sesión y perfil local.
 - Aperturas posteriores reutilizan sesión sin pedir login.
 - Si está offline y existe sesión local válida, entra a la app normalmente.
 - Única salida voluntaria: botón existente/definido **Cerrar sesión**.
-- La llave maestra local exige la coincidencia normalizada de nombre, correo y teléfono de Martin Osuna (`martinosuna@agrienlace.com`), Rene (`renelopez@agrienlace.com`) u Omar (`omarpizano@aquafim.com`), todos con teléfono `9999999999`. Estas combinaciones omiten la llamada de login a la API y persisten una sesión local; no relajan la validación para otras identidades.
+- Las identidades documentadas de Martin Osuna (`martinosuna@agrienlace.com`), Rene (`renelopez@agrienlace.com`) y Omar (`omarpizano@aquafim.com`), todos con teléfono `9999999999`, conservan su normalización canónica. Todas las identidades válidas pueden crear una sesión local cuando el backend no está configurado.
 - Login muestra la versión centrada al fondo con bajo contraste y no presenta leyendas sobre persistencia offline ni ausencia de contraseña.
 - Login muestra la versión instalada. La identidad de producto se presenta como **VERIFICADOR FUNCIONAL** y el nombre Android es **AQ VF DDR001**.
 

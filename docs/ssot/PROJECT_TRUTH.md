@@ -37,10 +37,10 @@ Migrar el verificador web legado a una aplicación **Flutter nativa para Android
 ## 5. Autenticación y sesión
 - Login **passwordless** con `nombre + email + teléfono` en el primer acceso.
 - `email + teléfono` son la llave de identificación/autenticación. El nombre es un atributo de identidad/perfil, no una tercera credencial ni un secreto; no existe password ni pantalla de alta.
-- Primer login: si el usuario no existe en DDR001 Verificador, se da de alta automáticamente con el nombre capturado y se cargan sus datos. Un usuario local legado sin nombre conserva su mismo ID y recibe el nombre capturado al volver a acceder.
+- Primer login: si el usuario no existe localmente en DDR001 Verificador, se da de alta automáticamente en el dispositivo con el nombre capturado. No requiere backend. Un usuario local legado sin nombre conserva su mismo ID y recibe el nombre capturado al volver a acceder.
 - Sesión persistente: no caduca para el usuario durante la operación normal. Solo termina cuando el usuario ejecuta explícitamente **Cerrar sesión**.
-- El backend emite credenciales/token persistentes apropiados para esta política; la app almacena la sesión de forma segura.
-- Las identidades maestras documentadas para Martin Osuna, Rene y Omar pueden crear una sesión local persistente sin consultar la API. Cualquier otra identidad conserva el flujo normal contra backend.
+- La sesión local es la autoridad operativa vigente. El proveedor remoto preparado sólo se activa cuando se configura explícitamente el backend.
+- Las identidades maestras documentadas para Martin Osuna, Rene y Omar conservan su normalización canónica; el acceso local no se limita a esas identidades.
 
 ## 6. Identificación del medidor y sistema de hidrantes
 - Se permite capturar **cualquier ID/número de cuenta**.

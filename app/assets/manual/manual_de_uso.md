@@ -53,9 +53,9 @@ La aplicación conserva los datos localmente, admite varias muestras y caudales 
 
 El primer acceso solicita **Nombre**, **Correo** y **Teléfono**. Correo y teléfono forman la llave de identidad; no existe contraseña. El nombre identifica al operador y aparece en el expediente y reporte.
 
-El primer acceso requiere el backend DDR001 configurado. Después de guardar una sesión válida, la aplicación puede abrir y trabajar sin internet. La sesión permanece hasta pulsar **CERRAR SESIÓN** en Ajustes. Cerrar sesión no elimina expedientes, muestras ni fotografías locales.
+El primer acceso crea la identidad y la sesión en el dispositivo sin requerir backend ni conexión. La sesión permanece hasta pulsar **CERRAR SESIÓN** en Ajustes. Cerrar sesión no elimina expedientes, muestras ni fotografías locales.
 
-Para contingencia de campo existen tres identidades maestras: **Martin Osuna** (`martinosuna@agrienlace.com`), **Rene** (`renelopez@agrienlace.com`) y **Omar** (`omarpizano@aquafim.com`), todas con teléfono **9999999999**. Nombre, correo y teléfono deben coincidir. La versión instalada se muestra discretamente al fondo.
+Las identidades canónicas de **Martin Osuna** (`martinosuna@agrienlace.com`), **Rene** (`renelopez@agrienlace.com`) y **Omar** (`omarpizano@aquafim.com`), todas con teléfono **9999999999**, conservan su normalización documentada. No son requisito para el acceso local. La versión instalada se muestra discretamente al fondo.
 
 ## 3. Pantalla de inicio
 

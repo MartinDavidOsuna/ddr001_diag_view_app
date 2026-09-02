@@ -362,31 +362,6 @@ final class MasterAccessAuthService implements AuthService {
   }
 }
 
-final class ExistingSessionOnlyAuthService implements AuthService {
-  ExistingSessionOnlyAuthService(this.users, this.sessionStore);
-
-  final UserRepository users;
-  final SessionStore sessionStore;
-
-  @override
-  Future<User?> restoreSession() async {
-    final id = await sessionStore.readActiveUserId();
-    return id == null ? null : users.getById(id);
-  }
-
-  @override
-  Future<User> login({
-    required String displayName,
-    required String email,
-    required String phone,
-  }) => throw StateError(
-    'El primer acceso requiere conexión al backend DDR001 configurado.',
-  );
-
-  @override
-  Future<void> logout() => sessionStore.clear();
-}
-
 abstract interface class EvidenceCapturePort {
   Future<Evidence> capture({
     required String caseId,
@@ -555,18 +530,12 @@ final class AppDependencies {
       sessionStore: SharedPreferencesSessionStore(),
     );
     const apiBaseUrl = String.fromEnvironment('DDR001_API_BASE_URL');
-    const allowLocalFirstLogin = bool.fromEnvironment(
-      'DDR001_ALLOW_LOCAL_FIRST_LOGIN',
-      defaultValue: false,
-    );
     final tokenStore = const SecureTokenStore();
     final remoteApi = apiBaseUrl.isEmpty
         ? null
         : RemoteApiClient(baseUrl: apiBaseUrl);
     final primaryAuth = remoteApi == null
-        ? allowLocalFirstLogin
-              ? LocalAuthService(base.users, base.sessionStore)
-              : ExistingSessionOnlyAuthService(base.users, base.sessionStore)
+        ? LocalAuthService(base.users, base.sessionStore)
         : ServerBackedAuthService(
             users: base.users,
             sessionStore: base.sessionStore,
