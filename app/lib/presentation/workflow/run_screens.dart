@@ -215,15 +215,18 @@ final class _TestRunScreenState extends ConsumerState<TestRunScreen> {
         child: AppScaffold(
           title: 'Prueba en curso',
           showBack: false,
-          actions: [
-            _RunHeaderStatus(
-              esp32Connected: state.hardwareState == HardwareState.ready,
-              remoteConnected: _remoteControlArmed || _remoteConfirmationOpen,
-              controlPulses: state.preStartControlPulseCount,
-              controlFirstPulseAt: state.preStartControlFirstPulseAt,
-              litersPerPulse: config.litersPerPulse,
-            ),
-          ],
+          actions: sample.isSimulation
+              ? const []
+              : [
+                  _RunHeaderStatus(
+                    esp32Connected: state.hardwareState == HardwareState.ready,
+                    remoteConnected:
+                        _remoteControlArmed || _remoteConfirmationOpen,
+                    controlPulses: state.preStartControlPulseCount,
+                    controlFirstPulseAt: state.preStartControlFirstPulseAt,
+                    litersPerPulse: config.litersPerPulse,
+                  ),
+                ],
           pinnedHeader: _PinnedRunStatus(
             meterId: state.meter?.id ?? '—',
             sample: sample,
@@ -250,6 +253,15 @@ final class _TestRunScreenState extends ConsumerState<TestRunScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (sample.isSimulation) ...[
+                const StatusBanner(
+                  text:
+                      'MODO SIMULACIÓN · PRUEBA SIMULADA — NO CORRESPONDE A UNA VERIFICACIÓN FÍSICA',
+                  color: AppColors.warning,
+                  icon: Icons.science_outlined,
+                ),
+                const SizedBox(height: 14),
+              ],
               Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [

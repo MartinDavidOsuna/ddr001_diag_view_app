@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
@@ -18,6 +19,7 @@ abstract interface class EvidenceFileStore {
     required String evidenceId,
   });
   Future<String> calculateSha256(String filePath);
+  Future<void> writeBytes(String filePath, Uint8List bytes);
   Future<bool> exists(String filePath);
   Future<bool> verify(String filePath, String expectedSha256);
   Future<void> deleteTemporary(String filePath, {required bool sampleClosed});
@@ -82,6 +84,16 @@ final class LocalEvidenceFileStore implements EvidenceFileStore {
     final file = File(filePath);
     if (!await file.exists()) throw StateError('Evidence file is missing.');
     return sha256.bind(file.openRead()).first.then((digest) => '$digest');
+  }
+
+  @override
+  Future<void> writeBytes(String filePath, Uint8List bytes) async {
+    final resolvedRoot = p.normalize(p.absolute(rootDirectory.path));
+    final resolvedFile = p.normalize(p.absolute(filePath));
+    if (!p.isWithin(resolvedRoot, resolvedFile)) {
+      throw ArgumentError('File is outside the evidence storage root.');
+    }
+    await File(resolvedFile).writeAsBytes(bytes, flush: true);
   }
 
   @override

@@ -637,6 +637,7 @@ db.SamplesCompanion _sampleCompanion(domain.Sample sample) {
     sampleNumber: sample.sampleNumber,
     status: sample.status.name,
     measurementMethod: config.measurementMethod.name,
+    simulationScenario: Value(sample.simulationScenario?.name),
     litersPerPulse: config.litersPerPulse,
     evidenceStepLiters: config.evidenceStepLiters,
     readingUncertaintyLiters: config.readingUncertaintyLiters,
@@ -835,6 +836,9 @@ domain.Sample mapSample(
             verdict: metrology.SampleVerdict.values.byName(row.verdict!),
           ),
     checksum: row.checksum,
+    simulationScenario: row.simulationScenario == null
+        ? null
+        : domain.SimulationScenario.values.byName(row.simulationScenario!),
   );
 }
 

@@ -1,6 +1,6 @@
 import 'dart:async';
 
-enum PulseSourceType { manual, led, ble }
+enum PulseSourceType { manual, led, ble, simulation }
 
 enum PulseSourceStatus {
   disconnected,

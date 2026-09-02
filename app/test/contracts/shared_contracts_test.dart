@@ -31,15 +31,21 @@ void main() {
       final required = (sample['required'] as List<Object?>).cast<String>();
       final properties = sample['properties'] as Map<String, Object?>;
       expect(required, contains('measurement_source'));
+      expect(required, containsAll(['is_simulation', 'simulation_scenario']));
       expect(required, isNot(contains('pulse_source')));
       expect(
         (properties['measurement_source'] as Map<String, Object?>)['enum'],
-        ['VISUAL', 'MANUAL', 'LED', 'BLE'],
+        ['VISUAL', 'MANUAL', 'LED', 'BLE', 'SIMULATION'],
       );
       expect(
         (properties['schema'] as Map<String, Object?>)['const'],
-        'ddr001.verification.sample/v8',
+        'ddr001.verification.sample/v9',
       );
+      expect(
+        (properties['simulation_scenario'] as Map<String, Object?>)['enum'],
+        ['SUCCESSFUL', 'FAILED', 'FAIL_THEN_PASS', null],
+      );
+      expect(sample['allOf'], hasLength(1));
       final definitions = sample[r'$defs'] as Map<String, Object?>;
       final reading = definitions['reading'] as Map<String, Object?>;
       final readingProperties = reading['properties'] as Map<String, Object?>;

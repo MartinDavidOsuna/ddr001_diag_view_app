@@ -239,51 +239,60 @@ final class _MethodScreenState extends ConsumerState<MethodScreen> {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: const [MeasurementMethod.ble, MeasurementMethod.visual]
-                  .map(
-                    (method) => ChoiceChip(
-                      key: Key('method-${method.name}'),
-                      selected: state.selectedMethod == method,
-                      onSelected: method == MeasurementMethod.visual
-                          ? null
-                          : (_) async {
-                              if (state.sample != null &&
-                                  state.sample!.status !=
-                                      SampleStatus.closedValid &&
-                                  state.selectedMethod != method) {
-                                final replace = await showDialog<bool>(
-                                  context: context,
-                                  builder: (dialogContext) => AlertDialog(
-                                    title: const Text('Cambiar método'),
-                                    content: const Text(
-                                      'Se descartará únicamente la preparación dependiente de la muestra abierta. El expediente y Q1/Q2 se conservarán.',
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.pop(dialogContext, false),
-                                        child: const Text('CANCELAR'),
+              children:
+                  const [
+                        MeasurementMethod.ble,
+                        MeasurementMethod.visual,
+                        MeasurementMethod.simulation,
+                      ]
+                      .map(
+                        (method) => ChoiceChip(
+                          key: Key('method-${method.name}'),
+                          selected: state.selectedMethod == method,
+                          onSelected: method == MeasurementMethod.visual
+                              ? null
+                              : (_) async {
+                                  if (state.sample != null &&
+                                      state.sample!.status !=
+                                          SampleStatus.closedValid &&
+                                      state.selectedMethod != method) {
+                                    final replace = await showDialog<bool>(
+                                      context: context,
+                                      builder: (dialogContext) => AlertDialog(
+                                        title: const Text('Cambiar método'),
+                                        content: const Text(
+                                          'Se descartará únicamente la preparación dependiente de la muestra abierta. El expediente y Q1/Q2 se conservarán.',
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(
+                                              dialogContext,
+                                              false,
+                                            ),
+                                            child: const Text('CANCELAR'),
+                                          ),
+                                          FilledButton(
+                                            onPressed: () => Navigator.pop(
+                                              dialogContext,
+                                              true,
+                                            ),
+                                            child: const Text('CAMBIAR'),
+                                          ),
+                                        ],
                                       ),
-                                      FilledButton(
-                                        onPressed: () =>
-                                            Navigator.pop(dialogContext, true),
-                                        child: const Text('CAMBIAR'),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                                if (replace != true) return;
-                                await controller.replaceOpenSampleMethod(
-                                  method,
-                                );
-                                return;
-                              }
-                              controller.selectMethod(method);
-                            },
-                      label: Text(methodLabel(method)),
-                    ),
-                  )
-                  .toList(),
+                                    );
+                                    if (replace != true) return;
+                                    await controller.replaceOpenSampleMethod(
+                                      method,
+                                    );
+                                    return;
+                                  }
+                                  controller.selectMethod(method);
+                                },
+                          label: Text(methodLabel(method)),
+                        ),
+                      )
+                      .toList(),
             ),
             const SizedBox(height: 18),
             _MethodPanel(
@@ -296,10 +305,35 @@ final class _MethodScreenState extends ConsumerState<MethodScreen> {
               onSelectBle: controller.selectBleDevice,
               onDisconnectBle: controller.disconnectBleDevice,
             ),
+            if (state.selectedMethod == MeasurementMethod.simulation) ...[
+              const SizedBox(height: 18),
+              const Text(
+                'Escenario',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: SimulationScenario.values
+                    .map(
+                      (scenario) => ChoiceChip(
+                        key: Key('simulation-scenario-${scenario.name}'),
+                        selected: state.selectedSimulationScenario == scenario,
+                        onSelected: (_) =>
+                            controller.selectSimulationScenario(scenario),
+                        label: Text(_simulationScenarioLabel(scenario)),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
             const SizedBox(height: 18),
             FilledButton(
               key: const Key('method-continue'),
-              onPressed: state.hardwareState == HardwareState.ready
+              onPressed:
+                  state.selectedMethod == MeasurementMethod.simulation ||
+                      state.hardwareState == HardwareState.ready
                   ? controller.continueToSetup
                   : null,
               child: const Text('CONFIGURAR PRUEBA'),
@@ -347,6 +381,14 @@ final class _MethodPanel extends StatelessWidget {
             'Cada toque del botón de pulso incrementará N y persistirá Vref = N × K.',
         color: AppColors.amber,
         icon: Icons.touch_app_outlined,
+      );
+    }
+    if (method == MeasurementMethod.simulation) {
+      return const StatusBanner(
+        text:
+            'MODO SIMULACIÓN · Sin Bluetooth, ESP32, backend ni Internet. Los datos recorren el pipeline real.',
+        color: AppColors.warning,
+        icon: Icons.science_outlined,
       );
     }
     final label = switch (hardwareState) {
@@ -534,9 +576,23 @@ final class _TestSetupScreenState extends ConsumerState<TestSetupScreen> {
             _summary('Q1 — Caudal operativo', 'Calculado durante la prueba'),
             _summary('Q2 — Caudal medio', 'Calculado durante la prueba'),
             _summary('Método', methodLabel(state.selectedMethod)),
+            if (state.selectedMethod == MeasurementMethod.simulation)
+              _summary(
+                'Escenario',
+                _simulationScenarioLabel(state.selectedSimulationScenario),
+              ),
             _summary('K para Q1', '${state.litersPerPulse} L/pulso'),
             _summary('K para Q2', '${state.litersPerPulse} L/pulso'),
             const Divider(),
+            if (state.selectedMethod == MeasurementMethod.simulation) ...[
+              const StatusBanner(
+                text:
+                    'MODO SIMULACIÓN · PRUEBA SIMULADA — NO CORRESPONDE A UNA VERIFICACIÓN FÍSICA',
+                color: AppColors.warning,
+                icon: Icons.science_outlined,
+              ),
+              const SizedBox(height: 10),
+            ],
             Row(
               children: [
                 Expanded(
@@ -719,7 +775,11 @@ final class _TestSetupScreenState extends ConsumerState<TestSetupScreen> {
                 );
                 controller.startSample();
               },
-              child: const Text('PREPARAR CÁMARA'),
+              child: Text(
+                state.selectedMethod == MeasurementMethod.simulation
+                    ? 'INICIAR SIMULACIÓN'
+                    : 'PREPARAR CÁMARA',
+              ),
             ),
           ],
         ),
@@ -745,3 +805,11 @@ final class _TestSetupScreenState extends ConsumerState<TestSetupScreen> {
     ),
   );
 }
+
+String _simulationScenarioLabel(SimulationScenario scenario) =>
+    switch (scenario) {
+      SimulationScenario.successful => 'Prueba exitosa',
+      SimulationScenario.failed => 'Prueba fallida',
+      SimulationScenario.failThenPass =>
+        'Mixta: primera muestra falla / segunda aprueba',
+    };

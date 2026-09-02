@@ -159,6 +159,13 @@ void main() {
       expect(html, contains('1.25'));
       expect(html, isNot(contains('src="http')));
       expect(json['schema'], 'ddr001.verification.export/v1');
+      final exportedSample =
+          ((((json['flow_points'] as List).single as Map)['samples'] as List)
+                  .single
+              as Map);
+      expect(exportedSample['is_simulation'], isFalse);
+      expect(exportedSample['simulation_scenario'], isNull);
+      expect(html, isNot(contains('PRUEBA SIMULADA')));
       expect(csv, contains('diagnostic_error_pct'));
       expect(pdf.take(4), orderedEquals('%PDF'.codeUnits));
       expect(pdf.length, greaterThan(1000));

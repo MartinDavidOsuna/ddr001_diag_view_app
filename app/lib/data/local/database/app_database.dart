@@ -99,6 +99,7 @@ class Samples extends Table {
   IntColumn get sampleNumber => integer()();
   TextColumn get status => text()();
   TextColumn get measurementMethod => text()();
+  TextColumn get simulationScenario => text().nullable()();
   RealColumn get litersPerPulse => real()();
   RealColumn get evidenceStepLiters => real()();
   RealColumn get readingUncertaintyLiters => real()();
@@ -189,7 +190,8 @@ class Samples extends Table {
   List<String> get customConstraints => [
     "CHECK (sample_number >= 1)",
     "CHECK (status IN ('draft','running','invalidEvidence','closedValid'))",
-    "CHECK (measurement_method IN ('visual','manual','led','ble'))",
+    "CHECK (measurement_method IN ('visual','manual','led','ble','simulation'))",
+    "CHECK ((measurement_method = 'simulation' AND simulation_scenario IN ('successful','failed','failThenPass')) OR (measurement_method != 'simulation' AND simulation_scenario IS NULL))",
     'CHECK (liters_per_pulse > 0)',
     'CHECK (evidence_step_liters > 0)',
     'CHECK (reading_uncertainty_liters >= 0)',
@@ -299,7 +301,7 @@ final class AppDatabase extends _$AppDatabase {
     : super(driftDatabase(name: 'ddr001', native: const DriftNativeOptions()));
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -446,6 +448,18 @@ final class AppDatabase extends _$AppDatabase {
             await migrator.addColumn(verificationCases, column);
           }
         }
+      }
+      if (from < 12) {
+        await migrator.alterTable(
+          TableMigration(
+            samples,
+            columnTransformer: {
+              samples.simulationScenario: const CustomExpression<String>(
+                'NULL',
+              ),
+            },
+          ),
+        );
       }
     },
     beforeOpen: (details) async {

@@ -35,7 +35,9 @@ String calculateSampleChecksum({
   final fields = <String>[
     _field(
       'canonicalVersion',
-      c.controlStartMaximumLps.isFinite
+      sample.isSimulation
+          ? 6
+          : c.controlStartMaximumLps.isFinite
           ? 5
           : sample.pulseAcquisitionConfiguration != null
           ? 4
@@ -49,6 +51,8 @@ String calculateSampleChecksum({
     _field('flowPointId', sample.flowPointId),
     _field('sampleNumber', sample.sampleNumber),
     _field('measurementMethod', c.measurementMethod.name),
+    if (sample.isSimulation)
+      _field('simulationScenario', sample.simulationScenario?.name),
     _field('litersPerPulse', c.litersPerPulse),
     _field('evidenceStepLiters', c.evidenceStepLiters),
     _field('readingUncertaintyLiters', c.readingUncertaintyLiters),

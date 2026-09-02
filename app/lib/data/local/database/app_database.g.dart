@@ -4159,6 +4159,17 @@ class $SamplesTable extends Samples with TableInfo<$SamplesTable, SampleRow> {
         type: DriftSqlType.string,
         requiredDuringInsert: true,
       );
+  static const VerificationMeta _simulationScenarioMeta =
+      const VerificationMeta('simulationScenario');
+  @override
+  late final GeneratedColumn<String> simulationScenario =
+      GeneratedColumn<String>(
+        'simulation_scenario',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _litersPerPulseMeta = const VerificationMeta(
     'litersPerPulse',
   );
@@ -4980,6 +4991,7 @@ class $SamplesTable extends Samples with TableInfo<$SamplesTable, SampleRow> {
     sampleNumber,
     status,
     measurementMethod,
+    simulationScenario,
     litersPerPulse,
     evidenceStepLiters,
     readingUncertaintyLiters,
@@ -5111,6 +5123,15 @@ class $SamplesTable extends Samples with TableInfo<$SamplesTable, SampleRow> {
       );
     } else if (isInserting) {
       context.missing(_measurementMethodMeta);
+    }
+    if (data.containsKey('simulation_scenario')) {
+      context.handle(
+        _simulationScenarioMeta,
+        simulationScenario.isAcceptableOrUnknown(
+          data['simulation_scenario']!,
+          _simulationScenarioMeta,
+        ),
+      );
     }
     if (data.containsKey('liters_per_pulse')) {
       context.handle(
@@ -5793,6 +5814,10 @@ class $SamplesTable extends Samples with TableInfo<$SamplesTable, SampleRow> {
         DriftSqlType.string,
         data['${effectivePrefix}measurement_method'],
       )!,
+      simulationScenario: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}simulation_scenario'],
+      ),
       litersPerPulse: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}liters_per_pulse'],
@@ -6100,6 +6125,7 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
   final int sampleNumber;
   final String status;
   final String measurementMethod;
+  final String? simulationScenario;
   final double litersPerPulse;
   final double evidenceStepLiters;
   final double readingUncertaintyLiters;
@@ -6179,6 +6205,7 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
     required this.sampleNumber,
     required this.status,
     required this.measurementMethod,
+    this.simulationScenario,
     required this.litersPerPulse,
     required this.evidenceStepLiters,
     required this.readingUncertaintyLiters,
@@ -6261,6 +6288,9 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
     map['sample_number'] = Variable<int>(sampleNumber);
     map['status'] = Variable<String>(status);
     map['measurement_method'] = Variable<String>(measurementMethod);
+    if (!nullToAbsent || simulationScenario != null) {
+      map['simulation_scenario'] = Variable<String>(simulationScenario);
+    }
     map['liters_per_pulse'] = Variable<double>(litersPerPulse);
     map['evidence_step_liters'] = Variable<double>(evidenceStepLiters);
     map['reading_uncertainty_liters'] = Variable<double>(
@@ -6502,6 +6532,9 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
       sampleNumber: Value(sampleNumber),
       status: Value(status),
       measurementMethod: Value(measurementMethod),
+      simulationScenario: simulationScenario == null && nullToAbsent
+          ? const Value.absent()
+          : Value(simulationScenario),
       litersPerPulse: Value(litersPerPulse),
       evidenceStepLiters: Value(evidenceStepLiters),
       readingUncertaintyLiters: Value(readingUncertaintyLiters),
@@ -6721,6 +6754,9 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
       sampleNumber: serializer.fromJson<int>(json['sampleNumber']),
       status: serializer.fromJson<String>(json['status']),
       measurementMethod: serializer.fromJson<String>(json['measurementMethod']),
+      simulationScenario: serializer.fromJson<String?>(
+        json['simulationScenario'],
+      ),
       litersPerPulse: serializer.fromJson<double>(json['litersPerPulse']),
       evidenceStepLiters: serializer.fromJson<double>(
         json['evidenceStepLiters'],
@@ -6869,6 +6905,7 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
       'sampleNumber': serializer.toJson<int>(sampleNumber),
       'status': serializer.toJson<String>(status),
       'measurementMethod': serializer.toJson<String>(measurementMethod),
+      'simulationScenario': serializer.toJson<String?>(simulationScenario),
       'litersPerPulse': serializer.toJson<double>(litersPerPulse),
       'evidenceStepLiters': serializer.toJson<double>(evidenceStepLiters),
       'readingUncertaintyLiters': serializer.toJson<double>(
@@ -6983,6 +7020,7 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
     int? sampleNumber,
     String? status,
     String? measurementMethod,
+    Value<String?> simulationScenario = const Value.absent(),
     double? litersPerPulse,
     double? evidenceStepLiters,
     double? readingUncertaintyLiters,
@@ -7062,6 +7100,9 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
     sampleNumber: sampleNumber ?? this.sampleNumber,
     status: status ?? this.status,
     measurementMethod: measurementMethod ?? this.measurementMethod,
+    simulationScenario: simulationScenario.present
+        ? simulationScenario.value
+        : this.simulationScenario,
     litersPerPulse: litersPerPulse ?? this.litersPerPulse,
     evidenceStepLiters: evidenceStepLiters ?? this.evidenceStepLiters,
     readingUncertaintyLiters:
@@ -7239,6 +7280,9 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
       measurementMethod: data.measurementMethod.present
           ? data.measurementMethod.value
           : this.measurementMethod,
+      simulationScenario: data.simulationScenario.present
+          ? data.simulationScenario.value
+          : this.simulationScenario,
       litersPerPulse: data.litersPerPulse.present
           ? data.litersPerPulse.value
           : this.litersPerPulse,
@@ -7455,6 +7499,7 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
           ..write('sampleNumber: $sampleNumber, ')
           ..write('status: $status, ')
           ..write('measurementMethod: $measurementMethod, ')
+          ..write('simulationScenario: $simulationScenario, ')
           ..write('litersPerPulse: $litersPerPulse, ')
           ..write('evidenceStepLiters: $evidenceStepLiters, ')
           ..write('readingUncertaintyLiters: $readingUncertaintyLiters, ')
@@ -7545,6 +7590,7 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
     sampleNumber,
     status,
     measurementMethod,
+    simulationScenario,
     litersPerPulse,
     evidenceStepLiters,
     readingUncertaintyLiters,
@@ -7628,6 +7674,7 @@ class SampleRow extends DataClass implements Insertable<SampleRow> {
           other.sampleNumber == this.sampleNumber &&
           other.status == this.status &&
           other.measurementMethod == this.measurementMethod &&
+          other.simulationScenario == this.simulationScenario &&
           other.litersPerPulse == this.litersPerPulse &&
           other.evidenceStepLiters == this.evidenceStepLiters &&
           other.readingUncertaintyLiters == this.readingUncertaintyLiters &&
@@ -7712,6 +7759,7 @@ class SamplesCompanion extends UpdateCompanion<SampleRow> {
   final Value<int> sampleNumber;
   final Value<String> status;
   final Value<String> measurementMethod;
+  final Value<String?> simulationScenario;
   final Value<double> litersPerPulse;
   final Value<double> evidenceStepLiters;
   final Value<double> readingUncertaintyLiters;
@@ -7792,6 +7840,7 @@ class SamplesCompanion extends UpdateCompanion<SampleRow> {
     this.sampleNumber = const Value.absent(),
     this.status = const Value.absent(),
     this.measurementMethod = const Value.absent(),
+    this.simulationScenario = const Value.absent(),
     this.litersPerPulse = const Value.absent(),
     this.evidenceStepLiters = const Value.absent(),
     this.readingUncertaintyLiters = const Value.absent(),
@@ -7873,6 +7922,7 @@ class SamplesCompanion extends UpdateCompanion<SampleRow> {
     required int sampleNumber,
     required String status,
     required String measurementMethod,
+    this.simulationScenario = const Value.absent(),
     required double litersPerPulse,
     required double evidenceStepLiters,
     required double readingUncertaintyLiters,
@@ -7967,6 +8017,7 @@ class SamplesCompanion extends UpdateCompanion<SampleRow> {
     Expression<int>? sampleNumber,
     Expression<String>? status,
     Expression<String>? measurementMethod,
+    Expression<String>? simulationScenario,
     Expression<double>? litersPerPulse,
     Expression<double>? evidenceStepLiters,
     Expression<double>? readingUncertaintyLiters,
@@ -8048,6 +8099,7 @@ class SamplesCompanion extends UpdateCompanion<SampleRow> {
       if (sampleNumber != null) 'sample_number': sampleNumber,
       if (status != null) 'status': status,
       if (measurementMethod != null) 'measurement_method': measurementMethod,
+      if (simulationScenario != null) 'simulation_scenario': simulationScenario,
       if (litersPerPulse != null) 'liters_per_pulse': litersPerPulse,
       if (evidenceStepLiters != null)
         'evidence_step_liters': evidenceStepLiters,
@@ -8162,6 +8214,7 @@ class SamplesCompanion extends UpdateCompanion<SampleRow> {
     Value<int>? sampleNumber,
     Value<String>? status,
     Value<String>? measurementMethod,
+    Value<String?>? simulationScenario,
     Value<double>? litersPerPulse,
     Value<double>? evidenceStepLiters,
     Value<double>? readingUncertaintyLiters,
@@ -8243,6 +8296,7 @@ class SamplesCompanion extends UpdateCompanion<SampleRow> {
       sampleNumber: sampleNumber ?? this.sampleNumber,
       status: status ?? this.status,
       measurementMethod: measurementMethod ?? this.measurementMethod,
+      simulationScenario: simulationScenario ?? this.simulationScenario,
       litersPerPulse: litersPerPulse ?? this.litersPerPulse,
       evidenceStepLiters: evidenceStepLiters ?? this.evidenceStepLiters,
       readingUncertaintyLiters:
@@ -8356,6 +8410,9 @@ class SamplesCompanion extends UpdateCompanion<SampleRow> {
     }
     if (measurementMethod.present) {
       map['measurement_method'] = Variable<String>(measurementMethod.value);
+    }
+    if (simulationScenario.present) {
+      map['simulation_scenario'] = Variable<String>(simulationScenario.value);
     }
     if (litersPerPulse.present) {
       map['liters_per_pulse'] = Variable<double>(litersPerPulse.value);
@@ -8638,6 +8695,7 @@ class SamplesCompanion extends UpdateCompanion<SampleRow> {
           ..write('sampleNumber: $sampleNumber, ')
           ..write('status: $status, ')
           ..write('measurementMethod: $measurementMethod, ')
+          ..write('simulationScenario: $simulationScenario, ')
           ..write('litersPerPulse: $litersPerPulse, ')
           ..write('evidenceStepLiters: $evidenceStepLiters, ')
           ..write('readingUncertaintyLiters: $readingUncertaintyLiters, ')
@@ -12664,6 +12722,7 @@ typedef $$SamplesTableCreateCompanionBuilder =
       required int sampleNumber,
       required String status,
       required String measurementMethod,
+      Value<String?> simulationScenario,
       required double litersPerPulse,
       required double evidenceStepLiters,
       required double readingUncertaintyLiters,
@@ -12746,6 +12805,7 @@ typedef $$SamplesTableUpdateCompanionBuilder =
       Value<int> sampleNumber,
       Value<String> status,
       Value<String> measurementMethod,
+      Value<String?> simulationScenario,
       Value<double> litersPerPulse,
       Value<double> evidenceStepLiters,
       Value<double> readingUncertaintyLiters,
@@ -12948,6 +13008,11 @@ class $$SamplesTableFilterComposer
 
   ColumnFilters<String> get measurementMethod => $composableBuilder(
     column: $table.measurementMethod,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get simulationScenario => $composableBuilder(
+    column: $table.simulationScenario,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -13455,6 +13520,11 @@ class $$SamplesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get simulationScenario => $composableBuilder(
+    column: $table.simulationScenario,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<double> get litersPerPulse => $composableBuilder(
     column: $table.litersPerPulse,
     builder: (column) => ColumnOrderings(column),
@@ -13904,6 +13974,11 @@ class $$SamplesTableAnnotationComposer
 
   GeneratedColumn<String> get measurementMethod => $composableBuilder(
     column: $table.measurementMethod,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get simulationScenario => $composableBuilder(
+    column: $table.simulationScenario,
     builder: (column) => column,
   );
 
@@ -14409,6 +14484,7 @@ class $$SamplesTableTableManager
                 Value<int> sampleNumber = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<String> measurementMethod = const Value.absent(),
+                Value<String?> simulationScenario = const Value.absent(),
                 Value<double> litersPerPulse = const Value.absent(),
                 Value<double> evidenceStepLiters = const Value.absent(),
                 Value<double> readingUncertaintyLiters = const Value.absent(),
@@ -14495,6 +14571,7 @@ class $$SamplesTableTableManager
                 sampleNumber: sampleNumber,
                 status: status,
                 measurementMethod: measurementMethod,
+                simulationScenario: simulationScenario,
                 litersPerPulse: litersPerPulse,
                 evidenceStepLiters: evidenceStepLiters,
                 readingUncertaintyLiters: readingUncertaintyLiters,
@@ -14577,6 +14654,7 @@ class $$SamplesTableTableManager
                 required int sampleNumber,
                 required String status,
                 required String measurementMethod,
+                Value<String?> simulationScenario = const Value.absent(),
                 required double litersPerPulse,
                 required double evidenceStepLiters,
                 required double readingUncertaintyLiters,
@@ -14663,6 +14741,7 @@ class $$SamplesTableTableManager
                 sampleNumber: sampleNumber,
                 status: status,
                 measurementMethod: measurementMethod,
+                simulationScenario: simulationScenario,
                 litersPerPulse: litersPerPulse,
                 evidenceStepLiters: evidenceStepLiters,
                 readingUncertaintyLiters: readingUncertaintyLiters,

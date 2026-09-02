@@ -26,6 +26,15 @@ final class SampleResultScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (sample.isSimulation) ...[
+            const StatusBanner(
+              text:
+                  'MODO SIMULACIÓN · PRUEBA SIMULADA — NO CORRESPONDE A UNA VERIFICACIÓN FÍSICA',
+              color: AppColors.warning,
+              icon: Icons.science_outlined,
+            ),
+            const SizedBox(height: 14),
+          ],
           StatusBanner(
             text:
                 '${verdictLabel(result.verdict)} · ${result.errorPct.toStringAsFixed(2)} % ±${result.uncertaintyPct.toStringAsFixed(2)} %',
@@ -199,6 +208,15 @@ final class CaseSummaryScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (state.samples.any((sample) => sample.isSimulation)) ...[
+            const StatusBanner(
+              text:
+                  'MODO SIMULACIÓN · PRUEBA SIMULADA — NO CORRESPONDE A UNA VERIFICACIÓN FÍSICA',
+              color: AppColors.warning,
+              icon: Icons.science_outlined,
+            ),
+            const SizedBox(height: 14),
+          ],
           SectionCard(
             title: 'Expediente',
             child: Column(
@@ -584,6 +602,7 @@ final class _LocalSampleDetails extends StatelessWidget {
     MeasurementMethod.led => 'LED',
     MeasurementMethod.manual => 'MANUAL',
     MeasurementMethod.visual => 'LECTURA VISUAL',
+    MeasurementMethod.simulation => 'SIMULACIÓN',
   };
 
   String _sampleDuration(Sample value) {

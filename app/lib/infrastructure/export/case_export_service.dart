@@ -87,6 +87,8 @@ final class CaseExportService {
         'flow',
         'sample',
         'method',
+        'is_simulation',
+        'simulation_scenario',
         'point',
         'pulse_count',
         'v_ref_l',
@@ -110,6 +112,8 @@ final class CaseExportService {
           flow.code.name.toUpperCase(),
           sample.sampleNumber,
           sample.configuration.measurementMethod.name.toUpperCase(),
+          sample.isSimulation,
+          sample.simulationScenario?.contractName,
           _pointName(point.type),
           point.pulseCount,
           point.referenceLiters,
@@ -129,7 +133,9 @@ final class CaseExportService {
   }
 
   Map<String, Object?> toJson(CaseExportBundle bundle) => {
-    'schema': 'ddr001.verification.export/v1',
+    'schema': bundle.samples.any((sample) => sample.isSimulation)
+        ? 'ddr001.verification.export/v2'
+        : 'ddr001.verification.export/v1',
     'generated_at': DateTime.now().toUtc().toIso8601String(),
     'case': {
       'case_id': bundle.verificationCase.id,
@@ -183,7 +189,7 @@ final class CaseExportService {
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Evidencia de verificación</title><style>
 body{font-family:Arial,sans-serif;color:#162235;margin:0;background:#eef2f6}main{max-width:960px;margin:auto;background:white;padding:28px}
-h1{color:#173e68;margin:0 0 6px}.muted{color:#617286}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 24px}.card{border:1px solid #b9c8d8;border-radius:10px;padding:16px;margin:18px 0}table{border-collapse:collapse;width:100%;font-size:13px}th,td{border:1px solid #aab9c8;padding:7px;text-align:right}th:first-child,td:first-child{text-align:left}th{background:#173e68;color:white}.verdict{font-size:25px;font-weight:bold}.photo{page-break-inside:avoid;margin:14px 0}.photo img{display:block;max-width:100%;max-height:580px;margin:8px auto;border:1px solid #8091a3}.seal{border-top:2px solid #173e68;margin-top:24px;padding-top:10px;font-size:12px}button{padding:12px 18px;background:#1f5c99;color:white;border:0;border-radius:8px;font-weight:bold}@media print{button{display:none}body{background:white}main{max-width:none;padding:0}}
+h1{color:#173e68;margin:0 0 6px}.muted{color:#617286}.simulation-warning{background:#ffdf8a;border:2px solid #b56b00;padding:12px;text-align:center}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 24px}.card{border:1px solid #b9c8d8;border-radius:10px;padding:16px;margin:18px 0}table{border-collapse:collapse;width:100%;font-size:13px}th,td{border:1px solid #aab9c8;padding:7px;text-align:right}th:first-child,td:first-child{text-align:left}th{background:#173e68;color:white}.verdict{font-size:25px;font-weight:bold}.photo{page-break-inside:avoid;margin:14px 0}.photo img{display:block;max-width:100%;max-height:580px;margin:8px auto;border:1px solid #8091a3}.seal{border-top:2px solid #173e68;margin-top:24px;padding-top:10px;font-size:12px}button{padding:12px 18px;background:#1f5c99;color:white;border:0;border-radius:8px;font-weight:bold}@media print{button{display:none}body{background:white}main{max-width:none;padding:0}}
 </style></head><body><main><h1>Evidencia de verificación</h1>
 <button onclick="window.print()">Descargar PDF</button><section class="card"><h2>Identificación</h2><div class="grid">
 <div><b>Medidor:</b> ${_h(bundle.meter.id)}</div><div><b>Operador:</b> ${_h(bundle.user.displayName ?? '')}</div>
@@ -195,6 +201,7 @@ h1{color:#173e68;margin:0 0 6px}.muted{color:#617286}.grid{display:grid;grid-tem
       final result = sample.result!;
       out.write(
         '''<section class="card"><h2>${_sampleLabel(bundle, sample)}</h2>
+${sample.isSimulation ? '<p class="simulation-warning"><b>PRUEBA SIMULADA — NO CORRESPONDE A UNA VERIFICACIÓN FÍSICA</b></p>' : ''}
 <div class="grid"><div><b>Fecha:</b> ${_date(sample.createdAt)}</div><div><b>Caudal:</b> ${flow.code.name.toUpperCase()}</div>
 <div><b>Método:</b> ${_methodName(sample.configuration.measurementMethod)}</div><div><b>GPS:</b> ${_gps(sample.gps)}</div>
 <div><b>Caudal mínimo:</b> ${_flowStatistics(bundle, sample).minimum}</div><div><b>Caudal máximo:</b> ${_flowStatistics(bundle, sample).maximum}</div>
@@ -260,6 +267,15 @@ ${_locationMapHtml(sample.gps)}
           for (final sample in samples) ...[
             pw.SizedBox(height: 16),
             pw.Header(level: 1, text: _sampleLabel(bundle, sample)),
+            if (sample.isSimulation)
+              pw.Container(
+                color: PdfColors.amber200,
+                padding: const pw.EdgeInsets.all(8),
+                child: pw.Text(
+                  'PRUEBA SIMULADA - NO CORRESPONDE A UNA VERIFICACION FISICA',
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                ),
+              ),
             pw.Text('Fecha: ${_date(sample.createdAt)}'),
             pw.Text(
               'Caudal mínimo ${_flowStatistics(bundle, sample).minimum} - máximo ${_flowStatistics(bundle, sample).maximum} - promedio ${_flowStatistics(bundle, sample).average}',
@@ -305,6 +321,8 @@ ${_locationMapHtml(sample.gps)}
     'status': sample.status.name.toUpperCase(),
     'measurement_source': sample.configuration.measurementMethod.name
         .toUpperCase(),
+    'is_simulation': sample.isSimulation,
+    'simulation_scenario': sample.simulationScenario?.contractName,
     'started_at': sample.startedAt?.toUtc().toIso8601String(),
     'ended_at': sample.endedAt?.toUtc().toIso8601String(),
     'gps': sample.gps == null
@@ -498,6 +516,7 @@ ${_locationMapHtml(sample.gps)}
     MeasurementMethod.manual => 'MANUAL',
     MeasurementMethod.led => 'LED',
     MeasurementMethod.ble => 'BLUETOOTH',
+    MeasurementMethod.simulation => 'SIMULACIÓN',
   };
   String _caseStatus(VerificationCaseStatus value) => switch (value) {
     VerificationCaseStatus.open => 'ABIERTO',

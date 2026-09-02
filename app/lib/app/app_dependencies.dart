@@ -23,6 +23,8 @@ import '../infrastructure/vision/vision_pipeline.dart';
 import '../infrastructure/pulse/ble_discovery.dart';
 import '../infrastructure/export/case_export_service.dart';
 import '../infrastructure/remote/remote_api.dart';
+import '../domain/simulation/simulation_workflow_service.dart';
+import '../infrastructure/simulation/simulation_evidence_capture.dart';
 
 abstract interface class SessionStore {
   Future<String?> readActiveUserId();
@@ -512,6 +514,7 @@ final class AppDependencies {
     required this.evidenceCapture,
     required this.pulseProgress,
     required this.caseExport,
+    required this.simulationWorkflow,
     this.bleDiscovery,
     this.location,
     this.deviceMetadata,
@@ -577,6 +580,12 @@ final class AppDependencies {
     final points = LocalPointRepository(database);
     final evidence = LocalEvidenceRepository(database);
     final sync = LocalSyncQueueRepository(database);
+    final simulationEvidence = SimulationEvidenceCaptureAdapter(
+      fileStore,
+      evidence,
+    );
+    final pulseProgress = PulseProgressService(samples);
+    final sampleClosure = LocalSampleClosureService(database, fileStore);
     return AppDependencies(
       database: database,
       fileStore: fileStore,
@@ -588,13 +597,21 @@ final class AppDependencies {
       points: points,
       evidence: evidence,
       sync: sync,
-      sampleClosure: LocalSampleClosureService(database, fileStore),
+      sampleClosure: sampleClosure,
       caseClosure: LocalVerificationCaseClosureService(database),
       auth: LocalAuthService(users, sessionStore),
       sessionStore: sessionStore,
       evidenceCapture: DevelopmentEvidenceCaptureAdapter(fileStore, evidence),
-      pulseProgress: PulseProgressService(samples),
+      pulseProgress: pulseProgress,
       caseExport: CaseExportService(),
+      simulationWorkflow: SimulationWorkflowService(
+        samples: samples,
+        points: points,
+        evidence: evidence,
+        pulseProgress: pulseProgress,
+        sampleClosure: sampleClosure,
+        simulationEvidence: simulationEvidence,
+      ),
     );
   }
 
@@ -615,6 +632,7 @@ final class AppDependencies {
   final EvidenceCapturePort evidenceCapture;
   final PulseProgressPort pulseProgress;
   final CaseExportService caseExport;
+  final SimulationWorkflowService simulationWorkflow;
   final BleDiscoveryService? bleDiscovery;
   final LocationPort? location;
   final DeviceMetadataPort? deviceMetadata;
@@ -638,6 +656,7 @@ final class AppDependencies {
     AuthService? auth,
     RemoteApiClient? remoteApi,
     TokenStore? tokenStore,
+    SimulationWorkflowService? simulationWorkflow,
   }) => AppDependencies(
     database: database,
     fileStore: fileStore,
@@ -656,6 +675,7 @@ final class AppDependencies {
     evidenceCapture: evidenceCapture ?? this.evidenceCapture,
     pulseProgress: pulseProgress ?? this.pulseProgress,
     caseExport: caseExport,
+    simulationWorkflow: simulationWorkflow ?? this.simulationWorkflow,
     bleDiscovery: bleDiscovery ?? this.bleDiscovery,
     location: location ?? this.location,
     deviceMetadata: deviceMetadata ?? this.deviceMetadata,

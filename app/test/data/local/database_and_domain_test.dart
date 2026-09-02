@@ -28,9 +28,9 @@ void main() {
   });
 
   test(
-    'schema version 10 creates domain and operational settings tables',
+    'schema version 12 creates domain and operational settings tables',
     () async {
-      expect(database.schemaVersion, 11);
+      expect(database.schemaVersion, 12);
       final rows = await database
           .customSelect(
             "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
@@ -170,6 +170,78 @@ void main() {
     await diskDb.close();
     database = memoryDatabase();
   });
+
+  test(
+    'v11 to v12 migration preserves data and adds simulation metadata',
+    () async {
+      await database.close();
+      final path =
+          '${directory.path}${Platform.pathSeparator}migration-v12.sqlite';
+      var diskDb = AppDatabase(NativeDatabase(File(path)));
+      final diskFixture = OfflineFixture(diskDb, directory);
+      await diskFixture.seed();
+      await diskFixture.running();
+      final sampleSql = await diskDb
+          .customSelect("SELECT sql FROM sqlite_master WHERE name = 'samples'")
+          .getSingle();
+      final columnNames =
+          (await diskDb.customSelect('PRAGMA table_info(samples)').get())
+              .map((row) => row.read<String>('name'))
+              .where((name) => name != 'simulation_scenario')
+              .toList();
+      final columnList = columnNames.map((name) => '"$name"').join(', ');
+      final v11Sql = sampleSql
+          .read<String>('sql')
+          .replaceFirst('CREATE TABLE "samples"', 'CREATE TABLE "samples_v11"')
+          .replaceFirst(', "simulation_scenario" TEXT NULL', '')
+          .replaceFirst(
+            "CHECK (measurement_method IN ('visual','manual','led','ble','simulation'))",
+            "CHECK (measurement_method IN ('visual','manual','led','ble'))",
+          )
+          .replaceFirst(
+            ", CHECK ((measurement_method = 'simulation' AND simulation_scenario IN ('successful','failed','failThenPass')) OR (measurement_method != 'simulation' AND simulation_scenario IS NULL))",
+            '',
+          );
+      await diskDb.customStatement('PRAGMA foreign_keys = OFF');
+      await diskDb.customStatement(v11Sql);
+      await diskDb.customStatement(
+        'INSERT INTO samples_v11 ($columnList) SELECT $columnList FROM samples',
+      );
+      final triggers = await diskDb
+          .customSelect("SELECT name FROM sqlite_master WHERE type = 'trigger'")
+          .get();
+      for (final trigger in triggers) {
+        await diskDb.customStatement(
+          'DROP TRIGGER "${trigger.read<String>('name')}"',
+        );
+      }
+      await diskDb.customStatement('DROP TABLE samples');
+      await diskDb.customStatement('ALTER TABLE samples_v11 RENAME TO samples');
+      await diskDb.customStatement('PRAGMA user_version = 11');
+      await diskDb.close();
+
+      diskDb = AppDatabase(NativeDatabase(File(path)));
+      final recovered = await LocalSampleRepository(diskDb).getById('sample-1');
+      expect(recovered?.status, SampleStatus.running);
+      expect(recovered?.simulationScenario, isNull);
+      final columns = await diskDb
+          .customSelect('PRAGMA table_info(samples)')
+          .get();
+      expect(
+        columns.map((row) => row.read<String>('name')),
+        contains('simulation_scenario'),
+      );
+      final migratedSql = await diskDb
+          .customSelect("SELECT sql FROM sqlite_master WHERE name = 'samples'")
+          .getSingle();
+      expect(
+        migratedSql.read<String>('sql'),
+        allOf(contains("'simulation'"), contains('simulation_scenario')),
+      );
+      await diskDb.close();
+      database = memoryDatabase();
+    },
+  );
 
   test(
     'v1 to v2 migration preserves Stage 3 data and adds traceability',

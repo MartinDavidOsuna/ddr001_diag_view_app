@@ -11,6 +11,8 @@
     "sample_number",
     "status",
     "measurement_source",
+    "is_simulation",
+    "simulation_scenario",
     "config",
     "points",
     "evidence",
@@ -18,7 +20,7 @@
   ],
   "properties": {
     "schema": {
-      "const": "ddr001.verification.sample/v8"
+      "const": "ddr001.verification.sample/v9"
     },
     "sample_id": {
       "type": "string"
@@ -45,8 +47,16 @@
         "VISUAL",
         "MANUAL",
         "LED",
-        "BLE"
+        "BLE",
+        "SIMULATION"
       ]
+    },
+    "is_simulation": {
+      "type": "boolean"
+    },
+    "simulation_scenario": {
+      "type": ["string", "null"],
+      "enum": ["SUCCESSFUL", "FAILED", "FAIL_THEN_PASS", null]
     },
     "started_at": {
       "type": [
@@ -287,5 +297,28 @@
         "source"
       ]
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "measurement_source": { "const": "SIMULATION" }
+        }
+      },
+      "then": {
+        "properties": {
+          "is_simulation": { "const": true },
+          "simulation_scenario": {
+            "enum": ["SUCCESSFUL", "FAILED", "FAIL_THEN_PASS"]
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "is_simulation": { "const": false },
+          "simulation_scenario": { "type": "null" }
+        }
+      }
+    }
+  ]
 }

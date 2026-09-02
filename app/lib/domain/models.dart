@@ -43,6 +43,16 @@ enum FlowRecordStatus { open, pass, fail, inconclusive }
 
 enum SampleStatus { draft, running, invalidEvidence, closedValid }
 
+enum SimulationScenario { successful, failed, failThenPass }
+
+extension SimulationScenarioContract on SimulationScenario {
+  String get contractName => switch (this) {
+    SimulationScenario.successful => 'SUCCESSFUL',
+    SimulationScenario.failed => 'FAILED',
+    SimulationScenario.failThenPass => 'FAIL_THEN_PASS',
+  };
+}
+
 enum ReadingSource { autoConfirmed, manual }
 
 enum PointType { start, intermediate, finalPoint, manualDiagnostic }
@@ -381,6 +391,7 @@ final class Sample {
     this.acquisitionIntegrity = const AcquisitionIntegrity(),
     this.result,
     this.checksum,
+    this.simulationScenario,
   });
 
   final String id;
@@ -405,6 +416,10 @@ final class Sample {
   final AcquisitionIntegrity acquisitionIntegrity;
   final SampleResult? result;
   final String? checksum;
+  final SimulationScenario? simulationScenario;
+
+  bool get isSimulation =>
+      configuration.measurementMethod == MeasurementMethod.simulation;
 
   Sample start({required DateTime at, GpsSnapshot? gps}) {
     if (status != SampleStatus.draft) {
@@ -446,6 +461,7 @@ final class Sample {
     acquisitionIntegrity: acquisitionIntegrity,
     result: result,
     checksum: checksum,
+    simulationScenario: simulationScenario,
   );
 }
 

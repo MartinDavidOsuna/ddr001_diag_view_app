@@ -79,6 +79,7 @@ final class AppViewState {
     this.sample,
     this.selectedFlow = FlowPoint.q1,
     this.selectedMethod = MeasurementMethod.ble,
+    this.selectedSimulationScenario = SimulationScenario.successful,
     this.lpsApprox,
     this.q1LpsApprox = 1.5,
     this.q2LpsApprox = 1.0,
@@ -155,6 +156,7 @@ final class AppViewState {
   final Sample? sample;
   final FlowPoint selectedFlow;
   final MeasurementMethod selectedMethod;
+  final SimulationScenario selectedSimulationScenario;
   final double? lpsApprox;
   final double q1LpsApprox;
   final double q2LpsApprox;
@@ -231,6 +233,7 @@ final class AppViewState {
     bool clearSample = false,
     FlowPoint? selectedFlow,
     MeasurementMethod? selectedMethod,
+    SimulationScenario? selectedSimulationScenario,
     double? lpsApprox,
     double? q1LpsApprox,
     double? q2LpsApprox,
@@ -311,6 +314,8 @@ final class AppViewState {
     sample: clearSample ? null : sample ?? this.sample,
     selectedFlow: selectedFlow ?? this.selectedFlow,
     selectedMethod: selectedMethod ?? this.selectedMethod,
+    selectedSimulationScenario:
+        selectedSimulationScenario ?? this.selectedSimulationScenario,
     lpsApprox: lpsApprox ?? this.lpsApprox,
     q1LpsApprox: q1LpsApprox ?? this.q1LpsApprox,
     q2LpsApprox: q2LpsApprox ?? this.q2LpsApprox,
@@ -566,6 +571,9 @@ final class AppController extends StateNotifier<AppViewState> {
   void selectMethod(MeasurementMethod value) =>
       state = state.copyWith(selectedMethod: value);
 
+  void selectSimulationScenario(SimulationScenario value) =>
+      state = state.copyWith(selectedSimulationScenario: value);
+
   Future<void> replaceOpenSampleMethod(MeasurementMethod value) async {
     final sample = state.sample;
     if (sample == null || sample.status == SampleStatus.closedValid) {
@@ -808,6 +816,7 @@ final class AppController extends StateNotifier<AppViewState> {
         flow: flow,
         selectedFlow: FlowPoint.q1,
         selectedMethod: MeasurementMethod.ble,
+        selectedSimulationScenario: SimulationScenario.successful,
         page: AppPage.method,
       );
     });
@@ -931,6 +940,9 @@ final class AppController extends StateNotifier<AppViewState> {
         createdAt: now,
         updatedAt: now,
         pulseCount: 0,
+        simulationScenario: state.selectedMethod == MeasurementMethod.simulation
+            ? state.selectedSimulationScenario
+            : null,
       );
       await dependencies.samples.createDraft(draft);
       GpsSnapshot? gps = state.gps;
@@ -956,6 +968,16 @@ final class AppController extends StateNotifier<AppViewState> {
         at: now,
         gps: gps,
       );
+      if (running.isSimulation) {
+        await _loadSampleContext(running);
+        state = state.copyWith(
+          page: AppPage.run,
+          measurementStarted: true,
+          hardwareState: HardwareState.notConnected,
+        );
+        await _executeSimulation(running, verificationCase.id);
+        return;
+      }
       final cameraTemplate =
           inheritedMeterFaceConfiguration ?? _lastMeterFaceConfiguration;
       if (cameraTemplate != null && inheritedMeterFaceConfiguration == null) {
@@ -2080,6 +2102,8 @@ final class AppController extends StateNotifier<AppViewState> {
     'ended_at': sample.endedAt?.toUtc().toIso8601String(),
     'measurement_source': sample.configuration.measurementMethod.name
         .toUpperCase(),
+    'is_simulation': sample.isSimulation,
+    'simulation_scenario': sample.simulationScenario?.contractName,
     'pulse_count': sample.pulseCount,
     'acquisition_integrity': sample.acquisitionIntegrity.status.name
         .toUpperCase(),
@@ -2105,6 +2129,13 @@ final class AppController extends StateNotifier<AppViewState> {
   Future<void> resumeSample() async {
     final sample = state.sample;
     if (sample != null) {
+      if (sample.isSimulation) {
+        final flow = await dependencies.flows.getById(sample.flowPointId);
+        if (flow == null) throw StateError('No se encontró el caudal.');
+        state = state.copyWith(page: AppPage.run, measurementStarted: true);
+        await _executeSimulation(sample, flow.caseId);
+        return;
+      }
       if (sample.initialReading != null && sample.finalReading != null) {
         state = state.copyWith(page: AppPage.readings);
         return;
@@ -2158,6 +2189,8 @@ final class AppController extends StateNotifier<AppViewState> {
       sample: sample,
       selectedFlow: flow.code,
       selectedMethod: sample.configuration.measurementMethod,
+      selectedSimulationScenario:
+          sample.simulationScenario ?? state.selectedSimulationScenario,
       lpsApprox: flow.lpsApprox,
       cameraZoomLevel: sample.configuration.cameraZoomLevel,
       evidence: evidence,
@@ -2170,6 +2203,74 @@ final class AppController extends StateNotifier<AppViewState> {
       measurementStarted:
           sample.pulseCount > 0 ||
           evidence.any((item) => item.type == EvidenceType.start),
+    );
+  }
+
+  Future<void> _executeSimulation(Sample running, String caseId) async {
+    final scenario = running.simulationScenario;
+    if (scenario == null) {
+      throw StateError('La simulación no tiene escenario persistido.');
+    }
+    final firstShouldPass = scenario == SimulationScenario.successful;
+    var closed = await dependencies.simulationWorkflow.run(
+      caseId: caseId,
+      runningSample: running,
+      shouldPass: firstShouldPass,
+      onProgress: (sample) async {
+        await _loadSampleContext(sample);
+        state = state.copyWith(
+          page: sample.status == SampleStatus.closedValid
+              ? AppPage.result
+              : AppPage.run,
+          measurementStarted: sample.status == SampleStatus.running,
+        );
+      },
+    );
+    if (scenario == SimulationScenario.failThenPass &&
+        closed.result?.verdict == SampleVerdict.fail) {
+      final existing = await dependencies.samples.listByFlow(
+        closed.flowPointId,
+      );
+      final now = DateTime.now().toUtc();
+      final secondDraft = Sample(
+        id: _uuid.v4(),
+        flowPointId: closed.flowPointId,
+        sampleNumber: existing.length + 1,
+        status: SampleStatus.draft,
+        configuration: closed.configuration,
+        createdAt: now,
+        updatedAt: now,
+        pulseCount: 0,
+        simulationScenario: scenario,
+      );
+      await dependencies.samples.createDraft(secondDraft);
+      final second = await dependencies.samples.start(
+        secondDraft.id,
+        at: now,
+        gps: closed.gps,
+      );
+      await _loadSampleContext(second);
+      state = state.copyWith(page: AppPage.run, measurementStarted: true);
+      closed = await dependencies.simulationWorkflow.run(
+        caseId: caseId,
+        runningSample: second,
+        shouldPass: true,
+        onProgress: (sample) async {
+          await _loadSampleContext(sample);
+          state = state.copyWith(
+            page: sample.status == SampleStatus.closedValid
+                ? AppPage.result
+                : AppPage.run,
+            measurementStarted: sample.status == SampleStatus.running,
+          );
+        },
+      );
+    }
+    await _loadSampleContext(closed);
+    state = state.copyWith(
+      page: AppPage.result,
+      measurementStarted: false,
+      finalizingMeasurement: false,
     );
   }
 

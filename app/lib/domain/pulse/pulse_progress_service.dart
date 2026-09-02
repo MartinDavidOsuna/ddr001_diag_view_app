@@ -3,7 +3,8 @@ import '../repositories.dart';
 import '../../core/metrology/metrology.dart';
 import 'pulse_source.dart';
 
-/// The only operation that turns MANUAL/LED/BLE events into persisted volume.
+/// The only operation that turns MANUAL/LED/BLE/SIMULATION events into
+/// persisted volume.
 final class PulseProgressService implements PulseProgressPort {
   PulseProgressService(this.samples);
 

@@ -87,6 +87,15 @@ final class RecoveryScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (sample.isSimulation) ...[
+              const StatusBanner(
+                text:
+                    'MODO SIMULACIÓN · PRUEBA SIMULADA — NO CORRESPONDE A UNA VERIFICACIÓN FÍSICA',
+                color: AppColors.warning,
+                icon: Icons.science_outlined,
+              ),
+              const SizedBox(height: 18),
+            ],
             const StatusBanner(
               text: 'Se encontró una prueba guardada en este dispositivo.',
               color: AppColors.warning,
@@ -375,6 +384,7 @@ String methodLabel(dynamic method) =>
       'manual' => 'MANUAL',
       'led' => 'LED',
       'ble' => 'BLUETOOTH',
+      'simulation' => 'SIMULACIÓN',
       _ => '—',
     };
 

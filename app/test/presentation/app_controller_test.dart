@@ -255,6 +255,7 @@ void main() {
       MeasurementMethod.manual,
       MeasurementMethod.led,
       MeasurementMethod.ble,
+      MeasurementMethod.simulation,
     ]);
   });
 
