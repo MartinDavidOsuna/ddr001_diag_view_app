@@ -1,5 +1,11 @@
 # CHANGELOG funcional
 
+## Versión 1.3.4+14 — Evidence intermedia sin bloquear pulsos — 2026-09-01
+- La captura y persistencia de Evidence INTERMEDIATE se ejecutan fuera de la cola de pulsos y ya no activan el `loading` global ni deshabilitan el ritmo de MANUAL o BLE/ESP32.
+- Los pulsos conservan serialización y persistencia inmediata mientras la cámara procesa la fotografía; si se cruzan varios umbrales, la cola de Evidence los completa en orden y sin duplicarlos.
+- FINAL congela nuevos pulsos y espera tanto los pulsos ya aceptados como la Evidence intermedia pendiente antes de cerrar la Sample.
+- No cambian Drift 12, el plan START/INTERMEDIATE/FINAL, la metrología, Simulación, reportes, backend ni firmware.
+
 ## Versión 1.3.3+13 — frontera START obligatoria para MANUAL — 2026-09-01
 - MANUAL habilita `INICIAR PRUEBA` sin exigir pulsos de caudal previos, captura primero Evidence START y sólo entonces habilita `+1 PULSO`.
 - Un pulso MANUAL previo a START ya no puede incrementar la Sample ni hacer que recovery interprete la adquisición como iniciada.

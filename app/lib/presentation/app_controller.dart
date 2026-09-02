@@ -446,7 +446,9 @@ final class AppController extends StateNotifier<AppViewState> {
   int? _latestEsp32Counter;
   int _pendingOpticalPulses = 0;
   Future<void> _pulseQueue = Future.value();
+  Future<void> _intermediateEvidenceTask = Future.value();
   bool _openingIntermediateEvidence = false;
+  bool _intermediateEvidenceRescanRequested = false;
 
   Future<void> initialize() async {
     await _guard(() async {
@@ -1075,8 +1077,14 @@ final class AppController extends StateNotifier<AppViewState> {
         sample.configuration.measurementMethod != MeasurementMethod.manual) {
       return;
     }
-    await _guard(() async {
-      final now = DateTime.now().toUtc();
+    final now = DateTime.now().toUtc();
+    final queued = _pulseQueue.then((_) async {
+      final persisted = await dependencies.samples.getById(sample.id);
+      if (persisted == null ||
+          persisted.status != SampleStatus.running ||
+          state.sample?.id != sample.id) {
+        return;
+      }
       await dependencies.pulseProgress.acceptPulse(
         sample.id,
         PulseEvent(
@@ -1088,8 +1096,18 @@ final class AppController extends StateNotifier<AppViewState> {
       );
       _recordControlPulse(now);
       await _refreshSample(sample.id);
-      await _openDueIntermediateEvidence(sample.id);
+      _scheduleDueIntermediateEvidence(sample.id);
     });
+    _pulseQueue = queued.catchError((Object error, StackTrace stackTrace) {
+      state = state.copyWith(
+        errorMessage: error is ArgumentError
+            ? _friendly(error.message)
+            : error is StateError
+            ? _friendly(error.message)
+            : 'No fue posible registrar el pulso manual.',
+      );
+    });
+    await _pulseQueue;
   }
 
   Future<void> setDevelopmentVisualReference(double liters) async {
@@ -1250,9 +1268,6 @@ final class AppController extends StateNotifier<AppViewState> {
       measurementStarted: false,
       finalizingMeasurement: true,
       page: AppPage.run,
-      capturePurpose: CapturePurpose.finalEvidence,
-      captureVolumeLiters: reference,
-      cameraState: CameraOperationState.processing,
       clearReadingProposal: true,
       clearError: true,
     );
@@ -1260,6 +1275,8 @@ final class AppController extends StateNotifier<AppViewState> {
     // Complete callbacks that had already entered the serialized queue before
     // the operator pressed FINALIZAR.
     await _pulseQueue;
+    _scheduleDueIntermediateEvidence(sample.id);
+    await waitForPendingIntermediateEvidence();
     final drainedSample = await dependencies.samples.getById(sample.id);
     if (drainedSample != null &&
         sample.configuration.measurementMethod.isPulseEventSource) {
@@ -1270,6 +1287,11 @@ final class AppController extends StateNotifier<AppViewState> {
         captureVolumeLiters: reference,
       );
     }
+    state = state.copyWith(
+      capturePurpose: CapturePurpose.finalEvidence,
+      captureVolumeLiters: reference,
+      cameraState: CameraOperationState.processing,
+    );
     final camera = dependencies.camera;
     if (camera == null) {
       state = state.copyWith(
@@ -2323,22 +2345,69 @@ final class AppController extends StateNotifier<AppViewState> {
     return null;
   }
 
-  Future<void> _openDueIntermediateEvidence(String sampleId) async {
-    if (_openingIntermediateEvidence || state.page != AppPage.run) return;
-    final sample = await dependencies.samples.getById(sampleId);
-    if (sample == null || sample.status != SampleStatus.running) return;
-    final current = sample.configuration.measurementMethod.isPulseEventSource
-        ? sample.pulseCount * sample.configuration.litersPerPulse
-        : sample.referenceLitersProgress ?? 0;
-    if (current <= 0) return;
-    final missing = await _firstMissingIntermediate(sample, current + 1e-9);
-    if (missing == null || missing > current) return;
+  void _scheduleDueIntermediateEvidence(String sampleId) {
+    if (state.page != AppPage.run) return;
+    if (_openingIntermediateEvidence) {
+      _intermediateEvidenceRescanRequested = true;
+      return;
+    }
     _openingIntermediateEvidence = true;
+    _intermediateEvidenceRescanRequested = false;
+    _intermediateEvidenceTask = _drainDueIntermediateEvidence(
+      sampleId,
+    ).catchError((Object error, StackTrace stackTrace) {
+      state = state.copyWith(
+        cameraState: CameraOperationState.error,
+        clearCapturePurpose: true,
+        errorMessage:
+            'No fue posible capturar automáticamente la evidencia INTERMEDIATE.',
+      );
+    });
+    unawaited(_intermediateEvidenceTask);
+  }
+
+  Future<void> _drainDueIntermediateEvidence(String sampleId) async {
     try {
-      await requestIntermediateEvidence(missing);
+      while (state.sample?.id == sampleId && state.page == AppPage.run) {
+        final sample = await dependencies.samples.getById(sampleId);
+        if (sample == null || sample.status != SampleStatus.running) return;
+        final current = sample.configuration.measurementMethod.isPulseEventSource
+            ? sample.pulseCount * sample.configuration.litersPerPulse
+            : sample.referenceLitersProgress ?? 0;
+        if (current <= 0) return;
+        final missing = await _firstMissingIntermediate(
+          sample,
+          current + ExpectedEvidencePlan.comparisonEpsilon,
+        );
+        if (missing == null || missing > current) return;
+        await requestIntermediateEvidence(missing);
+        final afterCapture = await dependencies.samples.getById(sampleId);
+        if (afterCapture == null) return;
+        final stillMissing = await _firstMissingIntermediate(
+          afterCapture,
+          current + ExpectedEvidencePlan.comparisonEpsilon,
+        );
+        // A denied/unavailable camera leaves the requirement pending. Stop the
+        // drain instead of retrying it in a tight loop; closure will retain the
+        // Sample as INVALID_EVIDENCE as designed.
+        if (stillMissing == missing) return;
+      }
     } finally {
       _openingIntermediateEvidence = false;
+      if (_intermediateEvidenceRescanRequested && state.page == AppPage.run) {
+        _intermediateEvidenceRescanRequested = false;
+        _scheduleDueIntermediateEvidence(sampleId);
+      }
     }
+  }
+
+  @visibleForTesting
+  Future<void> waitForPendingIntermediateEvidence() async {
+    do {
+      final pending = _intermediateEvidenceTask;
+      await pending;
+    } while (_openingIntermediateEvidence ||
+        _intermediateEvidenceRescanRequested);
   }
 
   Future<void> _startBleForCurrentSample() async {
@@ -2410,7 +2479,7 @@ final class AppController extends StateNotifier<AppViewState> {
           await dependencies.pulseProgress.acceptPulse(sample.id, event);
           await _refreshSample(sample.id);
           if (!state.finalizingMeasurement) {
-            await _openDueIntermediateEvidence(sample.id);
+            _scheduleDueIntermediateEvidence(sample.id);
           }
         }
       });

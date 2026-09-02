@@ -365,6 +365,7 @@ void main() {
       expect(controller.state.page, AppPage.run);
       await controller.addManualPulse();
       expect(controller.state.page, AppPage.run);
+      await controller.waitForPendingIntermediateEvidence();
       expect(controller.state.capturePurpose, isNull);
       expect(camera.captureCount, 2);
       final evidence = await dependencies.evidence.listBySample(
@@ -373,6 +374,60 @@ void main() {
       expect(
         evidence.where((item) => item.type == EvidenceType.intermediate),
         hasLength(1),
+      );
+    },
+  );
+
+  test(
+    'intermediate photo never blocks manual pulse rhythm or shows loading',
+    () async {
+      final camera = _FakeCameraPort();
+      final dependencies = fixture.dependencies.copyWith(
+        camera: camera,
+        visualPipeline: _FakeVisualPipeline(),
+      );
+      controller = AppController(dependencies);
+      await _prepare(controller, method: MeasurementMethod.manual);
+      controller.updateSetup(
+        litersPerPulse: 1,
+        evidenceStepLiters: 2,
+        uncertaintyLiters: 1,
+      );
+      await controller.startSample();
+      await controller.confirmLiveCameraPreparation(
+        const DialVisionConfiguration(
+          totalizerRegion: TotalizerRegion(NormalizedRect(.1, .1, .5, .2)),
+          selectedDial: NormalizedCircle(.6, .6, .15),
+        ),
+      );
+      await controller.beginMeasurement();
+      await controller.addManualPulse();
+
+      final photoGate = Completer<void>();
+      camera.nextCaptureGate = photoGate;
+      await controller.addManualPulse();
+      for (var attempt = 0; attempt < 20 && camera.captureCount < 2; attempt++) {
+        await Future<void>.delayed(const Duration(milliseconds: 1));
+      }
+      expect(camera.captureCount, 2);
+      expect(photoGate.isCompleted, isFalse);
+      expect(controller.state.busy, isFalse);
+
+      await Future.wait([
+        controller.addManualPulse(),
+        controller.addManualPulse(),
+      ]);
+      expect(controller.state.sample?.pulseCount, 4);
+      expect(controller.state.busy, isFalse);
+
+      photoGate.complete();
+      await controller.waitForPendingIntermediateEvidence();
+      final evidence = await dependencies.evidence.listBySample(
+        controller.state.sample!.id,
+      );
+      expect(
+        evidence.where((item) => item.type == EvidenceType.intermediate),
+        hasLength(2),
       );
     },
   );
@@ -682,6 +737,7 @@ void main() {
       await controller.beginMeasurement();
       await controller.addManualPulse();
       await controller.addManualPulse();
+      await controller.waitForPendingIntermediateEvidence();
       final capturesBeforeFinal = camera.captureCount;
 
       await controller.requestFinalEvidence();
@@ -930,6 +986,7 @@ final class _FakeTokenStore implements TokenStore {
 
 final class _FakeCameraPort implements CameraPort {
   int captureCount = 0;
+  Completer<void>? nextCaptureGate;
   String get lastCapturePath =>
       '${Directory.systemTemp.path}/ddr001-auto-intermediate-$captureCount.jpg';
   @override
@@ -947,6 +1004,9 @@ final class _FakeCameraPort implements CameraPort {
   @override
   Future<CapturedPhoto> capture() async {
     captureCount++;
+    final gate = nextCaptureGate;
+    nextCaptureGate = null;
+    if (gate != null) await gate.future;
     final file = File(lastCapturePath);
     await file.writeAsBytes(List<int>.filled(900, captureCount));
     return CapturedPhoto(path: file.path, capturedAt: DateTime.now().toUtc());
