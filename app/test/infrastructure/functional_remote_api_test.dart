@@ -186,6 +186,39 @@ void main() {
     );
   });
 
+  for (final status in const [429, 500, 502, 503, 504]) {
+    test(
+      'HTTP $status is typed retryable without clearing credentials',
+      () async {
+        final store = _MemoryCredentialStore.seeded();
+        final client = RemoteApiClient(
+          baseUrl: 'https://test.invalid',
+          credentials: store,
+          client: MockClient(
+            (_) async => http.Response(
+              jsonEncode({
+                'error': {'code': 'REMOTE_RETRYABLE', 'message': 'retry later'},
+              }),
+              status,
+            ),
+          ),
+        );
+
+        await expectLater(
+          client.access(),
+          throwsA(
+            isA<RemoteApiException>().having(
+              (error) => error.retryable,
+              'retryable',
+              isTrue,
+            ),
+          ),
+        );
+        expect(await store.readCredentials(), isNotNull);
+      },
+    );
+  }
+
   test('canonical payload hash is independent of map key order', () {
     expect(
       canonicalSha256({'b': 2, 'a': 1}),

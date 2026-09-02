@@ -47,6 +47,13 @@ final class FunctionalSyncEngine {
     required String localUserId,
   }) async {
     try {
+      final latest = await batches.latestForCase(caseId);
+      if (latest?.state == SyncBatchState.synced) {
+        return const FunctionalSyncResult(
+          FunctionalSyncOutcome.synced,
+          'Sincronizado',
+        );
+      }
       final access = await api.access();
       if (!access.enabled) {
         return const FunctionalSyncResult(

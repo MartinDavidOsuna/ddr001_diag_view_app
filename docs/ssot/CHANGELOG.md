@@ -16,6 +16,9 @@
   acción de refresco. Historial lee el último ACK persistido y muestra también
   `Sincronizado` en verde; una nueva pulsación sobre un Case cerrado ya
   confirmado no envía otro batch ni crea otro receipt.
+- El motor de sincronización aplica la misma guarda idempotente aunque sea
+  invocado fuera de la pantalla: un Case con batch `synced` retorna su estado
+  local sin hacer access, uploads ni `sync/push` adicionales.
 
 ## Macroetapa 1 — contrato online con DDR001 API — 2026-09-02
 - Se congela `ddr001_api` + SQL Server 2014 como único backend productivo y se clasifica `backend/` Prisma/PostgreSQL como referencia histórica no desplegable.

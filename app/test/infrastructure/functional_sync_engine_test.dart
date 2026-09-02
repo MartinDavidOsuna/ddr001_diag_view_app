@@ -70,6 +70,37 @@ void main() {
     },
   );
 
+  test('an already-synced Case produces no remote requests', () async {
+    await fixture.seedClosedCase();
+    var remoteCalls = 0;
+    final firstEngine = fixture.engine((request) async {
+      if (request.url.path.endsWith('/me/access')) return _access();
+      if (request.url.path.endsWith('/evidence')) return _evidenceAck();
+      if (request.url.path.endsWith('/sync/push')) return _receipt(request);
+      throw StateError('Unexpected route ${request.url}');
+    });
+    expect(
+      (await firstEngine.syncCase(
+        caseId: _caseId,
+        localUserId: _userId,
+      )).outcome,
+      FunctionalSyncOutcome.synced,
+    );
+
+    final secondEngine = fixture.engine((_) async {
+      remoteCalls++;
+      throw StateError('A confirmed Case must not reach the network.');
+    });
+    final repeated = await secondEngine.syncCase(
+      caseId: _caseId,
+      localUserId: _userId,
+    );
+
+    expect(repeated.outcome, FunctionalSyncOutcome.synced);
+    expect(remoteCalls, 0);
+    expect((await fixture.batches.latestForCase(_caseId))?.attempts, 1);
+  });
+
   test(
     'lost ACK is recovered by receipt without creating another batch',
     () async {
@@ -226,6 +257,30 @@ void main() {
     expect(result.outcome, FunctionalSyncOutcome.accessDenied);
     expect(await fixture.queue.listPending(), hasLength(before.length));
     expect(await fixture.cases.getById(_caseId), isNotNull);
+  });
+
+  test('HTTP 403 leaves queue and all local work pending', () async {
+    await fixture.seedClosedCase();
+    final before = await fixture.queue.listPending();
+    final engine = fixture.engine(
+      (_) async => http.Response(
+        jsonEncode({
+          'error': {
+            'code': 'FUNCTIONAL_ACCESS_DISABLED',
+            'message': 'Functional access is disabled.',
+          },
+        }),
+        403,
+      ),
+    );
+
+    final result = await engine.syncCase(caseId: _caseId, localUserId: _userId);
+
+    expect(result.outcome, FunctionalSyncOutcome.accessDenied);
+    expect(await fixture.queue.listPending(), hasLength(before.length));
+    expect(await fixture.cases.getById(_caseId), isNotNull);
+    expect(await fixture.samples.getById(_sampleId), isNotNull);
+    expect(await fixture.evidence.listBySample(_sampleId), hasLength(2));
   });
 
   test('one failed Case does not block the next queued Case', () async {
