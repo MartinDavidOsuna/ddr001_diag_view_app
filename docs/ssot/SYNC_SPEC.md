@@ -13,6 +13,10 @@ captura -> persistencia local -> validación -> cierre inmutable
 Nunca se guarda local después del éxito API. Una falla remota conserva visible
 y válida toda la información local y sólo cambia el estado de la cola.
 
+La demo Flutter Web autónoma no participa en esta cola ni simula ACKs: no tiene
+sync, tokens, API ni SQL. Sus expedientes de presentación son sólo locales al
+navegador y se identifican permanentemente como simulados.
+
 ## Identidad remota
 
 Se reutiliza Field auth de `ddr001_api` con

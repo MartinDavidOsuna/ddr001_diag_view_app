@@ -1,7 +1,7 @@
 # Manual de uso — AQ VF DDR001 · Verificador Funcional
 
-**Versión del manual:** 1.3
-**Última actualización del contenido:** 2 de septiembre de 2026
+**Versión del manual:** 1.4
+**Última actualización del contenido:** 10 de septiembre de 2026
 
 Inicio y Ajustes muestran por separado la versión instalada de la aplicación con el formato `Versión: #.#.#+##`. Este manual es la fuente canónica del procedimiento visible para el técnico y funciona completamente sin internet.
 
@@ -107,6 +107,12 @@ Al abrir **Prueba en curso**, el caudal ya fluctúa como lo haría durante la es
 Pulse **INICIAR PRUEBA** cuando decida comenzar. En ese instante exacto inicia el cronómetro y comienzan a acumularse pulsos y Vref. Pulse **FINALIZAR Y CONFIRMAR LECTURAS** cuando decida terminar. La app genera START, las Evidence INTERMEDIATE correspondientes y FINAL con la leyenda **EVIDENCIA DE SIMULACIÓN**, almacenadas como archivos reales con checksum.
 
 Después aparece **CAPTURAR LECTURAS**. Capture manualmente los datos de INICIO y FINAL; la app calcula Vind, error, incertidumbre, MPE y veredicto mediante el motor metrológico real y conserva el flujo completo hasta Historial y reportes. No use una simulación como constancia de una verificación física.
+
+Durante SIMULACIÓN, los iconos verdes de ESP32/Bluetooth y control remoto son indicadores de demostración; no significan que exista hardware conectado. En **CAPTURAR LECTURAS**, los recortes ilustrativos del totalizador y de la aguja pueden tocarse para abrir la carátula demo completa. Capture los valores en los campos: los números de la imagen no se leen automáticamente ni participan en el cálculo.
+
+### 6.2 Demo Web local para presentaciones
+
+La entrada Web funciona en `localhost`, no solicita usuario o contraseña y no se conecta con API, SQL TEST ni producción. Sólo ofrece SIMULACIÓN Q1/Q2 y conserva su historial dentro del navegador usado. El botón **BORRAR HISTORIAL** elimina únicamente esos expedientes demo después de confirmación; no afecta datos de la app Android. Chrome, Edge y Firefox pueden conservar historiales independientes.
 
 ## 7. Método MANUAL
 

@@ -215,18 +215,21 @@ final class _TestRunScreenState extends ConsumerState<TestRunScreen> {
         child: AppScaffold(
           title: 'Prueba en curso',
           showBack: false,
-          actions: sample.isSimulation
-              ? const []
-              : [
-                  _RunHeaderStatus(
-                    esp32Connected: state.hardwareState == HardwareState.ready,
-                    remoteConnected:
-                        _remoteControlArmed || _remoteConfirmationOpen,
-                    controlPulses: state.preStartControlPulseCount,
-                    controlFirstPulseAt: state.preStartControlFirstPulseAt,
-                    litersPerPulse: config.litersPerPulse,
-                  ),
-                ],
+          actions: [
+            _RunHeaderStatus(
+              esp32Connected:
+                  sample.isSimulation ||
+                  state.hardwareState == HardwareState.ready,
+              remoteConnected:
+                  sample.isSimulation ||
+                  _remoteControlArmed ||
+                  _remoteConfirmationOpen,
+              controlPulses: state.preStartControlPulseCount,
+              controlFirstPulseAt: state.preStartControlFirstPulseAt,
+              litersPerPulse: config.litersPerPulse,
+              demoIndicators: sample.isSimulation,
+            ),
+          ],
           pinnedHeader: _PinnedRunStatus(
             meterId: state.meter?.id ?? '—',
             sample: sample,
@@ -403,6 +406,7 @@ final class _RunHeaderStatus extends StatefulWidget {
     required this.controlPulses,
     required this.controlFirstPulseAt,
     required this.litersPerPulse,
+    this.demoIndicators = false,
   });
 
   final bool esp32Connected;
@@ -410,6 +414,7 @@ final class _RunHeaderStatus extends StatefulWidget {
   final int controlPulses;
   final DateTime? controlFirstPulseAt;
   final double litersPerPulse;
+  final bool demoIndicators;
 
   @override
   State<_RunHeaderStatus> createState() => _RunHeaderStatusState();
@@ -480,7 +485,9 @@ final class _RunHeaderStatusState extends State<_RunHeaderStatus> {
             ],
           ),
           Text(
-            'Confianza ${confidence.toStringAsFixed(2)}%',
+            widget.demoIndicators
+                ? 'Indicadores demo'
+                : 'Confianza ${confidence.toStringAsFixed(2)}%',
             maxLines: 1,
             style: TextStyle(
               color: confidenceColor,

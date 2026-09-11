@@ -6,6 +6,7 @@
 - Offline-first.
 - Muestras cerradas inmutables.
 - El simulador web legado es únicamente una herramienta externa de validación y no se integra. **LECTURA VISUAL** es productiva y se utiliza con medidores reales; el modo **SIMULACIÓN** de QA es una fuente nueva, separada y siempre trazable.
+- La demo Flutter Web es una entrada autónoma de presentación, distinta del simulador legado y del runtime Android productivo. No solicita login ni consume API/SQL; sólo permite SIMULACIÓN Q1/Q2, calcula con el motor metrológico común, genera un reporte descargable y conserva/borrar su historial en el navegador.
 
 ## 1. Login persistente (`features/auth`)
 - Campos, en orden: nombre, correo y teléfono. El nombre es obligatorio en la UI, admite Unicode y se persiste sin espacios exteriores.
@@ -38,6 +39,7 @@ Modos productivos:
 - **LED ESP32:** cámara detecta el destello emitido por el ESP32 dentro de ROI configurable, con umbral/histéresis/anti-rebote; cada evento válido suma `K` litros.
 - **BLE ESP32:** cada notificación/evento válido representa un pulso y suma `K` litros.
 - **SIMULACIÓN:** fuente local de QA controlada por el operador. Produce un caudal fluctuante visible antes del inicio —Q1 entre 5 y 7 L/s, Q2 entre 2 y 3 L/s— y ningún cambio consecutivo supera 0.5 L/s. El operador inicia y finaliza; sólo dentro de esa frontera se acumulan tiempo, pulsos y Vref. Después captura lecturas manuales y usa el pipeline real de Sample, Evidence, cierre, metrología y reportes. Nunca fuerza el veredicto.
+- En SIMULACIÓN, Android y Web muestran en verde los iconos de Bluetooth/ESP32 y control remoto como indicadores explícitamente demostrativos. No crean un transporte BLE ni una identidad remota. El formulario manual presenta recortes demo del totalizador y la aguja; tocarlos abre la carátula completa. Los números de la imagen son ilustrativos y sólo los campos capturados alimentan el cálculo.
 - El ESP32 DDR001 publica contador BLE v1 acumulativo. La app congela baseline, persiste el último contador y reconcilia saltos. Adquisición no verificable se marca `COMPROMISED` y no cierra válida.
 - GPIO25/GPIO27 del firmware productivo usan el filtro de glitches PCNT y una segunda validación que exige LOW continuo mínimo 17 ms y rearme HIGH antes de incrementar o notificar. El nombre BLE contiene serie y versión bajo el prefijo contractual `DDR001-PULSE-`.
 - La conexión BLE del ESP32 ejecuta keepalive leyendo el contador cada 10 s. Si no responde, intenta recuperar la conexión tres veces antes de declararlo no conectado; el contador acumulativo permite reconciliar el intervalo recuperado.

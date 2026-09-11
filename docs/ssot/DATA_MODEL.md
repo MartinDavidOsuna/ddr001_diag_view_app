@@ -9,6 +9,11 @@ serializables actuales que el futuro serializer de sync deberá ampliar sin
 perder compatibilidad. La representación remota oficial vive en SQL Server 2014
 bajo `functional_diag`; Prisma/PostgreSQL deja de ser objetivo productivo.
 
+La demo Flutter Web no abre ni replica Drift. Conserva únicamente una lista
+JSON versionada de expedientes simulados completos en `localStorage` mediante
+SharedPreferences Web. Ese historial es aislado, no sincronizable y puede
+borrarse desde su propia UI; no modifica datos Android, API ni SQL.
+
 ## User
 - `user_id` UUID local. Puede diferir del `rv.users.user_id` remoto; se conserva
   como `client_user_id` en el Case remoto para mantener checksums históricos.

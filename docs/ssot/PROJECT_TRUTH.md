@@ -1,6 +1,6 @@
 # PROJECT_TRUTH — DDR001 Verificador de Medidores
 
-- Versión de aplicación vigente: `1.5.1+17`. Login, Inicio y Ajustes muestran la versión instalada. La identidad funcional visible es **VERIFICADOR FUNCIONAL** y Android muestra **AQ VF DDR001**; el encabezado común y el splash Flutter conservan la identidad Aquafim.
+- Versión de aplicación vigente: `1.6.0+18`. Login, Inicio y Ajustes muestran la versión instalada. La identidad funcional visible es **VERIFICADOR FUNCIONAL** y Android muestra **AQ VF DDR001**; el encabezado común y el splash Flutter conservan la identidad Aquafim.
 - Política de incrementos y archivos coordinados: `VERSIONING.md`.
 
 > **Estado:** SSOT consolidada — Etapa 0 cerrada el 2026-08-08.
@@ -10,7 +10,8 @@
 Migrar el verificador web legado a una aplicación **Flutter nativa para Android**, integrada de forma offline-first con el backend oficial **ddr001_api** (Node.js + TypeScript + Express + SQL Server 2014). La nueva app conserva el flujo y apariencia validados del prototipo, pero corrige y endurece metrología, persistencia, evidencia, visión, autenticación y sincronización.
 
 ## 2. Alcance inmediato
-- Plataforma móvil: **Android únicamente**, orientación **portrait**.
+- Plataforma móvil productiva: **Android únicamente**, orientación **portrait**.
+- Existe una entrada Flutter Web autónoma exclusivamente para presentaciones locales: sólo SIMULACIÓN Q1/Q2, sin login, API, SQL ni producción. Persiste su historial en almacenamiento del navegador y puede borrarlo explícitamente sin afectar Drift.
 - App: Flutter + Riverpod + Drift/SQLite.
 - Backend oficial: repositorio `ddr001_api`, Node.js + TypeScript + Express + SQL Server 2014; `backend/` es referencia histórica Prisma/PostgreSQL no desplegable.
 - Repositorios oficiales separados para app y API.
@@ -69,6 +70,7 @@ Jerarquía principal:
 - **LECTURA VISUAL** se utiliza con medidores reales en campo y no es simulación. El archivo web legado sigue siendo únicamente una herramienta externa de validación y no se integra ni se modifica.
 - **SIMULACIÓN** es una fuente local exclusiva de QA, explícitamente rotulada como no física. Antes de INICIAR presenta un caudal fluctuante de campo; Q1 permanece entre 5 y 7 L/s y Q2 entre 2 y 3 L/s, con cambios consecutivos máximos de 0.5 L/s. El operador decide cuándo iniciar y finalizar. Sólo desde INICIAR se acumulan tiempo, pulsos y Vref. Al terminar captura manualmente las lecturas INICIO/FINAL y el motor real decide con Vref, Vind, U y MPE; no existe un resultado prefabricado.
 - Una Sample simulada persiste su escenario, participa en recovery y permanece marcada en Historial, CSV, JSON, HTML y PDF. No inicia BLE ni exige backend, Internet, cámara o ESP32.
+- En SIMULACIÓN Android y en la demo Web, los indicadores verdes de Bluetooth y control remoto son deliberadamente demostrativos; no afirman una conexión física. La captura manual muestra recortes ilustrativos del totalizador y dial generados desde una carátula demo y permite abrir la carátula completa. La imagen no interviene en los cálculos.
 - Las fuentes de pulsos, incluida SIMULACIÓN, implementan la abstracción común `PulseSource`; LECTURA VISUAL comparte Sample/Evidence sin fabricar pulsos.
 - En ESP32 v2, GPIO27 recibe el flujómetro 1 de control calibrado y gobierna Vref/integridad; GPIO25 recibe pulsos opcionales del flujómetro 2 bajo prueba. La ausencia de pulsos GPIO25 no es una falla y el medidor 2 continúa documentándose mediante fotografías y lecturas.
 - Firmware ESP32 V1.0 filtra GPIO25/GPIO27 con PCNT integrado, exige un pulso LOW de al menos 17 ms, rearme HIGH y debounce. Cada unidad se configura con serie/versión; `--nombre ESP32-NS1001-V1.0` anuncia `DDR001-PULSE-NS1001-V1.0` para conservar el contrato de descubrimiento.

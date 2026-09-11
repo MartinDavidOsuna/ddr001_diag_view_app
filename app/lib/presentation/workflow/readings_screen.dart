@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme/app_theme.dart';
+import '../../app/app_assets.dart';
 import '../../core/metrology/metrology.dart';
 import '../app_controller.dart';
 import '../common/app_scaffold.dart';
@@ -202,13 +203,14 @@ final class _ReadingsScreenState extends ConsumerState<ReadingsScreen> {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (totalizerCrop != null)
-          _crop(totalizerCrop, 'Totalizador $title', fullImagePath)
-        else if (simulation)
-          const Text(
-            'Evidence simulada registrada. Capture manualmente los valores observados para calcular el resultado.',
-            style: TextStyle(color: AppColors.warning),
+        if (simulation)
+          _simulationCrop(
+            label: 'Totalizador $title',
+            alignment: const Alignment(0, -0.25),
+            scale: 2.9,
           )
+        else if (totalizerCrop != null)
+          _crop(totalizerCrop, 'Totalizador $title', fullImagePath)
         else
           Text(
             'No fue posible presentar el totalizador $title.',
@@ -221,7 +223,13 @@ final class _ReadingsScreenState extends ConsumerState<ReadingsScreen> {
           Key('$keyPrefix-totalizer'),
         ),
         const SizedBox(height: 14),
-        if (dialCrop != null)
+        if (simulation)
+          _simulationCrop(
+            label: 'Aguja $title',
+            alignment: const Alignment(0, 0.42),
+            scale: 3.2,
+          )
+        else if (dialCrop != null)
           _crop(dialCrop, 'Dial $title', fullImagePath)
         else
           Text(
@@ -293,6 +301,64 @@ final class _ReadingsScreenState extends ConsumerState<ReadingsScreen> {
           ),
         ),
       );
+
+  Widget _simulationCrop({
+    required String label,
+    required Alignment alignment,
+    required double scale,
+  }) => Semantics(
+    label: '$label. Toque para ver la carátula completa.',
+    button: true,
+    child: Material(
+      color: Colors.black,
+      borderRadius: BorderRadius.circular(AppRadius.card),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => _showDemoMeterFace(label),
+        child: SizedBox(
+          height: 180,
+          child: ClipRect(
+            child: Transform.scale(
+              scale: scale,
+              alignment: alignment,
+              child: Image.asset(AppAssets.demoMeterFace, fit: BoxFit.cover),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  Future<void> _showDemoMeterFace(String semanticLabel) => showDialog<void>(
+    context: context,
+    barrierColor: const Color(0xDD000000),
+    builder: (dialogContext) => Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(16),
+      child: Stack(
+        children: [
+          InteractiveViewer(
+            minScale: 1,
+            maxScale: 6,
+            child: Image.asset(
+              AppAssets.demoMeterFace,
+              fit: BoxFit.contain,
+              semanticLabel: semanticLabel,
+            ),
+          ),
+          Positioned(
+            top: 8,
+            right: 8,
+            child: IconButton.filled(
+              tooltip: 'Cerrar',
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              icon: const Icon(Icons.close),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 
   Future<void> _showFullMeterFace(
     String imagePath,

@@ -8,6 +8,10 @@ La persistencia primaria de campo continúa siendo Drift + filesystem local. El
 API recibe únicamente trabajo ya persistido y validado localmente; no forma
 parte del camino crítico de captura.
 
+La entrada `main_web_demo.dart` queda fuera de este contrato: no configura
+base URL, no autentica y no realiza solicitudes HTTP. Su demostración e
+historial viven exclusivamente en el navegador local.
+
 La especificación exhaustiva de tablas, payloads, respuestas, seguridad y
 trazabilidad vive en
 `ddr001_api/docs/functional-diagnostics-online-contract.md`. Este SSOT fija el

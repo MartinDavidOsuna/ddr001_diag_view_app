@@ -1,5 +1,12 @@
 # CHANGELOG funcional
 
+## Versión 1.6.0+18 — demo Flutter Web autónoma — 2026-09-10
+- Agrega una entrada Web local para presentaciones sin login, API, SQL ni producción; sólo ejecuta SIMULACIÓN Q1/Q2, conserva historial en el navegador y ofrece borrado total explícito.
+- La demo conserva preflujo Q1 5–7 L/s y Q2 2–3 L/s con variaciones máximas de 0.5 L/s, medición delimitada por botones, captura manual, motor metrológico real y reporte HTML descargable.
+- SIMULACIÓN Android y Web muestran indicadores verdes demostrativos de ESP32/Bluetooth y control remoto sin crear conexiones físicas.
+- La captura manual simulada presenta recortes de totalizador y aguja obtenidos de una carátula generada por IA; tocar un recorte abre la carátula completa. La imagen no alimenta la metrología.
+- Android productivo conserva Drift schema 14, API, sync y modos BLUETOOTH/MANUAL/VISUAL/LED sin cambios de contrato.
+
 ## Versión 1.5.1+17 — corrección de escala en Vind BLE/SIMULACIÓN — 2026-09-10
 - Corrige el defecto reproducido en Pixel donde 10.345→10.547 m³ se guardaba como 0.202 L: ahora la escala congelada convierte el avance a 202 L antes de ejecutar el motor metrológico.
 - BLE y SIMULACIÓN calculan `Vind` desde `totalizador × litros/unidad + aguja` y eliminan del formulario el campo redundante **Total del medidor (L)**; la lectura de aguja continúa sin máximo fijo.
