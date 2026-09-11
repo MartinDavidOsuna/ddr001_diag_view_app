@@ -84,19 +84,19 @@ void main() {
           controller.state.sample!.pulseCount *
           controller.state.sample!.configuration.litersPerPulse;
       await controller.closeSample(
-        initialTotalizer: 1,
+        initialTotalizer: 10.345,
         initialNeedle: 250,
-        initialMeterTotalLiters: 1000,
-        finalTotalizer: 2,
-        finalNeedle: 750,
-        finalMeterTotalLiters: 1000 + reference,
+        initialMeterTotalLiters: 10.345,
+        finalTotalizer: 10.345 + reference / 1000,
+        finalNeedle: 250,
+        finalMeterTotalLiters: 10.345 + reference / 1000,
       );
 
       final closed = controller.state.sample!;
       expect(closed.status, SampleStatus.closedValid);
       expect(closed.simulationScenario, SimulationScenario.operatorControlled);
       expect(closed.initialReading?.reading.needleLiters, 250);
-      expect(closed.finalReading?.reading.needleLiters, 750);
+      expect(closed.finalReading?.reading.needleLiters, 250);
       expect(closed.result?.referenceLiters, closeTo(reference, 1e-9));
       expect(closed.result?.indicatedLiters, closeTo(reference, 1e-9));
       expect(closed.result?.verdict, SampleVerdict.pass);

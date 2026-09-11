@@ -223,7 +223,7 @@ Seleccione el dial de **mayor resolución metrológica**, es decir, el que repre
 
 ## 17. Aguja
 
-Al finalizar, la app presenta el recorte del dial seleccionado. En LECTURA VISUAL, MANUAL y LED, observe directamente la posición de la aguja dentro de una sola vuelta, en litros; debe ser menor que la escala L/vuelta. En BLUETOOTH y SIMULACIÓN, la lectura de aguja es un valor no negativo sin máximo fijo de 100 L ni de una vuelta. **Total del medidor (L)** es un dato distinto: representa el acumulado general y puede superar libremente una vuelta; su diferencia FINAL−INICIO determina Vind. La app no busca color, calcula ángulos ni propone una lectura automática.
+Al finalizar, la app presenta el recorte del dial seleccionado. En LECTURA VISUAL, MANUAL y LED, observe directamente la posición de la aguja dentro de una sola vuelta, en litros; debe ser menor que la escala L/vuelta. En BLUETOOTH y SIMULACIÓN, la lectura de aguja es un valor no negativo sin máximo fijo de 100 L ni de una vuelta. En esos dos modos no aparece un total duplicado: la app convierte el totalizador con la escala configurada, suma la aguja y resta FINAL−INICIO. Por ejemplo, 10.345→10.547 m³ equivale a un avance de 202 L. La app no busca color, calcula ángulos ni propone una lectura automática.
 
 ## 18. Fotografías INTERMEDIATE
 
@@ -235,13 +235,13 @@ En MANUAL, LED y BLUETOOTH la app abre automáticamente la captura al alcanzar c
 
 ## 19. Captura FINAL
 
-Al pulsar **FINALIZAR Y CONFIRMAR LECTURAS**, la app congela inmediatamente el conteo y Vref y desasocia los canales de la muestra: ningún pulso posterior cambia el endpoint. FINAL es la primera fotografía posterior al botón; no se toman evidencias intermedias atrasadas durante el cierre. Después abre **CAPTURAR LECTURAS**: primero muestra totalizador y dial de INICIO y solicita totalizador, aguja y total del medidor; enseguida muestra los mismos elementos y campos de FINAL.
+Al pulsar **FINALIZAR Y CONFIRMAR LECTURAS**, la app congela inmediatamente el conteo y Vref y desasocia los canales de la muestra: ningún pulso posterior cambia el endpoint. FINAL es la primera fotografía posterior al botón; no se toman evidencias intermedias atrasadas durante el cierre. Después abre **CAPTURAR LECTURAS**: primero muestra totalizador y dial de INICIO y después los de FINAL. LECTURA VISUAL, MANUAL y LED solicitan también el total del medidor; BLUETOOTH y SIMULACIÓN lo derivan directamente del totalizador y la aguja.
 
 Puede permanecer en **CAPTURAR LECTURAS** el tiempo necesario. La prueba ya terminó: la app calcula con las evidencias INICIO/FINAL guardadas e ignora pulsos, cambios de Bluetooth y respuestas tardías de la cámara. **GUARDAR Y CALCULAR RESULTADO** no requiere una captura activa.
 
 En Preparación de cámara, toque el punto de la imagen que desea enfocar; el indicador amarillo marca temporalmente el punto de enfoque y exposición. Durante la corrida la app conserva la cámara preparada, restaura periódicamente el enfoque y vuelve a validar enfoque y zoom antes de cada foto. La fotografía guardada siempre contiene la carátula completa: los recuadros únicamente recortan totalizador y dial para mostrarlos ampliados en el formulario. Toque cualquiera de esos recortes para abrir la fotografía completa. Puede ampliarla con dos dedos. Cierre con la cruz, tocando fuera de la imagen o deslizando hacia la izquierda. INICIO y FINAL utilizan exactamente las regiones y el zoom congelados en la primera preparación de cámara; Q2 y las repeticiones no vuelven a buscar ni desplazan esas regiones.
 
-Los valores de INICIO se solicitan al cierre, no durante el arranque. `Vind` es la diferencia entre el total manual FINAL y el total manual INICIO. Las fotografías originales no se alteran.
+Los valores de INICIO se solicitan al cierre, no durante el arranque. `Vind` es la diferencia en litros entre FINAL e INICIO; en BLUETOOTH/SIMULACIÓN la conversión usa la escala del totalizador antes de restar. Las fotografías originales no se alteran.
 
 ## 20. Registro
 

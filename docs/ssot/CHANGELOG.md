@@ -1,10 +1,15 @@
 # CHANGELOG funcional
 
+## Versión 1.5.1+17 — corrección de escala en Vind BLE/SIMULACIÓN — 2026-09-10
+- Corrige el defecto reproducido en Pixel donde 10.345→10.547 m³ se guardaba como 0.202 L: ahora la escala congelada convierte el avance a 202 L antes de ejecutar el motor metrológico.
+- BLE y SIMULACIÓN calculan `Vind` desde `totalizador × litros/unidad + aguja` y eliminan del formulario el campo redundante **Total del medidor (L)**; la lectura de aguja continúa sin máximo fijo.
+- Se agrega regresión metrológica exacta para 202 L. Muestras ya cerradas permanecen inmutables; la corrección aplica a nuevas corridas o repeticiones.
+
 ## Versión 1.5.0+16 — simulación controlada en campo — 2026-09-10
 - SIMULACIÓN muestra caudal fluctuante antes del inicio: Q1 entre 5–7 L/s y Q2 entre 2–3 L/s, con variación consecutiva máxima de 0.5 L/s.
 - El técnico decide cuándo iniciar y finalizar; tiempo, pulsos y Vref comienzan exactamente al pulsar INICIAR y no acumulan durante la previsualización.
 - FINAL abre la captura manual de lecturas INICIO/FINAL y el resultado continúa calculándose con el motor metrológico, persistencia, Evidence y reportes reales.
-- BLE y SIMULACIÓN aceptan una lectura de aguja no negativa sin máximo fijo de 100 L; `Vind` sigue derivándose de los totales FINAL−INICIO y la reconstrucción cíclica de otros métodos conserva su límite por vuelta.
+- BLE y SIMULACIÓN aceptan una lectura de aguja no negativa sin máximo fijo de 100 L; la reconstrucción cíclica de otros métodos conserva su límite por vuelta.
 - Drift avanza 13→14 preservando trabajo y agrega `OPERATOR_CONTROLLED`; Sample contract local avanza v9→v10. La Field API no cambia y recibe el escenario proyectado al veredicto real.
 
 ## Versión 1.4.0+15 — sync online/offline-first con DDR001 API — 2026-09-02

@@ -14,6 +14,23 @@ void main() {
     expect(reading(1000).needleLiters, 1000);
   });
 
+  test('direct reading advance converts cubic meters to liters exactly', () {
+    final advance = calculateDirectReadingAdvance(
+      initial: MeterReading(
+        odometerUnits: 10.345,
+        needleLiters: 0,
+        litersPerOdometerUnit: 1000,
+      ),
+      finalReading: MeterReading(
+        odometerUnits: 10.547,
+        needleLiters: 0,
+        litersPerOdometerUnit: 1000,
+      ),
+    );
+
+    expect(advance, closeTo(202, 1e-9));
+  });
+
   group('needle turn reconstruction', () {
     test('90 to 10 crosses zero', () {
       expect(

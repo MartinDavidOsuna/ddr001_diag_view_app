@@ -144,21 +144,31 @@ final class _ReadingsScreenState extends ConsumerState<ReadingsScreen> {
                   ? null
                   : () async {
                       if (!_form.currentState!.validate()) return;
+                      final initialTotalizer = double.parse(
+                        _initialTotalizer.text,
+                      );
+                      final initialNeedle = double.parse(_initialNeedle.text);
+                      final finalTotalizer = double.parse(_finalTotalizer.text);
+                      final finalNeedle = double.parse(_finalNeedle.text);
+                      final initialMeterTotal = unrestrictedNeedle
+                          ? initialTotalizer *
+                                    sample.configuration.litersPerOdometerUnit +
+                                initialNeedle
+                          : double.parse(_initialMeterTotal.text);
+                      final finalMeterTotal = unrestrictedNeedle
+                          ? finalTotalizer *
+                                    sample.configuration.litersPerOdometerUnit +
+                                finalNeedle
+                          : double.parse(_finalMeterTotal.text);
                       await ref
                           .read(appControllerProvider.notifier)
                           .closeSample(
-                            initialTotalizer: double.parse(
-                              _initialTotalizer.text,
-                            ),
-                            initialNeedle: double.parse(_initialNeedle.text),
-                            initialMeterTotalLiters: double.parse(
-                              _initialMeterTotal.text,
-                            ),
-                            finalTotalizer: double.parse(_finalTotalizer.text),
-                            finalNeedle: double.parse(_finalNeedle.text),
-                            finalMeterTotalLiters: double.parse(
-                              _finalMeterTotal.text,
-                            ),
+                            initialTotalizer: initialTotalizer,
+                            initialNeedle: initialNeedle,
+                            initialMeterTotalLiters: initialMeterTotal,
+                            finalTotalizer: finalTotalizer,
+                            finalNeedle: finalNeedle,
+                            finalMeterTotalLiters: finalMeterTotal,
                             visualReferenceLiters: visual
                                 ? double.parse(_visualReference.text)
                                 : null,
@@ -226,12 +236,20 @@ final class _ReadingsScreenState extends ConsumerState<ReadingsScreen> {
               : 'Posición de aguja dentro de la vuelta (L)',
           Key('$keyPrefix-needle'),
         ),
-        const SizedBox(height: 10),
-        _number(
-          meterTotal,
-          'Total del medidor (L)',
-          Key('$keyPrefix-meter-total-liters'),
-        ),
+        if (!unrestrictedNeedle) ...[
+          const SizedBox(height: 10),
+          _number(
+            meterTotal,
+            'Total del medidor (L)',
+            Key('$keyPrefix-meter-total-liters'),
+          ),
+        ] else ...[
+          const SizedBox(height: 8),
+          const Text(
+            'El avance se calcula en litros con totalizador + aguja; no capture un total duplicado.',
+            style: TextStyle(color: AppColors.muted, fontSize: 12),
+          ),
+        ],
       ],
     ),
   );

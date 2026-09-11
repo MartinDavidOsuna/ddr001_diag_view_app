@@ -58,3 +58,31 @@ double calculateIndicatedVolume({
   }
   return result;
 }
+
+/// Calculates an endpoint advance when the captured needle value is an
+/// unrestricted liter observation rather than a cyclic position.
+///
+/// This is the representation used by BLE and SIMULATION manual review. The
+/// totalizer remains expressed in its configured unit and the needle remains
+/// expressed in liters, so 10.345 -> 10.547 m3 produces 202 L.
+double calculateDirectReadingAdvance({
+  required MeterReading initial,
+  required MeterReading finalReading,
+}) {
+  if (initial.litersPerOdometerUnit != finalReading.litersPerOdometerUnit) {
+    throw ArgumentError('Reading scales must match.');
+  }
+  final initialLiters =
+      initial.odometerUnits * initial.litersPerOdometerUnit +
+      initial.needleLiters;
+  final finalLiters =
+      finalReading.odometerUnits * finalReading.litersPerOdometerUnit +
+      finalReading.needleLiters;
+  final advance = finalLiters - initialLiters;
+  if (!advance.isFinite || advance < 0) {
+    throw ArgumentError(
+      'Final reading must not be lower than initial reading.',
+    );
+  }
+  return advance;
+}

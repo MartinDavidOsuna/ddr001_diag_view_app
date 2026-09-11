@@ -1863,14 +1863,33 @@ final class AppController extends StateNotifier<AppViewState> {
           'El volumen de referencia debe ser mayor que cero.',
         );
       }
-      final indicatedLiters = finalMeterTotalLiters - initialMeterTotalLiters;
+      final initialConfirmed = _confirmedFromReview(
+        existing: sample.initialReading,
+        odometer: initialTotalizer,
+        needle: initialNeedle,
+        config: config,
+        evidenceId: startEvidence?.id,
+      );
+      final finalConfirmed = _confirmedFromReview(
+        existing: sample.finalReading,
+        odometer: finalTotalizer,
+        needle: finalNeedle,
+        config: config,
+        evidenceId: frozenFinal?.id,
+      );
+      final unrestrictedNeedle =
+          config.measurementMethod.allowsUnboundedNeedleReading;
+      final indicatedLiters = unrestrictedNeedle
+          ? calculateDirectReadingAdvance(
+              initial: initialConfirmed.reading,
+              finalReading: finalConfirmed.reading,
+            )
+          : finalMeterTotalLiters - initialMeterTotalLiters;
       if (indicatedLiters < 0) {
         throw ArgumentError(
           'El total FINAL no puede ser menor que el total INICIO.',
         );
       }
-      final unrestrictedNeedle =
-          config.measurementMethod.allowsUnboundedNeedleReading;
       if (!unrestrictedNeedle &&
           (initialNeedle >= config.needleLitersPerRevolution ||
               finalNeedle >= config.needleLitersPerRevolution)) {
@@ -1885,20 +1904,8 @@ final class AppController extends StateNotifier<AppViewState> {
             : sample.pulseCount,
         referenceLiters: reference,
         manualIndicatedLiters: indicatedLiters,
-        initialReading: _confirmedFromReview(
-          existing: sample.initialReading,
-          odometer: initialTotalizer,
-          needle: initialNeedle,
-          config: config,
-          evidenceId: startEvidence?.id,
-        ),
-        finalReading: _confirmedFromReview(
-          existing: sample.finalReading,
-          odometer: finalTotalizer,
-          needle: finalNeedle,
-          config: config,
-          evidenceId: frozenFinal?.id,
-        ),
+        initialReading: initialConfirmed,
+        finalReading: finalConfirmed,
       );
       if (createDevelopmentEvidence) {
         final plan = ExpectedEvidencePlan.derive(

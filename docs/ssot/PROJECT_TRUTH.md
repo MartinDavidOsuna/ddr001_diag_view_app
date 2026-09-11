@@ -1,6 +1,6 @@
 # PROJECT_TRUTH — DDR001 Verificador de Medidores
 
-- Versión de aplicación vigente: `1.5.0+16`. Login, Inicio y Ajustes muestran la versión instalada. La identidad funcional visible es **VERIFICADOR FUNCIONAL** y Android muestra **AQ VF DDR001**; el encabezado común y el splash Flutter conservan la identidad Aquafim.
+- Versión de aplicación vigente: `1.5.1+17`. Login, Inicio y Ajustes muestran la versión instalada. La identidad funcional visible es **VERIFICADOR FUNCIONAL** y Android muestra **AQ VF DDR001**; el encabezado común y el splash Flutter conservan la identidad Aquafim.
 - Política de incrementos y archivos coordinados: `VERSIONING.md`.
 
 > **Estado:** SSOT consolidada — Etapa 0 cerrada el 2026-08-08.
@@ -82,7 +82,7 @@ Jerarquía principal:
 - La app productiva no ejecuta OCR, detección de aguja ni otro método automático.
 - INICIO se captura al iniciar sin pedir valores. INTERMEDIATE permanece automática. FINAL se captura al terminar y presenta ambos crops.
 - El técnico captura manualmente en FINAL el totalizador, la aguja y el total del medidor (`Vind`). No se fabrica lectura INICIO.
-- En BLE y SIMULACIÓN la captura de aguja es una lectura libre no negativa, sin máximo de 100 L ni límite por vuelta; `Vind` continúa derivándose del total del medidor FINAL menos INICIO. Los métodos que reconstruyen una posición cíclica dentro de una vuelta conservan su validación contra `litersPerRevolution`.
+- En BLE y SIMULACIÓN la captura de aguja es una lectura libre no negativa, sin máximo de 100 L ni límite por vuelta. `Vind` se deriva de la diferencia entre las lecturas compuestas `totalizador × litros/unidad + aguja`; por ejemplo, 10.345→10.547 m³ equivale a 202 L, no 0.202 L. No se solicita un total duplicado. Los métodos que reconstruyen una posición cíclica dentro de una vuelta conservan su validación contra `litersPerRevolution`.
 - Geometría y zoom se congelan por Sample y se recuperan durante RUNNING.
 - Preparación permite solicitar nuevamente las sugerencias geométricas después de modificar zoom. Las lupas de ambos extremos son botones de zoom además del slider.
 

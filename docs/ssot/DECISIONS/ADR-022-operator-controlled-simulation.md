@@ -20,8 +20,10 @@ captura manual de lecturas que debe alimentar al motor metrológico real.
 - Fijar el inicio oficial al pulsar INICIAR y el endpoint al pulsar FINALIZAR.
 - Crear Evidence simulada START/INTERMEDIATE/FINAL y abrir después la captura
   manual de lecturas. El motor vigente calcula Vind, E, U, MPE y veredicto.
-- Permitir en BLE y SIMULACIÓN una lectura auxiliar de aguja finita no negativa
-  sin máximo fijo. Esto no sustituye los totales INICIO/FINAL usados por Vind.
+- Permitir en BLE y SIMULACIÓN una lectura de aguja finita no negativa sin
+  máximo fijo. Cada lectura completa se deriva como
+  `totalizador × litros/unidad + aguja`; Vind es la diferencia FINAL−INICIO y
+  no se captura un total redundante.
 - Avanzar Drift 13→14 y el contrato local de Sample v9→v10. Mantener sin cambios
   la API congelada, proyectando `OPERATOR_CONTROLLED` al resultado remoto real.
 
