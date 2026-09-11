@@ -12,6 +12,7 @@ import '../domain/control_start_gate.dart';
 import '../domain/models.dart';
 import '../domain/pulse/pulse_source.dart';
 import '../domain/pulse/pulse_flow_estimate.dart';
+import '../domain/simulation/simulation_values.dart';
 import '../infrastructure/camera/camera_models.dart';
 import '../infrastructure/camera/camera_port.dart';
 import '../infrastructure/vision/vision_models.dart';
@@ -79,7 +80,7 @@ final class AppViewState {
     this.sample,
     this.selectedFlow = FlowPoint.q1,
     this.selectedMethod = MeasurementMethod.ble,
-    this.selectedSimulationScenario = SimulationScenario.successful,
+    this.selectedSimulationScenario = SimulationScenario.operatorControlled,
     this.lpsApprox,
     this.q1LpsApprox = 1.5,
     this.q2LpsApprox = 1.0,
@@ -146,6 +147,7 @@ final class AppViewState {
     this.meterUnderTestFirstPulseAt,
     this.controlPulseTimes = const [],
     this.hydrantPulseTimes = const [],
+    this.simulationFlowLps,
   });
 
   final AppPage page;
@@ -219,6 +221,7 @@ final class AppViewState {
   final DateTime? meterUnderTestFirstPulseAt;
   final List<DateTime> controlPulseTimes;
   final List<DateTime> hydrantPulseTimes;
+  final double? simulationFlowLps;
 
   AppViewState copyWith({
     AppPage? page,
@@ -308,6 +311,8 @@ final class AppViewState {
     bool clearMeterUnderTestFirstPulseAt = false,
     List<DateTime>? controlPulseTimes,
     List<DateTime>? hydrantPulseTimes,
+    double? simulationFlowLps,
+    bool clearSimulationFlowLps = false,
   }) => AppViewState(
     page: page ?? this.page,
     busy: busy ?? this.busy,
@@ -409,6 +414,9 @@ final class AppViewState {
         : meterUnderTestFirstPulseAt ?? this.meterUnderTestFirstPulseAt,
     controlPulseTimes: controlPulseTimes ?? this.controlPulseTimes,
     hydrantPulseTimes: hydrantPulseTimes ?? this.hydrantPulseTimes,
+    simulationFlowLps: clearSimulationFlowLps
+        ? null
+        : simulationFlowLps ?? this.simulationFlowLps,
   );
 }
 
@@ -421,12 +429,22 @@ final appControllerProvider =
       return AppController(ref.watch(appDependenciesProvider));
     });
 
+typedef SimulationFlowGeneratorFactory =
+    SimulationFlowGenerator Function(FlowPoint flowPoint);
+
 final class AppController extends StateNotifier<AppViewState> {
-  AppController(this.dependencies, [this._uuid = const Uuid()])
-    : super(const AppViewState());
+  AppController(
+    this.dependencies, [
+    this._uuid = const Uuid(),
+    SimulationFlowGeneratorFactory? simulationFlowGeneratorFactory,
+  ]) : _simulationFlowGeneratorFactory =
+           simulationFlowGeneratorFactory ??
+           ((flowPoint) => SimulationFlowGenerator(flowPoint: flowPoint)),
+       super(const AppViewState());
 
   final AppDependencies dependencies;
   final Uuid _uuid;
+  final SimulationFlowGeneratorFactory _simulationFlowGeneratorFactory;
   static const _mpe = Class2WaterMpePolicy();
   BlePulseSource? _bleSource;
   String? _bleBoundSampleId;
@@ -453,6 +471,9 @@ final class AppController extends StateNotifier<AppViewState> {
   Future<void> _intermediateEvidenceTask = Future.value();
   bool _openingIntermediateEvidence = false;
   bool _intermediateEvidenceRescanRequested = false;
+  Timer? _simulationTimer;
+  SimulationFlowGenerator? _simulationFlowGenerator;
+  String? _simulationSampleId;
 
   Future<void> initialize() async {
     await _guard(() async {
@@ -468,7 +489,11 @@ final class AppController extends StateNotifier<AppViewState> {
         return;
       }
       final running = (await dependencies.samples.listIncomplete())
-          .where((sample) => sample.status == SampleStatus.running)
+          .where(
+            (sample) =>
+                sample.status == SampleStatus.running ||
+                (sample.isSimulation && sample.status == SampleStatus.draft),
+          )
           .toList();
       if (running.isNotEmpty) {
         await _loadSampleContext(running.first);
@@ -515,8 +540,11 @@ final class AppController extends StateNotifier<AppViewState> {
     });
   }
 
-  void showHome() =>
-      state = state.copyWith(page: AppPage.home, clearError: true);
+  void showHome() {
+    _simulationTimer?.cancel();
+    state = state.copyWith(page: AppPage.home, clearError: true);
+  }
+
   Future<void> startIdentification() async {
     final saved = await _savedCameraSetup();
     if (saved != null) {
@@ -601,9 +629,6 @@ final class AppController extends StateNotifier<AppViewState> {
   void selectMethod(MeasurementMethod value) =>
       state = state.copyWith(selectedMethod: value);
 
-  void selectSimulationScenario(SimulationScenario value) =>
-      state = state.copyWith(selectedSimulationScenario: value);
-
   Future<void> replaceOpenSampleMethod(MeasurementMethod value) async {
     final sample = state.sample;
     if (sample == null || sample.status == SampleStatus.closedValid) {
@@ -649,6 +674,9 @@ final class AppController extends StateNotifier<AppViewState> {
   }
 
   void goBack() {
+    if (state.page == AppPage.run && state.sample?.isSimulation == true) {
+      _simulationTimer?.cancel();
+    }
     final previous = switch (state.page) {
       AppPage.identification => AppPage.home,
       AppPage.method => AppPage.identification,
@@ -826,7 +854,7 @@ final class AppController extends StateNotifier<AppViewState> {
         flow: flow,
         selectedFlow: FlowPoint.q1,
         selectedMethod: MeasurementMethod.ble,
-        selectedSimulationScenario: SimulationScenario.successful,
+        selectedSimulationScenario: SimulationScenario.operatorControlled,
         page: AppPage.method,
       );
     });
@@ -900,6 +928,13 @@ final class AppController extends StateNotifier<AppViewState> {
   }) async {
     await _guard(() async {
       final current = state.sample;
+      if (current?.isSimulation == true &&
+          (current!.status == SampleStatus.draft ||
+              current.status == SampleStatus.running)) {
+        state = state.copyWith(page: AppPage.run, measurementStarted: false);
+        _startSimulationPreview(current);
+        return;
+      }
       if (current != null && current.status == SampleStatus.running) {
         state = state.copyWith(
           page: AppPage.camera,
@@ -973,21 +1008,26 @@ final class AppController extends StateNotifier<AppViewState> {
           // GPS is desirable but nullable by contract and never blocks a run.
         }
       }
+      if (draft.isSimulation) {
+        await _loadSampleContext(draft);
+        state = state.copyWith(
+          page: AppPage.run,
+          gps: gps,
+          gpsCaptureState: gps == null
+              ? gpsCaptureState
+              : GpsCaptureState.captured,
+          gpsMessage: gpsMessage,
+          measurementStarted: false,
+          hardwareState: HardwareState.notConnected,
+        );
+        _startSimulationPreview(draft);
+        return;
+      }
       var running = await dependencies.samples.start(
         draft.id,
         at: now,
         gps: gps,
       );
-      if (running.isSimulation) {
-        await _loadSampleContext(running);
-        state = state.copyWith(
-          page: AppPage.run,
-          measurementStarted: true,
-          hardwareState: HardwareState.notConnected,
-        );
-        await _executeSimulation(running, verificationCase.id);
-        return;
-      }
       final cameraTemplate =
           inheritedMeterFaceConfiguration ?? _lastMeterFaceConfiguration;
       if (cameraTemplate != null && inheritedMeterFaceConfiguration == null) {
@@ -1127,9 +1167,49 @@ final class AppController extends StateNotifier<AppViewState> {
   }
 
   Future<void> beginMeasurement() async {
-    final sample = state.sample;
+    var sample = state.sample;
     final first = state.preStartControlFirstPulseAt;
     if (sample == null || state.measurementStarted) return;
+    if (sample.isSimulation) {
+      await _guard(() async {
+        final at = DateTime.now().toUtc();
+        if (sample!.status == SampleStatus.draft) {
+          sample = await dependencies.samples.start(
+            sample!.id,
+            at: at,
+            gps: state.gps,
+          );
+        }
+        if (sample!.status != SampleStatus.running) {
+          throw StateError('La simulación no está disponible para iniciar.');
+        }
+        final verificationCase = state.activeCase;
+        if (verificationCase == null) {
+          throw StateError('No hay un expediente activo.');
+        }
+        _sampleEndpointFrozen = false;
+        state = state.copyWith(
+          sample: sample,
+          measurementStarted: true,
+          controlPulseTimes: const [],
+          clearError: true,
+        );
+        await dependencies.simulationWorkflow.captureStart(
+          caseId: verificationCase.id,
+          sample: sample!,
+          flowLps:
+              state.simulationFlowLps ??
+              _simulationFlowGenerator?.currentLps ??
+              SimulationFlowRange.forFlow(
+                sample!.configuration.flowPoint,
+              ).minimumLps,
+          at: at,
+        );
+        await _refreshSample(sample!.id);
+        _scheduleSimulationTick(sample!.id, activeMeasurement: true);
+      }, showBusy: false);
+      return;
+    }
     final manual =
         sample.configuration.measurementMethod == MeasurementMethod.manual;
     if (!manual) {
@@ -1191,6 +1271,20 @@ final class AppController extends StateNotifier<AppViewState> {
   void showReadings() => state = state.copyWith(page: AppPage.readings);
 
   Future<void> requestIntermediateEvidence(double volumeLiters) async {
+    final sample = state.sample;
+    final verificationCase = state.activeCase;
+    if (sample?.isSimulation == true && verificationCase != null) {
+      await dependencies.simulationWorkflow.captureIntermediate(
+        caseId: verificationCase.id,
+        sample: sample!,
+        volumeRefLiters: volumeLiters,
+        pulseCount: sample.pulseCount,
+        flowLps: state.simulationFlowLps ?? 0,
+        at: DateTime.now().toUtc(),
+      );
+      await _refreshSample(sample.id);
+      return;
+    }
     await _captureIntermediateEvidenceAutomatically(volumeLiters);
   }
 
@@ -1251,6 +1345,10 @@ final class AppController extends StateNotifier<AppViewState> {
     if (state.finalizingMeasurement) return;
     final sample = state.sample;
     if (sample == null) return;
+    if (sample.isSimulation) {
+      await _requestSimulationFinal(sample);
+      return;
+    }
     var reference =
         sample.configuration.measurementMethod == MeasurementMethod.visual
         ? sample.referenceLitersProgress ?? 0
@@ -1771,8 +1869,11 @@ final class AppController extends StateNotifier<AppViewState> {
           'El total FINAL no puede ser menor que el total INICIO.',
         );
       }
-      if (initialNeedle >= config.needleLitersPerRevolution ||
-          finalNeedle >= config.needleLitersPerRevolution) {
+      final unrestrictedNeedle =
+          config.measurementMethod.allowsUnboundedNeedleReading;
+      if (!unrestrictedNeedle &&
+          (initialNeedle >= config.needleLitersPerRevolution ||
+              finalNeedle >= config.needleLitersPerRevolution)) {
         throw ArgumentError(
           'La aguja debe ser menor que ${config.needleLitersPerRevolution.toStringAsFixed(1)} L.',
         );
@@ -2091,8 +2192,8 @@ final class AppController extends StateNotifier<AppViewState> {
       if (sample.isSimulation) {
         final flow = await dependencies.flows.getById(sample.flowPointId);
         if (flow == null) throw StateError('No se encontró el caudal.');
-        state = state.copyWith(page: AppPage.run, measurementStarted: true);
-        await _executeSimulation(sample, flow.caseId);
+        state = state.copyWith(page: AppPage.run, measurementStarted: false);
+        _startSimulationPreview(sample);
         return;
       }
       if (sample.initialReading != null && sample.finalReading != null) {
@@ -2168,69 +2269,110 @@ final class AppController extends StateNotifier<AppViewState> {
     );
   }
 
-  Future<void> _executeSimulation(Sample running, String caseId) async {
-    final scenario = running.simulationScenario;
-    if (scenario == null) {
-      throw StateError('La simulación no tiene escenario persistido.');
-    }
-    final firstShouldPass = scenario == SimulationScenario.successful;
-    var closed = await dependencies.simulationWorkflow.run(
-      caseId: caseId,
-      runningSample: running,
-      shouldPass: firstShouldPass,
-      onProgress: (sample) async {
-        await _loadSampleContext(sample);
-        state = state.copyWith(
-          page: sample.status == SampleStatus.closedValid
-              ? AppPage.result
-              : AppPage.run,
-          measurementStarted: sample.status == SampleStatus.running,
-        );
-      },
+  void _startSimulationPreview(Sample sample) {
+    _simulationTimer?.cancel();
+    _simulationSampleId = sample.id;
+    _simulationFlowGenerator = _simulationFlowGeneratorFactory(
+      sample.configuration.flowPoint,
     );
-    if (scenario == SimulationScenario.failThenPass &&
-        closed.result?.verdict == SampleVerdict.fail) {
-      final existing = await dependencies.samples.listByFlow(
-        closed.flowPointId,
-      );
-      final now = DateTime.now().toUtc();
-      final secondDraft = Sample(
-        id: _uuid.v4(),
-        flowPointId: closed.flowPointId,
-        sampleNumber: existing.length + 1,
-        status: SampleStatus.draft,
-        configuration: closed.configuration,
-        createdAt: now,
-        updatedAt: now,
-        pulseCount: 0,
-        simulationScenario: scenario,
-      );
-      await dependencies.samples.createDraft(secondDraft);
-      final second = await dependencies.samples.start(
-        secondDraft.id,
-        at: now,
-        gps: closed.gps,
-      );
-      await _loadSampleContext(second);
-      state = state.copyWith(page: AppPage.run, measurementStarted: true);
-      closed = await dependencies.simulationWorkflow.run(
-        caseId: caseId,
-        runningSample: second,
-        shouldPass: true,
-        onProgress: (sample) async {
-          await _loadSampleContext(sample);
-          state = state.copyWith(
-            page: sample.status == SampleStatus.closedValid
-                ? AppPage.result
-                : AppPage.run,
-            measurementStarted: sample.status == SampleStatus.running,
-          );
-        },
-      );
+    state = state.copyWith(simulationFlowLps: _simulationFlowGenerator!.next());
+    _scheduleSimulationTick(sample.id, activeMeasurement: false);
+  }
+
+  void _scheduleSimulationTick(
+    String sampleId, {
+    required bool activeMeasurement,
+  }) {
+    _simulationTimer?.cancel();
+    final generator = _simulationFlowGenerator;
+    if (generator == null || _simulationSampleId != sampleId) return;
+    final sample = state.sample;
+    if (sample?.id != sampleId || state.finalizingMeasurement) return;
+    final delay = activeMeasurement
+        ? generator.pulseInterval(sample!.configuration.litersPerPulse)
+        : const Duration(milliseconds: 500);
+    _simulationTimer = Timer(
+      delay,
+      () => unawaited(_simulationTick(sampleId, activeMeasurement)),
+    );
+  }
+
+  Future<void> _simulationTick(String sampleId, bool activeMeasurement) async {
+    if (_simulationSampleId != sampleId || state.sample?.id != sampleId) return;
+    if (state.finalizingMeasurement) return;
+    if (activeMeasurement && state.measurementStarted) {
+      _pulseQueue = _pulseQueue.then((_) async {
+        if (!state.measurementStarted || state.finalizingMeasurement) return;
+        final current = await dependencies.samples.getById(sampleId);
+        if (current == null || current.status != SampleStatus.running) return;
+        final at = DateTime.now().toUtc();
+        await dependencies.pulseProgress.acceptPulse(
+          sampleId,
+          PulseEvent(
+            id: 'simulation-$sampleId-${current.pulseCount + 1}',
+            source: PulseSourceType.simulation,
+            occurredAt: at,
+            receivedAt: at,
+            sequence: current.pulseCount + 1,
+            diagnostics: 'operator-controlled simulation',
+          ),
+        );
+        _recordControlPulse(at);
+        await _refreshSample(sampleId);
+        if (!state.finalizingMeasurement) {
+          _scheduleDueIntermediateEvidence(sampleId);
+        }
+      });
+      await _pulseQueue;
     }
-    await _loadSampleContext(closed);
+    final generator = _simulationFlowGenerator;
+    if (generator == null || _simulationSampleId != sampleId) return;
+    state = state.copyWith(simulationFlowLps: generator.next());
+    _scheduleSimulationTick(
+      sampleId,
+      activeMeasurement: state.measurementStarted,
+    );
+  }
+
+  Future<void> _requestSimulationFinal(Sample sample) async {
+    _simulationTimer?.cancel();
+    _sampleEndpointFrozen = true;
     state = state.copyWith(
-      page: AppPage.result,
+      measurementStarted: false,
+      finalizingMeasurement: true,
+      clearError: true,
+    );
+    await _pulseQueue;
+    await waitForPendingIntermediateEvidence();
+    final frozen = await dependencies.samples.getById(sample.id) ?? sample;
+    final reference = frozen.pulseCount * frozen.configuration.litersPerPulse;
+    if (reference <= 0) {
+      state = state.copyWith(
+        finalizingMeasurement: false,
+        errorMessage: 'La prueba requiere al menos un pulso simulado.',
+      );
+      _scheduleSimulationTick(sample.id, activeMeasurement: false);
+      return;
+    }
+    final verificationCase = state.activeCase;
+    if (verificationCase == null) {
+      state = state.copyWith(
+        finalizingMeasurement: false,
+        errorMessage: 'No hay un expediente activo.',
+      );
+      return;
+    }
+    await dependencies.simulationWorkflow.captureFinal(
+      caseId: verificationCase.id,
+      sample: frozen,
+      volumeRefLiters: reference,
+      pulseCount: frozen.pulseCount,
+      flowLps: state.simulationFlowLps ?? 0,
+      at: DateTime.now().toUtc(),
+    );
+    await _refreshSample(frozen.id);
+    state = state.copyWith(
+      page: AppPage.readings,
       measurementStarted: false,
       finalizingMeasurement: false,
     );
@@ -2860,6 +3002,10 @@ final class AppController extends StateNotifier<AppViewState> {
   }
 
   Future<void> _stopPulseSources() async {
+    _simulationTimer?.cancel();
+    _simulationTimer = null;
+    _simulationFlowGenerator = null;
+    _simulationSampleId = null;
     _ledMetricsTimer?.cancel();
     _ledReconciliationTimer?.cancel();
     await _ledSubscription?.cancel();

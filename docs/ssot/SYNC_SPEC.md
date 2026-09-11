@@ -110,7 +110,9 @@ ni reabre Cases; reviews administrativas son metadata separada append-only.
 SIMULATION sí se sincroniza y conserva escenario, fuente y flag. Lotes,
 consultas Field y dashboard pueden filtrarla; las consultas/estadísticas
 productivas aplican `isSimulation=false` por defecto. Nunca se disfraza como
-medición física.
+medición física. El escenario local `OPERATOR_CONTROLLED` se serializa al
+vocabulario remoto existente `PASS|FAIL|INCONCLUSIVE` según el veredicto real,
+sin cambiar UUID, checksum metrológico ni contrato de la API.
 
 ## Pull
 

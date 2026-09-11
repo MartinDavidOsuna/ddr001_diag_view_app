@@ -151,7 +151,7 @@ final class _TestRunScreenState extends ConsumerState<TestRunScreen> {
       controller.beginMeasurement();
       return;
     }
-    if (dependenciesHaveCamera(ref)) {
+    if (state.sample?.isSimulation == true || dependenciesHaveCamera(ref)) {
       controller.requestFinalEvidence();
     } else {
       controller.showReadings();
@@ -244,8 +244,9 @@ final class _TestRunScreenState extends ConsumerState<TestRunScreen> {
             hydrantPulseTimes: state.hydrantPulseTimes,
             litersPerPulse: config.litersPerPulse,
             hydrantLitersPerPulse: config.hydrantLitersPerPulse,
+            simulatedFlowLps: state.simulationFlowLps,
             canFinish: reference > 0,
-            onFinish: dependenciesHaveCamera(ref)
+            onFinish: sample.isSimulation || dependenciesHaveCamera(ref)
                 ? controller.requestFinalEvidence
                 : controller.showReadings,
             onBegin: controller.beginMeasurement,
@@ -511,6 +512,7 @@ final class _PinnedRunStatus extends StatefulWidget {
     required this.hydrantPulseTimes,
     required this.litersPerPulse,
     required this.hydrantLitersPerPulse,
+    required this.simulatedFlowLps,
     required this.canFinish,
     required this.onFinish,
     required this.onBegin,
@@ -532,6 +534,7 @@ final class _PinnedRunStatus extends StatefulWidget {
   final List<DateTime> hydrantPulseTimes;
   final double litersPerPulse;
   final double hydrantLitersPerPulse;
+  final double? simulatedFlowLps;
   final bool canFinish;
   final VoidCallback onFinish;
   final VoidCallback onBegin;
@@ -581,16 +584,19 @@ final class _PinnedRunStatusState extends State<_PinnedRunStatus> {
       minimumLps: widget.sample.configuration.controlStartMinimumLps,
       maximumLps: widget.sample.configuration.controlStartMaximumLps,
     );
-    final calculatedFlow = widget.measurementStarted
-        ? PulseFlowEstimate.calculate(
-            pulses: widget.sample.pulseCount,
-            litersPerPulse: widget.litersPerPulse,
-            firstPulseAt: firstPulse,
-            now: now,
-            recentPulseTimes: widget.controlPulseTimes,
-          ).flowLps
-        : gate.flowLps;
-    final flowInRange = widget.manualSource || gate.inRange;
+    final calculatedFlow =
+        widget.simulatedFlowLps ??
+        (widget.measurementStarted
+            ? PulseFlowEstimate.calculate(
+                pulses: widget.sample.pulseCount,
+                litersPerPulse: widget.litersPerPulse,
+                firstPulseAt: firstPulse,
+                now: now,
+                recentPulseTimes: widget.controlPulseTimes,
+              ).flowLps
+            : gate.flowLps);
+    final flowInRange =
+        widget.manualSource || widget.simulatedFlowLps != null || gate.inRange;
     final hydrantEstimate = PulseFlowEstimate.calculate(
       pulses: widget.hydrantMonitorPulses,
       litersPerPulse: widget.hydrantLitersPerPulse,
@@ -635,9 +641,11 @@ final class _PinnedRunStatusState extends State<_PinnedRunStatus> {
             ),
             const SizedBox(height: 12),
             Text(
-              firstPulse == null
+              widget.simulatedFlowLps != null && !widget.measurementStarted
+                  ? 'Flujo previo activo · la medición aún no inicia'
+                  : firstPulse == null
                   ? 'Inicio: esperando primer pulso'
-                  : 'Inicio (primer pulso): ${_timestamp(firstPulse)}',
+                  : 'Inicio: ${_timestamp(firstPulse)}',
               style: const TextStyle(
                 color: AppColors.heading,
                 fontWeight: FontWeight.w700,

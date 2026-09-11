@@ -119,7 +119,9 @@ canonicalización y algoritmo. Las Samples simuladas envían simultáneamente
 `measurementSource=SIMULATION`, `isSimulation=true` y el vocabulario aceptado
 por el API (`PASS|FAIL|INCONCLUSIVE`). `SUCCESSFUL`/`FAILED` se proyectan
 directamente; en `FAIL_THEN_PASS` cada Sample se proyecta por su veredicto y el
-escenario original permanece en Drift. Las reales
+escenario original permanece en Drift. Las nuevas simulaciones
+`OPERATOR_CONTROLLED` también se proyectan por el veredicto calculado; la API y
+su canonicalización no cambian. Las reales
 exigen `isSimulation=false` y escenario null.
 
 ## 6. Consultas Field

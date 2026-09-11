@@ -658,11 +658,8 @@ final class AppDependencies {
       pulseProgress: pulseProgress,
       caseExport: CaseExportService(),
       simulationWorkflow: SimulationWorkflowService(
-        samples: samples,
         points: points,
         evidence: evidence,
-        pulseProgress: pulseProgress,
-        sampleClosure: sampleClosure,
         simulationEvidence: simulationEvidence,
       ),
     );

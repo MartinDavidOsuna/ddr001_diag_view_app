@@ -52,6 +52,8 @@ V_ind   = adv0 + 100 * kTurns
 
 La implementación Flutter puede adoptar una representación de lectura completa más robusta, pero debe conservar la capacidad de resolver una o más vueltas y producir el mismo avance físico correcto.
 
+En BLE y SIMULACIÓN, el valor manual del campo de aguja puede superar 100 L o `litersPerRevolution`: se conserva como observación no negativa sin recortarlo. El `V_ind` oficial de esos flujos se obtiene de `total FINAL − total INICIO`, por lo que ese dato auxiliar no cambia E, U, MPE ni el veredicto. Cuando un método usa reconstrucción cíclica, la posición sí debe permanecer dentro de una vuelta.
+
 ## 5. Error reportable — endpoint
 El único error reportable por muestra es:
 

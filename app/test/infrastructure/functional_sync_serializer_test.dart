@@ -134,7 +134,9 @@ FunctionalCaseBundle _bundle({bool simulation = false}) {
       verdict: SampleVerdict.pass,
     ),
     checksum: _checksum,
-    simulationScenario: simulation ? SimulationScenario.successful : null,
+    simulationScenario: simulation
+        ? SimulationScenario.operatorControlled
+        : null,
   );
   final evidence = [
     Evidence(

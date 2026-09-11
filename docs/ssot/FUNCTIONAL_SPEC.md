@@ -37,7 +37,7 @@ Modos productivos:
 - MANUAL presenta un único botón `+1 PULSO` porque `pulseCount` es el único contador contractual que alimenta `Vref = N × K`. Cada tap aceptado se persiste inmediatamente mediante `PulseProgressService`; no hay decremento ni muestra, metrología, Evidence o reporte alternos.
 - **LED ESP32:** cámara detecta el destello emitido por el ESP32 dentro de ROI configurable, con umbral/histéresis/anti-rebote; cada evento válido suma `K` litros.
 - **BLE ESP32:** cada notificación/evento válido representa un pulso y suma `K` litros.
-- **SIMULACIÓN:** fuente local de QA con escenarios exitosa, fallida y mixta. Produce pulsos/volúmenes deterministas acelerados y visibles, pero usa el pipeline real de Sample, progreso, Evidence, cierre, metrología y reportes. Nunca fuerza el veredicto.
+- **SIMULACIÓN:** fuente local de QA controlada por el operador. Produce un caudal fluctuante visible antes del inicio —Q1 entre 5 y 7 L/s, Q2 entre 2 y 3 L/s— y ningún cambio consecutivo supera 0.5 L/s. El operador inicia y finaliza; sólo dentro de esa frontera se acumulan tiempo, pulsos y Vref. Después captura lecturas manuales y usa el pipeline real de Sample, Evidence, cierre, metrología y reportes. Nunca fuerza el veredicto.
 - El ESP32 DDR001 publica contador BLE v1 acumulativo. La app congela baseline, persiste el último contador y reconcilia saltos. Adquisición no verificable se marca `COMPROMISED` y no cierra válida.
 - GPIO25/GPIO27 del firmware productivo usan el filtro de glitches PCNT y una segunda validación que exige LOW continuo mínimo 17 ms y rearme HIGH antes de incrementar o notificar. El nombre BLE contiene serie y versión bajo el prefijo contractual `DDR001-PULSE-`.
 - La conexión BLE del ESP32 ejecuta keepalive leyendo el contador cada 10 s. Si no responde, intenta recuperar la conexión tres veces antes de declararlo no conectado; el contador acumulativo permite reconciliar el intervalo recuperado.
@@ -49,12 +49,12 @@ Manual, LED y BLE comparten una interfaz común de eventos de pulso. **LECTURA V
 
 El simulador web externo permanece sin cambios. El modo QA SIMULACIÓN no reutiliza ese HTML ni sustituye LECTURA VISUAL; se marca permanentemente `MODO SIMULACIÓN` y `PRUEBA SIMULADA — NO CORRESPONDE A UNA VERIFICACIÓN FÍSICA`.
 
-### 3.1 Escenarios de simulación
-- **Prueba exitosa:** genera Vind dentro de la banda de guarda; el motor real devuelve APRUEBA.
-- **Prueba fallida:** genera Vind fuera de MPE; el motor real devuelve RECHAZA.
-- **Mixta:** persiste una primera Sample RECHAZA y crea una segunda Sample APRUEBA sin ocultar ni reemplazar la anterior.
-- El generador respeta Q y MPE congelados. La adquisición usa progreso real acelerado, START, INTERMEDIATE planificadas y FINAL con un asset local almacenado como archivo real y hasheado.
-- Una SIMULACIÓN RUNNING se recupera desde Drift y continúa sin depender de estado en memoria.
+### 3.1 Simulación controlada por operador
+- El flujo inicia antes de la medición para representar la estabilización observable en campo. Esa previsualización no genera pulsos oficiales, no inicia el cronómetro y no modifica Vref.
+- `INICIAR PRUEBA` fija el instante inicial y desde ese momento genera pulsos de acuerdo con el caudal mostrado. `FINALIZAR Y CONFIRMAR LECTURAS` fija el endpoint cuando lo decide el operador.
+- Q1 fluctúa dentro de 5–7 L/s y Q2 dentro de 2–3 L/s. Entre dos actualizaciones consecutivas la variación absoluta es como máximo 0.5 L/s.
+- START, INTERMEDIATE planificadas y FINAL usan un asset local almacenado como Evidence real y hasheado. Después de FINAL se presenta la misma captura manual de lecturas INICIO/FINAL; `Vind`, E, U, MPE y veredicto se calculan con el motor metrológico real.
+- Una SIMULACIÓN DRAFT o RUNNING se recupera desde Drift sin duplicar Evidence ni fabricar pulsos durante el tiempo en que la app estuvo cerrada. Los escenarios históricos siguen siendo legibles.
 
 ## 4. Carátula y cámara (`features/camera_dial`)
 - Antes del inicio se abre `PREPARACIÓN DE CÁMARA`. Las regiones se ajustan directamente sobre el preview vivo; no se toma ni conserva fotografía y no se crea Evidence ni lectura INICIO. Una verificación nueva hereda la última geometría confirmada y no ejecuta sugerencia automática; si no hay geometría previa se permite un intento inicial no vinculante. `NUEVA SUGERENCIA DE REGIONES` avanza por candidatos detectados distintos antes de repetirlos. No produce lecturas y la selección humana permanece como autoridad. La Evidence INICIO oficial se captura al accionar INICIAR con la configuración congelada.
@@ -70,7 +70,7 @@ El simulador web externo permanece sin cambios. El modo QA SIMULACIÓN no reutil
 - El procedimiento conserva una Evidence completa por START, cada INTERMEDIATE planificada y FINAL; no existen fotos separadas para totalizador y aguja.
 - `TotalizerRegion` y el dial seleccionado usan geometría normalizada respecto de la imagen orientada. El técnico puede mover/redimensionar ambos durante Preparación.
 - `litersPerRevolution` es la escala canónica positiva del dial. Cámara lee exactamente el valor configurado en Preparación, admite escalas reales como 1000 L/vuelta y no lo reduce ni sobrescribe al entrar o volver; `multiplier` se conserva sólo como representación histórica derivada respecto de 100 L/vuelta.
-- En captura manual, **Total del medidor (L)** es el acumulado general y no tiene un máximo asociado a una vuelta. **Posición de aguja dentro de la vuelta (L)** debe cumplir `0 <= posición < litersPerRevolution`.
+- En captura manual, **Total del medidor (L)** es el acumulado general y no tiene un máximo asociado a una vuelta. Para LECTURA VISUAL/MANUAL/LED, **Posición de aguja dentro de la vuelta (L)** cumple `0 <= posición < litersPerRevolution`. En BLE y SIMULACIÓN el campo representa una lectura libre no negativa y no tiene máximo de 100 L ni de una vuelta; el resultado oficial sigue usando los totales del medidor.
 - Pueden existir uno o varios diales, pero el técnico selecciona exactamente uno. Las sugerencias automáticas, si existen, no se autoaceptan ni sobrescriben la geometría confirmada. Se conservan las escalas soportadas (`×1`, `×0.1`, `×0.01`, `×0.001`).
 - Geometría y zoom se recuperan y reutilizan durante la Sample. INTERMEDIATE toma y persiste automáticamente una fotografía completa. INICIO no interrumpe la corrida para pedir valores. Tras capturar FINAL, **CAPTURAR LECTURAS** presenta primero los crops y valores manuales de INICIO y después los de FINAL. En cada endpoint se registran totalizador, aguja y total del medidor; `Vind = total FINAL − total INICIO`.
 - Vista en vivo y estado de cámara.
@@ -89,6 +89,7 @@ Estados mínimos: `draft → ready → running → awaiting_reading_confirmation
 - Preparación congela caudal mínimo/máximo del medidor de control para habilitar el inicio y K L/pulso independiente del medidor del hidrante.
 - Después de confirmar Evidence INICIO, GPIO27 se observa solamente para estabilización: no incrementa Sample/Vref. `INICIAR PRUEBA` permanece verde pero deshabilitado hasta que el caudal calculado esté dentro del rango; dentro del rango el caudal se muestra verde y el botón se habilita.
 - Al pulsar `INICIAR PRUEBA` se fijan baselines de ambos canales, comienza el registro, se oculta ese botón y aparece `FINALIZAR Y CONFIRMAR LECTURAS`.
+- En SIMULACIÓN, el caudal ya fluctúa antes de INICIAR, pero la frontera oficial de tiempo, pulsos y Vref se fija exactamente con esa acción.
 - Captura GPS si es posible.
 - Congela configuración de la muestra.
 - Fija contador origen.

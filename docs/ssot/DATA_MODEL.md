@@ -3,7 +3,7 @@
 ## Jerarquía
 `User → Meter → VerificationCase → FlowPoint → Sample → Point / Evidence`
 
-Drift `schemaVersion = 13` es la implementación local real y la autoridad de
+Drift `schemaVersion = 14` es la implementación local real y la autoridad de
 campo. Los JSON Schemas de `packages/shared-contracts/` son contratos
 serializables actuales que el futuro serializer de sync deberá ampliar sin
 perder compatibilidad. La representación remota oficial vive en SQL Server 2014
@@ -55,7 +55,7 @@ bajo `functional_diag`; Prisma/PostgreSQL deja de ser objetivo productivo.
 - `sample_number` secuencial dentro del caudal.
 - `status`: `DRAFT | RUNNING | INVALID_EVIDENCE | CLOSED_VALID`.
 - `measurement_source`: `VISUAL | MANUAL | LED | BLE | SIMULATION`. `VISUAL` corresponde a **LECTURA VISUAL** productiva sobre un medidor real; `SIMULATION` es una fuente local de QA inequívocamente no física.
-- `simulation_scenario`: nullable `SUCCESSFUL | FAILED | FAIL_THEN_PASS`. Es obligatorio únicamente cuando `measurement_source = SIMULATION` y debe ser null para muestras reales.
+- `simulation_scenario`: nullable `SUCCESSFUL | FAILED | FAIL_THEN_PASS | OPERATOR_CONTROLLED`. `OPERATOR_CONTROLLED` es el valor de nuevas simulaciones; los tres valores previos permanecen para leer historial. Es obligatorio únicamente cuando `measurement_source = SIMULATION` y debe ser null para muestras reales.
 - timestamps inicio/fin. En métodos de pulsos, el inicio se reemplaza una sola vez con `PulseEvent.receivedAt` del primer pulso aceptado; en LECTURA VISUAL conserva el momento de inicio de la Sample.
 - GPS nullable.
 - configuración congelada: K, paso, volumen mínimo/máximo operativo, volumen objetivo/orientativo, incertidumbre y parámetros relevantes.
@@ -64,6 +64,7 @@ bajo `functional_diag`; Prisma/PostgreSQL deja de ser objetivo productivo.
 - integridad `OK | COMPROMISED`, razón, timestamp y fuente; `COMPROMISED` bloquea `CLOSED_VALID` sin reutilizar `INVALID_EVIDENCE`.
 - configuración visual nullable para compatibilidad histórica: región relativa seleccionada manualmente para el totalizador y su formato (`digitCount`, `decimalPlaces`, unidad, ceros iniciales y origen); centro/radio relativo del único dial elegido por el técnico; multiplicador, litros por vuelta, cero, sentido y origen `AUTO_CONFIRMED | MANUAL`. Se confirma antes de analizar START, se recupera durante RUNNING y forma parte de la canonicalización v3 de muestras nuevas; muestras sin formato conservan v1/v2. El correctivo manual-first reutiliza estos campos y no requiere migración.
 - Para muestras nuevas de lectura manual al cierre, `initialReading` y `finalReading` conservan totalizador y aguja asociados a sus Evidence. El formulario también captura el total del medidor en ambos endpoints y persiste en `indicated_liters` su diferencia `FINAL − INICIO`, que es el `Vind` evaluado. Muestras históricas mantienen su cálculo anterior.
+- `needleLiters` conserva cualquier valor finito no negativo. BLE y SIMULACIÓN no imponen máximo; la reconstrucción cíclica valida por separado que la posición esté dentro de `litersPerRevolution` cuando ese cálculo aplica.
 - `camera_zoom_level` nullable/default 1.0, agregado aditivamente en schema 8 y congelado para todas las capturas de la Sample.
 - lecturas inicial/final con origen (`AUTO_CONFIRMED | MANUAL`) y `evidence_id` nullable; en captura visual productiva enlaza la imagen exacta que originó la propuesta confirmada.
 - resultado: V_ref, V_ind, E, U, MPE, decision_metric(s), verdict.
@@ -75,6 +76,12 @@ Drift `schemaVersion = 13` agrega de forma aditiva identidad remota, metadata de
 ACK de Evidence y lotes persistentes. La migración 12→13 no reconstruye tablas,
 no reescribe checksums y no elimina expedientes, Samples RUNNING, Evidence,
 usuarios, cola ni archivos.
+
+Drift `schemaVersion = 14` amplía de forma preservadora el CHECK de
+`simulation_scenario` para `OPERATOR_CONTROLLED`. No elimina ni reescribe
+Samples, Evidence, checksums, queue, usuarios o archivos. El contrato local de
+Sample avanza a v10; el payload remoto conserva el contrato implementado por la
+API y proyecta el escenario controlado al veredicto real de la Sample.
 
 ## Point
 - `point_id`.

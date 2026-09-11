@@ -1,35 +1,61 @@
+import 'dart:math';
+
 import '../../core/metrology/metrology.dart';
-import '../models.dart';
 
-final class SimulationValues {
-  const SimulationValues({
-    required this.referenceLiters,
-    required this.indicatedLiters,
-    required this.flowLps,
-  });
+typedef SimulationRandomValue = double Function();
 
-  final double referenceLiters;
-  final double indicatedLiters;
-  final double flowLps;
+final class SimulationFlowRange {
+  const SimulationFlowRange(this.minimumLps, this.maximumLps);
 
-  static SimulationValues forSample({
-    required Sample sample,
-    required bool shouldPass,
-  }) {
-    const reference = 100.0;
-    final mpe = sample.configuration.mpePct;
-    final errorPct = shouldPass ? (mpe * .25).clamp(.25, 1.0) : mpe + 2;
-    final indicated = reference * (1 + errorPct / 100);
-    final flow = switch (sample.configuration.flowPoint) {
-      FlowPoint.q1 => 1.5,
-      FlowPoint.q2 => 1.0,
-      FlowPoint.q3 => .5,
-      FlowPoint.q4 => .25,
-    };
-    return SimulationValues(
-      referenceLiters: reference,
-      indicatedLiters: indicated,
-      flowLps: flow,
+  final double minimumLps;
+  final double maximumLps;
+
+  static SimulationFlowRange forFlow(FlowPoint flowPoint) =>
+      switch (flowPoint) {
+        FlowPoint.q1 => const SimulationFlowRange(5, 7),
+        FlowPoint.q2 => const SimulationFlowRange(2, 3),
+        FlowPoint.q3 => const SimulationFlowRange(.5, 1),
+        FlowPoint.q4 => const SimulationFlowRange(.25, .5),
+      };
+}
+
+/// Produces a field-like fluctuating flow while keeping every adjacent change
+/// within 0.5 L/s and every value inside the Q-specific range.
+final class SimulationFlowGenerator {
+  SimulationFlowGenerator({
+    required this.flowPoint,
+    SimulationRandomValue? randomValue,
+    this.maximumVariationLps = .5,
+  }) : _randomValue = randomValue ?? Random().nextDouble,
+       range = SimulationFlowRange.forFlow(flowPoint);
+
+  final FlowPoint flowPoint;
+  final SimulationFlowRange range;
+  final double maximumVariationLps;
+  final SimulationRandomValue _randomValue;
+  double? _currentLps;
+
+  double get currentLps => _currentLps ?? next();
+
+  double next() {
+    final current = _currentLps;
+    final minimum = current == null
+        ? range.minimumLps
+        : max(range.minimumLps, current - maximumVariationLps);
+    final maximum = current == null
+        ? range.maximumLps
+        : min(range.maximumLps, current + maximumVariationLps);
+    final value = minimum + (maximum - minimum) * _randomValue().clamp(0, 1);
+    _currentLps = value;
+    return value;
+  }
+
+  Duration pulseInterval(double litersPerPulse) {
+    if (!litersPerPulse.isFinite || litersPerPulse <= 0) {
+      throw ArgumentError.value(litersPerPulse, 'litersPerPulse');
+    }
+    return Duration(
+      microseconds: max(1, (litersPerPulse / currentLps * 1000000).round()),
     );
   }
 }

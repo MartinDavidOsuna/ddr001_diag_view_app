@@ -5,6 +5,15 @@ MeterReading reading(double needle, {double odometer = 47}) =>
     MeterReading(odometerUnits: odometer, needleLiters: needle);
 
 void main() {
+  test('BLE and SIMULATION allow an unbounded captured needle reading', () {
+    expect(MeasurementMethod.ble.allowsUnboundedNeedleReading, isTrue);
+    expect(MeasurementMethod.simulation.allowsUnboundedNeedleReading, isTrue);
+    expect(MeasurementMethod.visual.allowsUnboundedNeedleReading, isFalse);
+    expect(MeasurementMethod.manual.allowsUnboundedNeedleReading, isFalse);
+    expect(MeasurementMethod.led.allowsUnboundedNeedleReading, isFalse);
+    expect(reading(1000).needleLiters, 1000);
+  });
+
   group('needle turn reconstruction', () {
     test('90 to 10 crosses zero', () {
       expect(
@@ -111,6 +120,16 @@ void main() {
         () => calculateIndicatedVolume(
           initial: reading(10),
           finalReading: reading(20),
+        ),
+        throwsArgumentError,
+      );
+    });
+    test('cyclic reconstruction rejects an unbounded observation', () {
+      expect(
+        () => calculateIndicatedVolume(
+          initial: reading(0),
+          finalReading: reading(250),
+          referenceLiters: 250,
         ),
         throwsArgumentError,
       );

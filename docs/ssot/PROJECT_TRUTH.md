@@ -1,6 +1,6 @@
 # PROJECT_TRUTH — DDR001 Verificador de Medidores
 
-- Versión de aplicación vigente: `1.4.0+15`. Login, Inicio y Ajustes muestran la versión instalada. La identidad funcional visible es **VERIFICADOR FUNCIONAL** y Android muestra **AQ VF DDR001**; el encabezado común y el splash Flutter conservan la identidad Aquafim.
+- Versión de aplicación vigente: `1.5.0+16`. Login, Inicio y Ajustes muestran la versión instalada. La identidad funcional visible es **VERIFICADOR FUNCIONAL** y Android muestra **AQ VF DDR001**; el encabezado común y el splash Flutter conservan la identidad Aquafim.
 - Política de incrementos y archivos coordinados: `VERSIONING.md`.
 
 > **Estado:** SSOT consolidada — Etapa 0 cerrada el 2026-08-08.
@@ -67,7 +67,7 @@ Jerarquía principal:
 - **LED emitido por ESP32**, detectado por cámara. Un pulso detectado equivale al volumen configurado `K`.
 - **Bluetooth desde ESP32**. Cada evento/notificación válida equivale igualmente a `K` litros.
 - **LECTURA VISUAL** se utiliza con medidores reales en campo y no es simulación. El archivo web legado sigue siendo únicamente una herramienta externa de validación y no se integra ni se modifica.
-- **SIMULACIÓN** es una fuente local exclusiva de QA, explícitamente rotulada como no física. Genera entradas deterministas, pulsa a través del servicio de progreso real, crea archivos Evidence con SHA-256 y cierra mediante el motor metrológico, persistencia y exportadores reales. Sus escenarios `SUCCESSFUL`, `FAILED` y `FAIL_THEN_PASS` no fijan veredictos: el motor decide con Vref, Vind, U y MPE.
+- **SIMULACIÓN** es una fuente local exclusiva de QA, explícitamente rotulada como no física. Antes de INICIAR presenta un caudal fluctuante de campo; Q1 permanece entre 5 y 7 L/s y Q2 entre 2 y 3 L/s, con cambios consecutivos máximos de 0.5 L/s. El operador decide cuándo iniciar y finalizar. Sólo desde INICIAR se acumulan tiempo, pulsos y Vref. Al terminar captura manualmente las lecturas INICIO/FINAL y el motor real decide con Vref, Vind, U y MPE; no existe un resultado prefabricado.
 - Una Sample simulada persiste su escenario, participa en recovery y permanece marcada en Historial, CSV, JSON, HTML y PDF. No inicia BLE ni exige backend, Internet, cámara o ESP32.
 - Las fuentes de pulsos, incluida SIMULACIÓN, implementan la abstracción común `PulseSource`; LECTURA VISUAL comparte Sample/Evidence sin fabricar pulsos.
 - En ESP32 v2, GPIO27 recibe el flujómetro 1 de control calibrado y gobierna Vref/integridad; GPIO25 recibe pulsos opcionales del flujómetro 2 bajo prueba. La ausencia de pulsos GPIO25 no es una falla y el medidor 2 continúa documentándose mediante fotografías y lecturas.
@@ -82,6 +82,7 @@ Jerarquía principal:
 - La app productiva no ejecuta OCR, detección de aguja ni otro método automático.
 - INICIO se captura al iniciar sin pedir valores. INTERMEDIATE permanece automática. FINAL se captura al terminar y presenta ambos crops.
 - El técnico captura manualmente en FINAL el totalizador, la aguja y el total del medidor (`Vind`). No se fabrica lectura INICIO.
+- En BLE y SIMULACIÓN la captura de aguja es una lectura libre no negativa, sin máximo de 100 L ni límite por vuelta; `Vind` continúa derivándose del total del medidor FINAL menos INICIO. Los métodos que reconstruyen una posición cíclica dentro de una vuelta conservan su validación contra `litersPerRevolution`.
 - Geometría y zoom se congelan por Sample y se recuperan durante RUNNING.
 - Preparación permite solicitar nuevamente las sugerencias geométricas después de modificar zoom. Las lupas de ambos extremos son botones de zoom además del slider.
 

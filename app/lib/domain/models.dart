@@ -43,13 +43,14 @@ enum FlowRecordStatus { open, pass, fail, inconclusive }
 
 enum SampleStatus { draft, running, invalidEvidence, closedValid }
 
-enum SimulationScenario { successful, failed, failThenPass }
+enum SimulationScenario { successful, failed, failThenPass, operatorControlled }
 
 extension SimulationScenarioContract on SimulationScenario {
   String get contractName => switch (this) {
     SimulationScenario.successful => 'SUCCESSFUL',
     SimulationScenario.failed => 'FAILED',
     SimulationScenario.failThenPass => 'FAIL_THEN_PASS',
+    SimulationScenario.operatorControlled => 'OPERATOR_CONTROLLED',
   };
 }
 

@@ -100,15 +100,13 @@ MANUAL, LED y BLUETOOTH convierten pulsos a volumen patrón con `Vref = pulsos �
 
 ### 6.1 Modo SIMULACIÓN para QA
 
-Seleccione **SIMULACIÓN** en Método de prueba y elija uno de estos escenarios:
+Seleccione **SIMULACIÓN** en Método de prueba. No se elige un resultado de antemano: el técnico controla el inicio, el final y las lecturas que determinarán el resultado.
 
-- **Prueba exitosa:** el motor metrológico real determina APRUEBA.
-- **Prueba fallida:** el motor metrológico real determina RECHAZA.
-- **Mixta: primera muestra falla / segunda aprueba:** conserva la primera muestra RECHAZA y crea una segunda muestra APRUEBA.
+Al abrir **Prueba en curso**, el caudal ya fluctúa como lo haría durante la estabilización en campo. Q1 permanece entre **5 y 7 L/s** y Q2 entre **2 y 3 L/s**; cada cambio es de hasta **0.5 L/s**. Esta observación previa no acumula tiempo, pulsos ni volumen patrón.
 
-La pantalla muestra **MODO SIMULACIÓN** durante el flujo. La adquisición avanza de forma acelerada para poder observar Prueba en curso y genera START, fotografías INTERMEDIATE planificadas y FINAL. Las imágenes llevan la leyenda **EVIDENCIA DE SIMULACIÓN** y se almacenan como Evidence reales con checksum.
+Pulse **INICIAR PRUEBA** cuando decida comenzar. En ese instante exacto inicia el cronómetro y comienzan a acumularse pulsos y Vref. Pulse **FINALIZAR Y CONFIRMAR LECTURAS** cuando decida terminar. La app genera START, las Evidence INTERMEDIATE correspondientes y FINAL con la leyenda **EVIDENCIA DE SIMULACIÓN**, almacenadas como archivos reales con checksum.
 
-SIMULACIÓN no fuerza un resultado ni crea un reporte prefabricado: genera Vref/Vind coherentes con el Q seleccionado y utiliza las fórmulas, incertidumbre, MPE, banda de guarda, persistencia, Historial y exportadores vigentes. No use una simulación como constancia de una verificación física.
+Después aparece **CAPTURAR LECTURAS**. Capture manualmente los datos de INICIO y FINAL; la app calcula Vind, error, incertidumbre, MPE y veredicto mediante el motor metrológico real y conserva el flujo completo hasta Historial y reportes. No use una simulación como constancia de una verificación física.
 
 ## 7. Método MANUAL
 
@@ -225,7 +223,7 @@ Seleccione el dial de **mayor resolución metrológica**, es decir, el que repre
 
 ## 17. Aguja
 
-Al finalizar, la app presenta el recorte del dial seleccionado. Observe directamente la posición de la aguja y capture manualmente su valor dentro de una sola vuelta, en litros; debe ser menor que la escala L/vuelta. **Total del medidor (L)** es un dato distinto: representa el acumulado general y puede superar libremente una vuelta. La app no busca color, calcula ángulos ni propone una lectura automática.
+Al finalizar, la app presenta el recorte del dial seleccionado. En LECTURA VISUAL, MANUAL y LED, observe directamente la posición de la aguja dentro de una sola vuelta, en litros; debe ser menor que la escala L/vuelta. En BLUETOOTH y SIMULACIÓN, la lectura de aguja es un valor no negativo sin máximo fijo de 100 L ni de una vuelta. **Total del medidor (L)** es un dato distinto: representa el acumulado general y puede superar libremente una vuelta; su diferencia FINAL−INICIO determina Vind. La app no busca color, calcula ángulos ni propone una lectura automática.
 
 ## 18. Fotografías INTERMEDIATE
 
@@ -326,7 +324,7 @@ Si Android detiene la app durante una Sample `RUNNING`, al relanzar se recuperan
 
 En BLE/LED, la aplicación intenta recuperar el contador acumulativo. Si el intervalo no puede conciliarse, marca integridad comprometida; nunca fabrica pulsos para aparentar continuidad.
 
-Una SIMULACIÓN `RUNNING` también conserva escenario, progreso y Evidence. Al reanudar continúa desde el contador persistido y no duplica evidencias ya guardadas.
+Una SIMULACIÓN `DRAFT` o `RUNNING` también conserva escenario, progreso y Evidence. Al reanudar vuelve a mostrar el caudal, conserva el contador persistido y no fabrica pulsos por el tiempo que permaneció cerrada ni duplica evidencias ya guardadas.
 
 ## 29. Funcionamiento offline
 

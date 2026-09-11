@@ -5,4 +5,7 @@ enum MeasurementMethod { visual, manual, led, ble, simulation }
 
 extension MeasurementMethodType on MeasurementMethod {
   bool get isPulseEventSource => this != MeasurementMethod.visual;
+
+  bool get allowsUnboundedNeedleReading =>
+      this == MeasurementMethod.ble || this == MeasurementMethod.simulation;
 }

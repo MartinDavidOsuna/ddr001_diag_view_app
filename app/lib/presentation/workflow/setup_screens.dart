@@ -308,25 +308,11 @@ final class _MethodScreenState extends ConsumerState<MethodScreen> {
             ),
             if (state.selectedMethod == MeasurementMethod.simulation) ...[
               const SizedBox(height: 18),
-              const Text(
-                'Escenario',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: SimulationScenario.values
-                    .map(
-                      (scenario) => ChoiceChip(
-                        key: Key('simulation-scenario-${scenario.name}'),
-                        selected: state.selectedSimulationScenario == scenario,
-                        onSelected: (_) =>
-                            controller.selectSimulationScenario(scenario),
-                        label: Text(_simulationScenarioLabel(scenario)),
-                      ),
-                    )
-                    .toList(),
+              const StatusBanner(
+                text:
+                    'SIMULACIÓN CONTROLADA · Q1 fluctúa entre 5 y 7 L/s; Q2 entre 2 y 3 L/s. El técnico decide cuándo iniciar y finalizar, captura las lecturas y el motor calcula el resultado real.',
+                color: AppColors.warning,
+                icon: Icons.science_outlined,
               ),
             ],
             const SizedBox(height: 18),
@@ -814,4 +800,5 @@ String _simulationScenarioLabel(SimulationScenario scenario) =>
       SimulationScenario.failed => 'Prueba fallida',
       SimulationScenario.failThenPass =>
         'Mixta: primera muestra falla / segunda aprueba',
+      SimulationScenario.operatorControlled => 'Controlada por operador',
     };

@@ -39,11 +39,11 @@ void main() {
       );
       expect(
         (properties['schema'] as Map<String, Object?>)['const'],
-        'ddr001.verification.sample/v9',
+        'ddr001.verification.sample/v10',
       );
       expect(
         (properties['simulation_scenario'] as Map<String, Object?>)['enum'],
-        ['SUCCESSFUL', 'FAILED', 'FAIL_THEN_PASS', null],
+        ['SUCCESSFUL', 'FAILED', 'FAIL_THEN_PASS', 'OPERATOR_CONTROLLED', null],
       );
       expect(sample['allOf'], hasLength(1));
       final definitions = sample[r'$defs'] as Map<String, Object?>;

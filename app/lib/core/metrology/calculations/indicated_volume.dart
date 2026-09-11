@@ -38,6 +38,12 @@ double calculateIndicatedVolume({
   }
 
   final revolution = initial.needleLitersPerRevolution;
+  if (initial.needleLiters >= revolution ||
+      finalReading.needleLiters >= revolution) {
+    throw ArgumentError(
+      'Cyclic reconstruction requires needle positions inside one revolution.',
+    );
+  }
   final coarseAdvance =
       (finalReading.odometerUnits - initial.odometerUnits) *
       initial.litersPerOdometerUnit;

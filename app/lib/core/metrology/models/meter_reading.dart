@@ -1,7 +1,8 @@
 /// A confirmed meter reading, independent from OCR/camera acquisition.
 ///
-/// [odometerUnits] are scaled by [litersPerOdometerUnit]. [needleLiters] is a
-/// position within one fine-dial revolution, not an accumulated volume.
+/// [odometerUnits] are scaled by [litersPerOdometerUnit]. [needleLiters] keeps
+/// the non-negative observation exactly as entered. Cyclic reconstruction
+/// validates that the observation is inside one revolution when it is used.
 final class MeterReading {
   MeterReading({
     required this.odometerUnits,
@@ -21,9 +22,7 @@ final class MeterReading {
         'needleLitersPerRevolution',
       );
     }
-    if (!needleLiters.isFinite ||
-        needleLiters < 0 ||
-        needleLiters >= needleLitersPerRevolution) {
+    if (!needleLiters.isFinite || needleLiters < 0) {
       throw ArgumentError.value(needleLiters, 'needleLiters');
     }
   }

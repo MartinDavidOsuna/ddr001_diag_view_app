@@ -47,6 +47,8 @@ final class _ReadingsScreenState extends ConsumerState<ReadingsScreen> {
     final finalProposal = state.readingProposal;
     final visual =
         sample.configuration.measurementMethod == MeasurementMethod.visual;
+    final unrestrictedNeedle =
+        sample.configuration.measurementMethod.allowsUnboundedNeedleReading;
     final productionCamera = ref.read(appDependenciesProvider).camera != null;
     if (_initialTotalizer.text.isEmpty && sample.initialReading != null) {
       _initialTotalizer.text = sample.initialReading!.reading.odometerUnits
@@ -87,6 +89,8 @@ final class _ReadingsScreenState extends ConsumerState<ReadingsScreen> {
               needle: _initialNeedle,
               meterTotal: _initialMeterTotal,
               keyPrefix: 'initial',
+              unrestrictedNeedle: unrestrictedNeedle,
+              simulation: sample.isSimulation,
             ),
             const SizedBox(height: 14),
             _endpointCard(
@@ -98,6 +102,8 @@ final class _ReadingsScreenState extends ConsumerState<ReadingsScreen> {
               needle: _finalNeedle,
               meterTotal: _finalMeterTotal,
               keyPrefix: 'final',
+              unrestrictedNeedle: unrestrictedNeedle,
+              simulation: sample.isSimulation,
             ),
             if (visual) ...[
               const SizedBox(height: 14),
@@ -179,6 +185,8 @@ final class _ReadingsScreenState extends ConsumerState<ReadingsScreen> {
     required TextEditingController needle,
     required TextEditingController meterTotal,
     required String keyPrefix,
+    required bool unrestrictedNeedle,
+    required bool simulation,
   }) => SectionCard(
     title: title,
     child: Column(
@@ -186,6 +194,11 @@ final class _ReadingsScreenState extends ConsumerState<ReadingsScreen> {
       children: [
         if (totalizerCrop != null)
           _crop(totalizerCrop, 'Totalizador $title', fullImagePath)
+        else if (simulation)
+          const Text(
+            'Evidence simulada registrada. Capture manualmente los valores observados para calcular el resultado.',
+            style: TextStyle(color: AppColors.warning),
+          )
         else
           Text(
             'No fue posible presentar el totalizador $title.',
@@ -208,7 +221,9 @@ final class _ReadingsScreenState extends ConsumerState<ReadingsScreen> {
         const SizedBox(height: 10),
         _number(
           needle,
-          'Posición de aguja dentro de la vuelta (L)',
+          unrestrictedNeedle
+              ? 'Lectura de aguja (L)'
+              : 'Posición de aguja dentro de la vuelta (L)',
           Key('$keyPrefix-needle'),
         ),
         const SizedBox(height: 10),

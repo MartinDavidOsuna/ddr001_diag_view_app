@@ -20,7 +20,7 @@
   ],
   "properties": {
     "schema": {
-      "const": "ddr001.verification.sample/v9"
+      "const": "ddr001.verification.sample/v10"
     },
     "sample_id": {
       "type": "string"
@@ -56,7 +56,7 @@
     },
     "simulation_scenario": {
       "type": ["string", "null"],
-      "enum": ["SUCCESSFUL", "FAILED", "FAIL_THEN_PASS", null]
+      "enum": ["SUCCESSFUL", "FAILED", "FAIL_THEN_PASS", "OPERATOR_CONTROLLED", null]
     },
     "started_at": {
       "type": [
@@ -309,7 +309,7 @@
         "properties": {
           "is_simulation": { "const": true },
           "simulation_scenario": {
-            "enum": ["SUCCESSFUL", "FAILED", "FAIL_THEN_PASS"]
+            "enum": ["SUCCESSFUL", "FAILED", "FAIL_THEN_PASS", "OPERATOR_CONTROLLED"]
           }
         }
       },

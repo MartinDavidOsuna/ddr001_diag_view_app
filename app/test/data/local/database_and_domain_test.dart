@@ -27,8 +27,8 @@ void main() {
     await directory.delete(recursive: true);
   });
 
-  test('schema version 13 creates domain and remote sync state tables', () async {
-    expect(database.schemaVersion, 13);
+  test('schema version 14 creates domain and remote sync state tables', () async {
+    expect(database.schemaVersion, 14);
     final rows = await database
         .customSelect(
           "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
@@ -197,7 +197,7 @@ void main() {
             "CHECK (measurement_method IN ('visual','manual','led','ble'))",
           )
           .replaceFirst(
-            ", CHECK ((measurement_method = 'simulation' AND simulation_scenario IN ('successful','failed','failThenPass')) OR (measurement_method != 'simulation' AND simulation_scenario IS NULL))",
+            ", CHECK ((measurement_method = 'simulation' AND simulation_scenario IN ('successful','failed','failThenPass','operatorControlled')) OR (measurement_method != 'simulation' AND simulation_scenario IS NULL))",
             '',
           );
       await diskDb.customStatement('PRAGMA foreign_keys = OFF');
@@ -288,6 +288,33 @@ void main() {
         evidenceColumns.map((row) => row.read<String>('name')),
         containsAll(['server_confirmed_at_ms', 'last_sync_error']),
       );
+      await diskDb.close();
+      database = memoryDatabase();
+    },
+  );
+
+  test(
+    'v13 to v14 preserves work and accepts operator-controlled simulation',
+    () async {
+      await database.close();
+      final path =
+          '${directory.path}${Platform.pathSeparator}migration-v14.sqlite';
+      var diskDb = AppDatabase(NativeDatabase(File(path)));
+      final diskFixture = OfflineFixture(diskDb, directory);
+      await diskFixture.seed();
+      await diskFixture.running();
+      await diskDb.customStatement('PRAGMA user_version = 13');
+      await diskDb.close();
+
+      diskDb = AppDatabase(NativeDatabase(File(path)));
+      expect(
+        await LocalSampleRepository(diskDb).getById('sample-1'),
+        isNotNull,
+      );
+      final sampleSql = await diskDb
+          .customSelect("SELECT sql FROM sqlite_master WHERE name = 'samples'")
+          .getSingle();
+      expect(sampleSql.read<String>('sql'), contains("'operatorControlled'"));
       await diskDb.close();
       database = memoryDatabase();
     },

@@ -192,7 +192,7 @@ class Samples extends Table {
     "CHECK (sample_number >= 1)",
     "CHECK (status IN ('draft','running','invalidEvidence','closedValid'))",
     "CHECK (measurement_method IN ('visual','manual','led','ble','simulation'))",
-    "CHECK ((measurement_method = 'simulation' AND simulation_scenario IN ('successful','failed','failThenPass')) OR (measurement_method != 'simulation' AND simulation_scenario IS NULL))",
+    "CHECK ((measurement_method = 'simulation' AND simulation_scenario IN ('successful','failed','failThenPass','operatorControlled')) OR (measurement_method != 'simulation' AND simulation_scenario IS NULL))",
     'CHECK (liters_per_pulse > 0)',
     'CHECK (evidence_step_liters > 0)',
     'CHECK (reading_uncertainty_liters >= 0)',
@@ -329,7 +329,7 @@ final class AppDatabase extends _$AppDatabase {
     : super(driftDatabase(name: 'ddr001', native: const DriftNativeOptions()));
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -515,6 +515,18 @@ final class AppDatabase extends _$AppDatabase {
         await _createEvidenceUpdateProtectionTrigger();
         await customStatement(
           'CREATE INDEX IF NOT EXISTS idx_sync_batches_case_state ON sync_batches(case_id, state, created_at_ms)',
+        );
+      }
+      if (from < 14) {
+        await migrator.alterTable(
+          TableMigration(
+            samples,
+            columnTransformer: {
+              samples.simulationScenario: const CustomExpression<String>(
+                'simulation_scenario',
+              ),
+            },
+          ),
         );
       }
     },

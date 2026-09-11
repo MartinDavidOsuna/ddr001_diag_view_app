@@ -263,6 +263,11 @@ String _simulationScenario(Sample sample) =>
         SampleVerdict.fail => 'FAIL',
         SampleVerdict.inconclusive || null => 'INCONCLUSIVE',
       },
+      SimulationScenario.operatorControlled => switch (sample.result?.verdict) {
+        SampleVerdict.pass => 'PASS',
+        SampleVerdict.fail => 'FAIL',
+        SampleVerdict.inconclusive || null => 'INCONCLUSIVE',
+      },
     };
 
 Map<String, Object?> _reading(ConfirmedReading value) => {
