@@ -23,6 +23,8 @@ import '../infrastructure/pulse/camera_resource_coordinator.dart';
 import '../infrastructure/pulse/led_pulse_detector.dart';
 import '../infrastructure/camera/flutter_camera_adapter.dart';
 import '../infrastructure/export/case_export_service.dart';
+import '../infrastructure/remote/remote_api.dart';
+import '../infrastructure/remote/functional_sync_engine.dart';
 
 List<T> _lastTen<T>(List<T> values) => values.length <= 10
     ? List.unmodifiable(values)
@@ -87,14 +89,14 @@ final class AppViewState {
     this.identificationMeterId = '',
     this.identificationTestBenchId = '',
     this.deviceMetadata = const DeviceMetadata(),
-    this.litersPerPulse = 1,
+    this.litersPerPulse = 10,
     this.evidenceStepLiters = 25,
     this.readingUncertaintyLiters = 1,
     this.minimumVolumeLiters = 100,
     this.maximumVolumeLiters = 300,
     this.controlStartMinimumLps = 0.5,
     this.controlStartMaximumLps = 50,
-    this.hydrantLitersPerPulse = 1,
+    this.hydrantLitersPerPulse = 10,
     this.litersPerOdometerUnit = 1000,
     this.needleLitersPerRevolution = 100,
     this.totalizerIntegerDigits = 5,
@@ -437,6 +439,7 @@ final class AppController extends StateNotifier<AppViewState> {
     this.dependencies, [
     this._uuid = const Uuid(),
     SimulationFlowGeneratorFactory? simulationFlowGeneratorFactory,
+    this._bleSourceFactory = BlePulseSource.new,
   ]) : _simulationFlowGeneratorFactory =
            simulationFlowGeneratorFactory ??
            ((flowPoint) => SimulationFlowGenerator(flowPoint: flowPoint)),
@@ -446,8 +449,10 @@ final class AppController extends StateNotifier<AppViewState> {
   final Uuid _uuid;
   final SimulationFlowGeneratorFactory _simulationFlowGeneratorFactory;
   static const _mpe = Class2WaterMpePolicy();
+  final BlePulseSource Function(BlePulseConfiguration) _bleSourceFactory;
   BlePulseSource? _bleSource;
   String? _bleBoundSampleId;
+  int _bleBindingGeneration = 0;
   MeterFaceConfiguration? _lastMeterFaceConfiguration;
   double? _lastCameraZoom;
   LedPulseSource? _ledSource;
@@ -468,8 +473,10 @@ final class AppController extends StateNotifier<AppViewState> {
   int? _latestEsp32Counter;
   int _pendingOpticalPulses = 0;
   Future<void> _pulseQueue = Future.value();
+  final Map<String, String> _pulsePersistenceFailures = {};
   Future<void> _intermediateEvidenceTask = Future.value();
   bool _openingIntermediateEvidence = false;
+  bool _startEvidenceInProgress = false;
   bool _intermediateEvidenceRescanRequested = false;
   Timer? _simulationTimer;
   SimulationFlowGenerator? _simulationFlowGenerator;
@@ -499,7 +506,7 @@ final class AppController extends StateNotifier<AppViewState> {
         await _loadSampleContext(running.first);
         state = state.copyWith(
           user: user,
-          page: AppPage.recovery,
+          page: AppPage.home,
           deviceMetadata: deviceMetadata,
         );
       } else {
@@ -730,16 +737,33 @@ final class AppController extends StateNotifier<AppViewState> {
     final discovery = dependencies.bleDiscovery;
     if (discovery == null) return;
     await _guard(() async {
-      state = state.copyWith(hardwareState: HardwareState.preparing);
-      final discovered = await discovery.scan();
+      final source = _bleSource;
+      if (source != null) {
+        _applyBleHardwareState(source.currentState);
+      } else {
+        state = state.copyWith(hardwareState: HardwareState.preparing);
+      }
+      final List<BleDeviceCandidate> discovered;
+      try {
+        discovered = await discovery.scan();
+      } catch (_) {
+        if (_bleSource != null) {
+          _applyBleHardwareState(_bleSource!.currentState);
+        } else {
+          state = state.copyWith(hardwareState: HardwareState.notConnected);
+        }
+        rethrow;
+      }
       final activeDevice = state.selectedBleDevice;
       final connectionActive =
           activeDevice != null &&
           _bleSource != null &&
+          _bleSource!.deviceId == activeDevice.id &&
           (_bleSource!.currentState.status == PulseSourceStatus.ready ||
               _bleSource!.currentState.status == PulseSourceStatus.connected ||
               _bleSource!.currentState.status ==
-                  PulseSourceStatus.reconnecting);
+                  PulseSourceStatus.reconnecting ||
+              _bleSource!.currentState.status == PulseSourceStatus.error);
       final devices = <BleDeviceCandidate>[
         ...discovered,
         if (connectionActive &&
@@ -751,12 +775,18 @@ final class AppController extends StateNotifier<AppViewState> {
       );
       state = state.copyWith(
         bleDevices: devices,
-        hardwareState: selectedStillPresent
+        hardwareState: connectionActive
+            ? switch (_bleSource!.currentState.status) {
+                PulseSourceStatus.ready => HardwareState.ready,
+                PulseSourceStatus.error => HardwareState.error,
+                _ => HardwareState.preparing,
+              }
+            : selectedStillPresent
             ? HardwareState.ready
             : HardwareState.notConnected,
         clearSelectedBleDevice: !selectedStillPresent,
       );
-      if (autoSelectSingle && devices.length == 1) {
+      if (autoSelectSingle && devices.length == 1 && !connectionActive) {
         selectBleDevice(devices.single);
       }
     }, showBusy: false);
@@ -876,7 +906,10 @@ final class AppController extends StateNotifier<AppViewState> {
     int? totalizerIntegerDigits,
     int? totalizerDecimalPlaces,
   }) {
-    if (litersPerPulse <= 0 ||
+    if (!litersPerPulse.isFinite ||
+        !evidenceStepLiters.isFinite ||
+        !uncertaintyLiters.isFinite ||
+        litersPerPulse <= 0 ||
         evidenceStepLiters <= 0 ||
         uncertaintyLiters < 0) {
       throw ArgumentError('La configuración contiene valores inválidos.');
@@ -896,7 +929,10 @@ final class AppController extends StateNotifier<AppViewState> {
     if (minimum <= 0 || maximum < minimum) {
       throw ArgumentError('Vmín/Vmáx no son válidos.');
     }
-    if (startMinimum < 0 || startMaximum <= startMinimum || hydrantK <= 0) {
+    if (!hydrantK.isFinite ||
+        startMinimum < 0 ||
+        startMaximum <= startMinimum ||
+        hydrantK <= 0) {
       throw ArgumentError('Rango de inicio/K del medidor no válido.');
     }
     if (odometerScale <= 0 ||
@@ -1169,7 +1205,11 @@ final class AppController extends StateNotifier<AppViewState> {
   Future<void> beginMeasurement() async {
     var sample = state.sample;
     final first = state.preStartControlFirstPulseAt;
-    if (sample == null || state.measurementStarted) return;
+    if (sample == null ||
+        state.measurementStarted ||
+        _startEvidenceInProgress) {
+      return;
+    }
     if (sample.isSimulation) {
       await _guard(() async {
         final at = DateTime.now().toUtc();
@@ -1212,6 +1252,14 @@ final class AppController extends StateNotifier<AppViewState> {
     }
     final manual =
         sample.configuration.measurementMethod == MeasurementMethod.manual;
+    if (sample.configuration.measurementMethod == MeasurementMethod.ble &&
+        _bleSource?.currentState.status != PulseSourceStatus.ready) {
+      state = state.copyWith(
+        errorMessage:
+            'Espere a recuperar la conexión y el contador ESP32 antes de iniciar.',
+      );
+      return;
+    }
     if (!manual) {
       if (first == null) return;
       final gate = ControlStartGate.evaluate(
@@ -1224,6 +1272,7 @@ final class AppController extends StateNotifier<AppViewState> {
       );
       if (!gate.inRange) return;
     }
+    debugPrintSynchronously('DDR001 START_BUTTON_ACCEPTED');
     state = state.copyWith(measurementStarted: true, clearError: true);
     _meterUnderTestCounterBaseline = _latestMeterUnderTestCounter;
     _hydrantMonitorCounterBaseline = _latestMeterUnderTestCounter;
@@ -1235,7 +1284,13 @@ final class AppController extends StateNotifier<AppViewState> {
       controlPulseTimes: const [],
       hydrantPulseTimes: const [],
     );
-    await _captureOfficialStartEvidence();
+    _startEvidenceInProgress = true;
+    try {
+      await _captureOfficialStartEvidence();
+    } finally {
+      _startEvidenceInProgress = false;
+    }
+    if (state.measurementStarted) _scheduleDueIntermediateEvidence(sample.id);
   }
 
   Future<void> _captureOfficialStartEvidence() async {
@@ -1249,8 +1304,6 @@ final class AppController extends StateNotifier<AppViewState> {
         cameraState: CameraOperationState.capturing,
         clearReadingProposal: true,
       );
-      await camera.resume();
-      await camera.setZoomLevel(sample.configuration.cameraZoomLevel);
       final photo = await camera.capture();
       await processCapturedPhoto(photo.path, transparent: true);
     } catch (error, stackTrace) {
@@ -1309,8 +1362,6 @@ final class AppController extends StateNotifier<AppViewState> {
       clearReadingProposal: true,
     );
     try {
-      await camera.resume();
-      await camera.setZoomLevel(sample.configuration.cameraZoomLevel);
       final photo = await camera.capture();
       await processCapturedPhoto(photo.path, transparent: true);
     } catch (_) {
@@ -1342,11 +1393,25 @@ final class AppController extends StateNotifier<AppViewState> {
   }
 
   Future<void> requestFinalEvidence() async {
-    if (state.finalizingMeasurement) return;
+    if (state.finalizingMeasurement || _startEvidenceInProgress) return;
     final sample = state.sample;
     if (sample == null) return;
+    if (_pulsePersistenceFailures.containsKey(sample.id)) {
+      state = state.copyWith(
+        errorMessage: _pulsePersistenceFailures[sample.id],
+      );
+      return;
+    }
     if (sample.isSimulation) {
       await _requestSimulationFinal(sample);
+      return;
+    }
+    if (sample.configuration.measurementMethod == MeasurementMethod.ble &&
+        _bleSource?.currentState.status != PulseSourceStatus.ready) {
+      state = state.copyWith(
+        errorMessage:
+            'Espere a recuperar la conexión y el contador ESP32 antes de finalizar. Si no puede recuperar la continuidad, repita la prueba.',
+      );
       return;
     }
     var reference =
@@ -1373,6 +1438,13 @@ final class AppController extends StateNotifier<AppViewState> {
     // Complete callbacks that had already entered the serialized queue before
     // the operator pressed FINALIZAR.
     await _pulseQueue;
+    if (_pulsePersistenceFailures.containsKey(sample.id)) {
+      state = state.copyWith(
+        finalizingMeasurement: false,
+        errorMessage: _pulsePersistenceFailures[sample.id],
+      );
+      return;
+    }
     _scheduleDueIntermediateEvidence(sample.id);
     await waitForPendingIntermediateEvidence();
     final drainedSample = await dependencies.samples.getById(sample.id);
@@ -1404,8 +1476,6 @@ final class AppController extends StateNotifier<AppViewState> {
     }
     try {
       await _pauseLedForEvidence();
-      await camera.resume();
-      await camera.setZoomLevel(sample.configuration.cameraZoomLevel);
       final photo = await camera.capture();
       await camera.pause();
       await processCapturedPhoto(photo.path, transparent: true);
@@ -1782,7 +1852,8 @@ final class AppController extends StateNotifier<AppViewState> {
         clearReadingProposal: true,
         cameraState: CameraOperationState.idle,
       );
-      await camera?.pause();
+      await camera?.resume();
+      await camera?.setZoomLevel(updated.configuration.cameraZoomLevel);
       state = state.copyWith(page: AppPage.run, clearError: true);
     });
   }
@@ -2152,7 +2223,103 @@ final class AppController extends StateNotifier<AppViewState> {
     state = state.copyWith(reportSampleIds: ids, clearError: true);
   }
 
+  Future<bool> correctHistoricalCase({
+    required String expectedChecksum,
+    required String reason,
+    String? sampleId,
+    double? initialOdometer,
+    double? initialNeedle,
+    double? finalOdometer,
+    double? finalNeedle,
+    double? initialTotalLiters,
+    double? finalTotalLiters,
+    double? litersPerPulse,
+    double? hydrantLitersPerPulse,
+    double? readingUncertaintyLiters,
+    double? litersPerOdometerUnit,
+    double? needleLitersPerRevolution,
+    double? visualReferenceLiters,
+    String? meterId,
+    String? testBenchId,
+  }) async {
+    if (state.busy || state.activeCase == null || state.user == null) {
+      return false;
+    }
+    final caseId = state.activeCase!.id;
+    var saved = false;
+    await _guard(() async {
+      await dependencies.corrections.correct(
+        caseId: caseId,
+        actorId: state.user!.id,
+        expectedChecksum: expectedChecksum,
+        reason: reason,
+        sampleId: sampleId,
+        initialOdometer: initialOdometer,
+        initialNeedle: initialNeedle,
+        finalOdometer: finalOdometer,
+        finalNeedle: finalNeedle,
+        initialTotalLiters: initialTotalLiters,
+        finalTotalLiters: finalTotalLiters,
+        litersPerPulse: litersPerPulse,
+        hydrantLitersPerPulse: hydrantLitersPerPulse,
+        readingUncertaintyLiters: readingUncertaintyLiters,
+        litersPerOdometerUnit: litersPerOdometerUnit,
+        needleLitersPerRevolution: needleLitersPerRevolution,
+        visualReferenceLiters: visualReferenceLiters,
+        meterId: meterId,
+        testBenchId: testBenchId,
+      );
+      saved = true;
+    });
+    if (saved) await openCaseFromHistory(caseId);
+    return saved;
+  }
+
+  Future<void> syncPendingCases() async {
+    if (state.busy || state.user == null) return;
+    final user = state.user!;
+    await _guard(() async {
+      final engine = dependencies.syncEngine;
+      if (engine == null) {
+        throw StateError(
+          'Backend no configurado; los expedientes permanecen locales.',
+        );
+      }
+      final auth = dependencies.auth;
+      if (auth is RemoteSyncAuthService) {
+        await (auth as RemoteSyncAuthService).ensureRemoteSession(user);
+      }
+      final cases = await dependencies.cases.listLocalCases();
+      final messages = {...state.caseSyncMessages};
+      var synced = 0;
+      var pending = 0;
+      for (final item in cases.where(
+        (c) => c.userId == user.id && c.status == VerificationCaseStatus.closed,
+      )) {
+        if (await _persistedSyncMessage(item.id) == 'Sincronizado') continue;
+        final result = await engine.syncCase(
+          caseId: item.id,
+          localUserId: user.id,
+        );
+        final edited = await dependencies.corrections.hasPending(item.id);
+        messages[item.id] = edited
+            ? 'Pendiente (editada) · ${result.message}'
+            : result.message;
+        if (result.outcome == FunctionalSyncOutcome.synced && !edited) {
+          synced++;
+        } else {
+          pending++;
+        }
+        state = state.copyWith(caseSyncMessages: {...messages});
+      }
+      state = state.copyWith(
+        syncMessage: '$synced sincronizadas · $pending pendientes',
+      );
+    });
+  }
+
   Future<void> syncCurrentCase() async {
+    if (state.busy) return;
     final engine = dependencies.syncEngine;
     final verificationCase = state.activeCase;
     final user = state.user;
@@ -2161,13 +2328,28 @@ final class AppController extends StateNotifier<AppViewState> {
       verificationCase.id,
     );
     if (verificationCase.status == VerificationCaseStatus.closed &&
-        latest?.state == SyncBatchState.synced) {
+        latest?.state == SyncBatchState.synced &&
+        !await dependencies.corrections.hasPending(verificationCase.id)) {
       return;
     }
+    if (state.busy) return;
     await _guard(() async {
       if (engine == null) {
         state = state.copyWith(
           syncMessage: 'Pendiente local · backend no configurado',
+        );
+        return;
+      }
+      state = state.copyWith(syncMessage: 'Conectando con producción…');
+      try {
+        final auth = dependencies.auth;
+        if (auth is RemoteSyncAuthService) {
+          await (auth as RemoteSyncAuthService).ensureRemoteSession(user);
+        }
+      } on RemoteApiException catch (error) {
+        state = state.copyWith(
+          syncMessage:
+              '${error.retryable ? 'Pendiente' : 'Error'} · ${error.diagnosticMessage}',
         );
         return;
       }
@@ -2176,11 +2358,21 @@ final class AppController extends StateNotifier<AppViewState> {
         caseId: verificationCase.id,
         localUserId: user.id,
       );
-      state = state.copyWith(syncMessage: result.message);
+      final edited = await dependencies.corrections.hasPending(
+        verificationCase.id,
+      );
+      state = state.copyWith(
+        syncMessage: edited
+            ? 'Pendiente (editada) · ${result.message}'
+            : result.message,
+      );
     });
   }
 
   Future<String> _persistedSyncMessage(String caseId) async {
+    if (await dependencies.corrections.hasPending(caseId)) {
+      return 'Pendiente (editada)';
+    }
     final batch = await dependencies.syncBatches.latestForCase(caseId);
     if (batch == null) return 'Pendiente';
     return switch (batch.state) {
@@ -2203,7 +2395,11 @@ final class AppController extends StateNotifier<AppViewState> {
         _startSimulationPreview(sample);
         return;
       }
-      if (sample.initialReading != null && sample.finalReading != null) {
+      if ((sample.initialReading != null && sample.finalReading != null) ||
+          (sample.configuration.measurementMethod == MeasurementMethod.ble &&
+              state.evidence.any(
+                (item) => item.type == EvidenceType.finalEvidence,
+              ))) {
         state = state.copyWith(page: AppPage.readings);
         return;
       }
@@ -2229,7 +2425,11 @@ final class AppController extends StateNotifier<AppViewState> {
     }
   }
 
-  Future<void> _loadSampleContext(Sample sample) async {
+  Future<void> _loadSampleContext(
+    Sample sample, {
+    bool Function()? isCurrent,
+  }) async {
+    if (isCurrent != null && !isCurrent()) return;
     final currentSample = state.sample;
     if (currentSample?.id == sample.id &&
         currentSample!.status == SampleStatus.running &&
@@ -2249,6 +2449,7 @@ final class AppController extends StateNotifier<AppViewState> {
     final evidence = await dependencies.evidence.listBySample(sample.id);
     final points = await dependencies.points.listBySample(sample.id);
     final samples = await dependencies.samples.listByFlow(flow.id);
+    if (isCurrent != null && !isCurrent()) return;
     state = state.copyWith(
       activeCase: verificationCase,
       meter: meter,
@@ -2385,10 +2586,10 @@ final class AppController extends StateNotifier<AppViewState> {
     );
   }
 
-  Future<void> _refreshSample(String id) async {
+  Future<void> _refreshSample(String id, {bool Function()? isCurrent}) async {
     final sample = await dependencies.samples.getById(id);
     if (sample == null) throw StateError('No se encontró la muestra.');
-    await _loadSampleContext(sample);
+    await _loadSampleContext(sample, isCurrent: isCurrent);
   }
 
   Future<double?> _firstMissingIntermediate(
@@ -2411,7 +2612,7 @@ final class AppController extends StateNotifier<AppViewState> {
   }
 
   void _scheduleDueIntermediateEvidence(String sampleId) {
-    if (state.page != AppPage.run) return;
+    if (state.page != AppPage.run || _startEvidenceInProgress) return;
     if (_openingIntermediateEvidence) {
       _intermediateEvidenceRescanRequested = true;
       return;
@@ -2478,13 +2679,35 @@ final class AppController extends StateNotifier<AppViewState> {
   }
 
   Future<void> _startBleForCurrentSample() async {
-    final sample = state.sample;
-    if (sample == null ||
-        (sample.configuration.measurementMethod != MeasurementMethod.ble &&
-            sample.configuration.measurementMethod != MeasurementMethod.led)) {
+    final context = state.sample;
+    if (context == null ||
+        (context.configuration.measurementMethod != MeasurementMethod.ble &&
+            context.configuration.measurementMethod != MeasurementMethod.led)) {
+      return;
+    }
+    final sample = await dependencies.samples.getById(context.id);
+    if (!mounted ||
+        sample == null ||
+        state.sample?.id != sample.id ||
+        sample.status != SampleStatus.running) {
       return;
     }
     final persisted = sample.pulseAcquisitionConfiguration;
+    if (_bleSource == null &&
+        sample.configuration.measurementMethod == MeasurementMethod.ble &&
+        state.measurementStarted &&
+        !_pulsePersistenceFailures.containsKey(sample.id)) {
+      // A restored checkpoint and progress are separate writes. Without the
+      // original in-memory pipeline, their last shared boundary is unprovable.
+      await _handlePulsePersistenceFailure(
+        sample.id,
+        StateError('BLE acquisition pipeline was reconstructed'),
+        message:
+            'Se reconstruyó la adquisición BLE y no se puede verificar '
+            'su continuidad. Repita la prueba.',
+        diagnostic: 'PULSE_CONTINUITY_UNVERIFIED',
+      );
+    }
     final selected = state.selectedBleDevice;
     final deviceId = persisted?.bleDeviceId ?? selected?.id;
     if (deviceId == null) {
@@ -2515,7 +2738,7 @@ final class AppController extends StateNotifier<AppViewState> {
     await _meterUnderTestCounterSubscription?.cancel();
     final source =
         _bleSource ??
-        BlePulseSource(
+        _bleSourceFactory(
           BlePulseConfiguration(
             deviceId: deviceId,
             deviceName: persisted?.bleDeviceName ?? selected?.name,
@@ -2526,95 +2749,121 @@ final class AppController extends StateNotifier<AppViewState> {
         );
     _bleSource = source;
     _bleBoundSampleId = sample.id;
+    final binding = ++_bleBindingGeneration;
+    bool currentBinding() =>
+        mounted &&
+        binding == _bleBindingGeneration &&
+        state.sample?.id == sample.id;
     _pulseSubscription = source.events.listen((event) {
       if (_bleUiTransitionInProgress) return;
-      if (state.sample?.id != sample.id) return;
+      if (!currentBinding()) return;
       if (state.finalizingMeasurement || _sampleEndpointFrozen) return;
       final countsTowardMeasurement = state.measurementStarted;
-      _pulseQueue = _pulseQueue.then((_) async {
-        if (state.sample?.id != sample.id) return;
-        // This monitor is deliberately continuous across the START boundary.
-        // Official Sample pulses are persisted only after measurementStarted.
-        state = state.copyWith(
-          preStartControlPulseCount: state.preStartControlPulseCount + 1,
-          preStartControlFirstPulseAt:
-              state.preStartControlFirstPulseAt ?? event.receivedAt,
-        );
-        if (!countsTowardMeasurement) return;
-        _recordControlPulse(event.receivedAt);
-        if (sample.configuration.measurementMethod == MeasurementMethod.ble) {
-          await dependencies.pulseProgress.acceptPulse(sample.id, event);
-          await _refreshSample(sample.id);
-          if (!state.finalizingMeasurement) {
-            _scheduleDueIntermediateEvidence(sample.id);
-          }
-        }
-      });
+      _pulseQueue = _pulseQueue
+          .then((_) async {
+            if (!currentBinding() ||
+                _pulsePersistenceFailures.containsKey(sample.id)) {
+              return;
+            }
+            // This monitor is deliberately continuous across the START boundary.
+            // Official Sample pulses are persisted only after measurementStarted.
+            state = state.copyWith(
+              preStartControlPulseCount: state.preStartControlPulseCount + 1,
+              preStartControlFirstPulseAt:
+                  state.preStartControlFirstPulseAt ?? event.receivedAt,
+            );
+            if (!countsTowardMeasurement) return;
+            _recordControlPulse(event.receivedAt);
+            if (sample.configuration.measurementMethod ==
+                MeasurementMethod.ble) {
+              await dependencies.pulseProgress.acceptPulse(sample.id, event);
+              await _refreshSample(sample.id, isCurrent: currentBinding);
+              if (!currentBinding()) return;
+              if (!state.finalizingMeasurement) {
+                _scheduleDueIntermediateEvidence(sample.id);
+              }
+            }
+          })
+          .catchError((Object error, StackTrace stackTrace) async {
+            await _handlePulsePersistenceFailure(sample.id, error);
+          });
     });
     _pulseStateSubscription = source.states.listen((pulseState) {
       if (_bleUiTransitionInProgress) return;
-      if (state.sample?.id != sample.id) return;
-      final message = pulseState.message?.trim();
-      state = state.copyWith(
-        hardwareState: switch (pulseState.status) {
-          PulseSourceStatus.ready => HardwareState.ready,
-          PulseSourceStatus.connecting ||
-          PulseSourceStatus.reconnecting => HardwareState.preparing,
-          PulseSourceStatus.error => HardwareState.error,
-          _ => HardwareState.disconnected,
-        },
-        errorMessage: message?.isNotEmpty == true ? message : null,
-        clearError:
-            message?.isNotEmpty != true &&
-            (pulseState.status == PulseSourceStatus.ready ||
-                pulseState.status == PulseSourceStatus.connected),
-      );
+      if (!currentBinding()) return;
+      _applyBleHardwareState(pulseState);
       if (pulseState.compromised) {
-        unawaited(_markAcquisitionCompromised(sample.id, pulseState.message));
+        _pulseQueue = _pulseQueue
+            .then((_) async {
+              if (currentBinding()) {
+                await _markAcquisitionCompromised(
+                  sample.id,
+                  pulseState.message,
+                );
+              }
+            })
+            .catchError((Object error, StackTrace stack) async {
+              await _handlePulsePersistenceFailure(sample.id, error);
+            });
       }
     });
-    _counterSubscription = source.counters.listen((counter) async {
+    _counterSubscription = source.counters.listen((counter) {
       if (_bleUiTransitionInProgress) return;
-      if (state.sample?.id != sample.id) return;
-      final current = await dependencies.samples.getById(sample.id);
-      if (current == null || current.status != SampleStatus.running) return;
-      if (state.sample?.id != sample.id) return;
-      final old = current.pulseAcquisitionConfiguration;
-      final configuration = PulseAcquisitionConfiguration(
-        bleDeviceId: deviceId,
-        bleDeviceName: persisted?.bleDeviceName ?? selected?.name,
-        bleServiceUuid: Ddr001BleContract.serviceUuid,
-        bleCounterCharacteristicUuid:
-            Ddr001BleContract.counterCharacteristicUuid,
-        bleProtocolVersion: Ddr001BleContract.protocolVersion,
-        esp32CounterAtStart: old?.esp32CounterAtStart ?? counter,
-        lastObservedEsp32Counter: counter,
-        ledRoiLeft: old?.ledRoiLeft,
-        ledRoiTop: old?.ledRoiTop,
-        ledRoiWidth: old?.ledRoiWidth,
-        ledRoiHeight: old?.ledRoiHeight,
-        ledRisingDelta: old?.ledRisingDelta,
-        ledFallingDelta: old?.ledFallingDelta,
-        ledMinPulseIntervalMs: old?.ledMinPulseIntervalMs,
-        ledBaseline: old?.ledBaseline,
-        ledUsesBleReconciliation:
-            old?.ledUsesBleReconciliation ??
-            sample.configuration.measurementMethod == MeasurementMethod.led,
-      );
-      await dependencies.samples.updatePulseAcquisition(
-        id: sample.id,
-        configuration: configuration,
-        integrity: current.acquisitionIntegrity,
-      );
-      _latestEsp32Counter = counter;
-      if (sample.configuration.measurementMethod == MeasurementMethod.led) {
-        _scheduleLedReconciliation(sample.id);
-        if (old?.ledBaseline != null &&
-            _ledSource == null &&
-            state.page == AppPage.run) {
-          unawaited(_restorePersistedLedDetector(current, old!));
-        }
-      }
+      if (!currentBinding()) return;
+      _pulseQueue = _pulseQueue
+          .then((_) async {
+            if (!currentBinding() ||
+                _pulsePersistenceFailures.containsKey(sample.id)) {
+              return;
+            }
+            final current = await dependencies.samples.getById(sample.id);
+            if (current == null || current.status != SampleStatus.running) {
+              return;
+            }
+            if (!currentBinding()) return;
+            final old = current.pulseAcquisitionConfiguration;
+            final configuration = PulseAcquisitionConfiguration(
+              bleDeviceId: deviceId,
+              bleDeviceName: persisted?.bleDeviceName ?? selected?.name,
+              bleServiceUuid: Ddr001BleContract.serviceUuid,
+              bleCounterCharacteristicUuid:
+                  Ddr001BleContract.counterCharacteristicUuid,
+              bleProtocolVersion: Ddr001BleContract.protocolVersion,
+              esp32CounterAtStart: old?.esp32CounterAtStart ?? counter,
+              lastObservedEsp32Counter: counter,
+              ledRoiLeft: old?.ledRoiLeft,
+              ledRoiTop: old?.ledRoiTop,
+              ledRoiWidth: old?.ledRoiWidth,
+              ledRoiHeight: old?.ledRoiHeight,
+              ledRisingDelta: old?.ledRisingDelta,
+              ledFallingDelta: old?.ledFallingDelta,
+              ledMinPulseIntervalMs: old?.ledMinPulseIntervalMs,
+              ledBaseline: old?.ledBaseline,
+              ledUsesBleReconciliation:
+                  old?.ledUsesBleReconciliation ??
+                  sample.configuration.measurementMethod ==
+                      MeasurementMethod.led,
+            );
+            await dependencies.samples.updatePulseAcquisition(
+              id: sample.id,
+              configuration: configuration,
+              integrity: current.acquisitionIntegrity,
+            );
+            if (!currentBinding()) return;
+            _latestEsp32Counter = counter;
+            if (sample.configuration.measurementMethod ==
+                MeasurementMethod.led) {
+              _scheduleLedReconciliation(sample.id);
+              if (old?.ledBaseline != null &&
+                  _ledSource == null &&
+                  state.page == AppPage.run) {
+                unawaited(_restorePersistedLedDetector(current, old!));
+              }
+            }
+          })
+          .catchError((Object error, StackTrace stack) async {
+            await _handlePulsePersistenceFailure(sample.id, error);
+          });
     });
     _meterUnderTestCounterBaseline = null;
     _hydrantMonitorCounterBaseline = null;
@@ -2622,7 +2871,7 @@ final class AppController extends StateNotifier<AppViewState> {
       counter,
     ) {
       if (_bleUiTransitionInProgress) return;
-      if (state.sample?.id != sample.id) return;
+      if (!currentBinding()) return;
       _latestMeterUnderTestCounter = counter;
       final monitorBaseline = _hydrantMonitorCounterBaseline;
       if (monitorBaseline == null || counter < monitorBaseline) {
@@ -2666,6 +2915,53 @@ final class AppController extends StateNotifier<AppViewState> {
       }
     });
     if (!reusableSource) await source.start();
+    if (currentBinding() && !_bleUiTransitionInProgress) {
+      _applyBleHardwareState(source.currentState);
+    }
+  }
+
+  void _applyBleHardwareState(PulseSourceState pulseState) {
+    final message =
+        _pulsePersistenceFailures[state.sample?.id] ??
+        pulseState.message?.trim();
+    state = state.copyWith(
+      hardwareState: switch (pulseState.status) {
+        PulseSourceStatus.ready => HardwareState.ready,
+        PulseSourceStatus.connected ||
+        PulseSourceStatus.connecting ||
+        PulseSourceStatus.reconnecting => HardwareState.preparing,
+        PulseSourceStatus.error => HardwareState.error,
+        _ => HardwareState.disconnected,
+      },
+      errorMessage: message?.isNotEmpty == true ? message : null,
+      clearError:
+          message?.isNotEmpty != true &&
+          (pulseState.status == PulseSourceStatus.ready ||
+              pulseState.status == PulseSourceStatus.connected),
+    );
+  }
+
+  Future<void> _handlePulsePersistenceFailure(
+    String sampleId,
+    Object error, {
+    String message =
+        'No se pudieron guardar todos los pulsos. Repita la prueba.',
+    String diagnostic = 'PULSE_PERSISTENCE_FAILED',
+  }) async {
+    _pulsePersistenceFailures[sampleId] = message;
+    debugPrintSynchronously(
+      'DDR001 ${DateTime.now().toUtc().toIso8601String()} '
+      '$diagnostic binding=$_bleBindingGeneration type=${error.runtimeType}',
+    );
+    try {
+      await _markAcquisitionCompromised(sampleId, message);
+    } catch (_) {
+      // Storage may still be unavailable. The in-memory guard also blocks FINAL.
+      debugPrintSynchronously('DDR001 PULSE_INTEGRITY_PERSISTENCE_FAILED');
+    }
+    if (mounted && state.sample?.id == sampleId) {
+      state = state.copyWith(errorMessage: message);
+    }
   }
 
   void _enterRunPageAfterBleStart() {
@@ -2673,6 +2969,11 @@ final class AppController extends StateNotifier<AppViewState> {
     state = state.copyWith(page: AppPage.run, busy: false);
     SchedulerBinding.instance.addPostFrameCallback((_) {
       _bleUiTransitionInProgress = false;
+      if (mounted &&
+          _bleBoundSampleId == state.sample?.id &&
+          _bleSource != null) {
+        _applyBleHardwareState(_bleSource!.currentState);
+      }
     });
   }
 
@@ -3009,6 +3310,7 @@ final class AppController extends StateNotifier<AppViewState> {
   }
 
   Future<void> _stopPulseSources() async {
+    ++_bleBindingGeneration;
     _simulationTimer?.cancel();
     _simulationTimer = null;
     _simulationFlowGenerator = null;
@@ -3051,7 +3353,12 @@ final class AppController extends StateNotifier<AppViewState> {
         source: current.configuration.measurementMethod,
       ),
     );
-    await _refreshSample(sampleId);
+    if (mounted && state.sample?.id == sampleId) {
+      await _refreshSample(
+        sampleId,
+        isCurrent: () => mounted && state.sample?.id == sampleId,
+      );
+    }
   }
 
   Future<void> _guard(

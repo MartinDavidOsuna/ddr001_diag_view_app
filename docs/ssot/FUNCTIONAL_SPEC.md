@@ -1,6 +1,22 @@
 # FUNCTIONAL_SPEC — Especificación funcional
 
+> **Actualización 1.8.0+26 (2026-09-30):** se permite corregir lecturas manuales
+> INICIO/FINAL, configuración de cálculo y cuenta/banco de verificaciones finalizadas mediante revisiones
+> locales auditadas. Esta excepción sustituye las prohibiciones generales de
+> edición de datos manuales cerrados que aparecen más abajo; adquisición,
+> pulsos y evidencias conservan su inmutabilidad. La configuración original queda en auditoría.
+> Ambas constantes K se configuran en Preparación, con 10 L/pulso iniciales
+> para pruebas nuevas; muestras previas conservan su K.
+> Historial incorpora sincronización de todas las verificaciones finalizadas
+> pendientes del usuario. Toda corrección queda **Pendiente (editada)** hasta que
+> la API anuncie soporte explícito de revisiones en `/me/access`. Sin soporte se
+> muestra el error de actualizar la API y continúan las demás verificaciones.
+> El cliente implementa el contrato opcional documentado; el servidor no se modificó.
+> Detalle normativo: [ADR-030](DECISIONS/ADR-030-local-manual-corrections.md).
+
+
 ## 0. Reglas generales
+- El encabezado de la demo Web muestra «VERIFICADOR FUNCIONAL», sin la leyenda «DEMO WEB LOCAL · SIN API / SIN BASE DE DATOS»; las advertencias de simulación permanecen en el contenido.
 - Android portrait.
 - UI fiel a `design/screenshots/`; no replicar controles del navegador.
 - Offline-first.
@@ -15,6 +31,7 @@
 - Primer login local: busca `email + phone`; si no existe, crea usuario automáticamente con `display_name`, sin conexión. Si un usuario local legado coincide y no tiene nombre, se completa sobre el mismo `user_id`; un nombre existente no se sobrescribe durante login.
 - Guarda sesión y perfil local.
 - Aperturas posteriores reutilizan sesión sin pedir login.
+- Con sesión válida, Android abre Inicio sin imponer la pantalla de recuperación. Conserva el contexto de la prueba incompleta y ofrece **REANUDAR PRUEBA GUARDADA**; no descarta ni reanuda adquisición automáticamente.
 - Si está offline y existe sesión local válida, entra a la app normalmente.
 - Única salida voluntaria: botón existente/definido **Cerrar sesión**.
 - Las identidades documentadas de Martin Osuna (`martinosuna@agrienlace.com`), Rene (`renelopez@agrienlace.com`) y Omar (`omarpizano@aquafim.com`), todos con teléfono `9999999999`, conservan su normalización canónica. Todas las identidades válidas pueden crear una sesión local cuando el backend no está configurado.
@@ -37,12 +54,13 @@ Modos productivos:
 - **Manual:** botón de pulso; cada pulso suma `K` litros.
 - MANUAL presenta un único botón `+1 PULSO` porque `pulseCount` es el único contador contractual que alimenta `Vref = N × K`. Cada tap aceptado se persiste inmediatamente mediante `PulseProgressService`; no hay decremento ni muestra, metrología, Evidence o reporte alternos.
 - **LED ESP32:** cámara detecta el destello emitido por el ESP32 dentro de ROI configurable, con umbral/histéresis/anti-rebote; cada evento válido suma `K` litros.
-- **BLE ESP32:** cada notificación/evento válido representa un pulso y suma `K` litros.
+- **BLE ESP32:** READ/NOTIFY entregan el contador acumulativo uint32. Cada incremento reconciliado representa un pulso y suma `K` litros; una notificación puede abarcar varios incrementos y un duplicado no suma pulsos.
 - **SIMULACIÓN:** fuente local de QA controlada por el operador. Produce un caudal fluctuante visible antes del inicio —Q1 entre 5 y 7 L/s, Q2 entre 2 y 3 L/s— y ningún cambio consecutivo supera 0.5 L/s. El operador inicia y finaliza; sólo dentro de esa frontera se acumulan tiempo, pulsos y Vref. Después captura lecturas manuales y usa el pipeline real de Sample, Evidence, cierre, metrología y reportes. Nunca fuerza el veredicto.
 - En SIMULACIÓN, Android y Web muestran en verde los iconos de Bluetooth/ESP32 y control remoto como indicadores explícitamente demostrativos. No crean un transporte BLE ni una identidad remota. El formulario manual presenta recortes demo del totalizador y la aguja; tocarlos abre la carátula completa. Los números de la imagen son ilustrativos y sólo los campos capturados alimentan el cálculo.
 - El ESP32 DDR001 publica contador BLE v1 acumulativo. La app congela baseline, persiste el último contador y reconcilia saltos. Adquisición no verificable se marca `COMPROMISED` y no cierra válida.
 - GPIO25/GPIO27 del firmware productivo usan el filtro de glitches PCNT y una segunda validación que exige LOW continuo mínimo 17 ms y rearme HIGH antes de incrementar o notificar. El nombre BLE contiene serie y versión bajo el prefijo contractual `DDR001-PULSE-`.
-- La conexión BLE del ESP32 ejecuta keepalive leyendo el contador cada 10 s. Si no responde, intenta recuperar la conexión tres veces antes de declararlo no conectado; el contador acumulativo permite reconciliar el intervalo recuperado.
+- La conexión BLE del ESP32 conserva keepalive leyendo el contador cada 10 s, sin lecturas superpuestas. Un fallo temporal de conexión, notificación, descubrimiento GATT, suscripción o lectura inicia un único ciclo de recuperación directa con pausas 1, 2, 4, 8, 15 y 30 s (tope repetido), hasta recuperar o detener explícitamente. READY requiere GATT, NOTIFY y una lectura válida reconciliada; la conexión física sola no basta. No cambia UUID, payload v1/v2, librería ni firmware.
+- Una interrupción de transporte no compromete por sí sola la muestra. BLE no permite iniciar/fijar FINAL mientras espera reconciliar el contador. Un rollback real sí mantiene error comprometido y no fabrica pulsos ni se limpia por reconexión. `stop`, `dispose` y DESCONECTAR cancelan recuperación e invalidan callbacks tardíos.
 - El control remoto Bluetooth, expuesto por Android como dispositivo de entrada externo, se sondea cada 10 s. Tres verificaciones negativas consecutivas son necesarias para retirar su estado conectado y desarmarlo.
 - Al crear una muestra BLE, la fuente se inicia antes de abrir Preparación de cámara. El transporte físico es independiente de la pantalla y de la Sample: navegar con Atrás, cambiar zoom, sugerir o fijar regiones y comenzar una verificación nueva no lo dispone ni lo vuelve a conectar. Las suscripciones de conteo sí se reasocian a la Sample activa.
 - Un periférico ya conectado puede suspender advertising. El resultado de BUSCAR conserva y muestra el DDR001 activo validado por la fuente GATT, además de los nuevos anuncios encontrados. Lecturas keepalive con contadores sin cambio no emiten estado de aplicación; solo contadores nuevos actualizan persistencia/UI.
@@ -58,6 +76,19 @@ El simulador web externo permanece sin cambios. El modo QA SIMULACIÓN no reutil
 - START, INTERMEDIATE planificadas y FINAL usan un asset local almacenado como Evidence real y hasheado. Después de FINAL se presenta la misma captura manual de lecturas INICIO/FINAL; `Vind`, E, U, MPE y veredicto se calculan con el motor metrológico real.
 - Una SIMULACIÓN DRAFT o RUNNING se recupera desde Drift sin duplicar Evidence ni fabricar pulsos durante el tiempo en que la app estuvo cerrada. Los escenarios históricos siguen siendo legibles.
 
+### 3.2 Presentación Web del flujo Android
+- La demo sigue Inicio → Identificación → Método → Preparación → Prueba en curso → Capturar lecturas → Resultado; permite repetir el mismo caudal, comenzar Q2 y abrir el Resumen del expediente. Incluye Historial local, Ajustes y Manual.
+- Usa una columna portrait de hasta 480 px y conserva orden de campos, panel fijo, acciones y tarjetas Android; mantiene retirado el subtítulo Web solicitado.
+- Método presenta las cuatro opciones Android, pero únicamente SIMULACIÓN es seleccionable. GPS conserva control y confirmación para continuar sin ubicación, sin solicitar permisos ni inventar coordenadas. No se simula una sesión autenticada ni una conexión remota.
+- Prueba en curso, incluido el preflujo, es la única pantalla con ESP32/Bluetooth y control remoto verdes. Son indicadores demostrativos; no aparecen en captura de lecturas ni resultados.
+- INICIAR registra la fotografía simulada INICIO. Los umbrales estrictamente anteriores al volumen actual generan INTERMEDIAS en adquisición; FINAL registra la última fotografía al terminar y congela hora, contador y volumen antes de pedir lecturas. Cada registro conserva el asset completo, SHA-256, hora, volumen, pulsos y caudal puntual.
+- CAPTURA DE EVIDENCIAS permite ampliar fotografías; Registro presenta los mismos campos y estadísticas puntuales. Los recortes INICIO/FINAL usan la carátula ilustrativa, con zoom y cierre por cruz, exterior o deslizamiento. Los campos manuales no se rellenan a partir de Vref.
+- Preparación congela los parámetros de Android; la metrología común usa K, escala e incertidumbre congeladas. Los resultados y las repeticiones son inmutables; el resumen incluye estadísticas, selección de muestras, información técnica y confirmación de cierre.
+- CSV, JSON, HTML y PDF usan el renderizador compartido con Android. Compartir depende de soporte del navegador; descargar cada archivo sigue disponible. El visor presenta el mismo HTML autocontenido en un frame aislado.
+- La generación informa HTML, PDF y preparación de archivos; una imagen idéntica se procesa una sola vez por documento sin eliminar registros fotográficos. La carga Web de cada asset tiene un límite de 15 segundos y valida SHA-256. Un fallo muestra el error y permite reintentar sin modificar el expediente cerrado.
+- SALIR SIN DESCARTAR y recargar permiten recuperar el avance guardado en el navegador. No se generan pulsos durante la pausa. BORRAR HISTORIAL sólo elimina expedientes demo cerrados y conserva el borrador activo.
+- SIMULACIÓN Android omite Preparación de cámara física: Web también pasa de Preparación a Prueba, sin añadir una cámara o hardware ficticios.
+
 ## 4. Carátula y cámara (`features/camera_dial`)
 - Antes del inicio se abre `PREPARACIÓN DE CÁMARA`. Las regiones se ajustan directamente sobre el preview vivo; no se toma ni conserva fotografía y no se crea Evidence ni lectura INICIO. Una verificación nueva hereda la última geometría confirmada y no ejecuta sugerencia automática; si no hay geometría previa se permite un intento inicial no vinculante. `NUEVA SUGERENCIA DE REGIONES` avanza por candidatos detectados distintos antes de repetirlos. No produce lecturas y la selección humana permanece como autoridad. La Evidence INICIO oficial se captura al accionar INICIAR con la configuración congelada.
 - Un dedo desplaza la región activa y un gesto pinch la reduce o amplía dentro de la imagen. Los marcos no incluyen texto ni handles que oculten la carátula; el dial conserva una cruz `+` en su centro geométrico para alinear el eje. La lectura en vivo aplica provisionalmente el formato visible del totalizador para habilitar la segmentación de tambores, incluso antes de congelar la configuración.
@@ -65,7 +96,7 @@ El simulador web externo permanece sin cambios. El modo QA SIMULACIÓN no reutil
 - Totalizador y dial se confirman de forma manual. La sugerencia geométrica inicial es opcional, no se autoacepta y no genera una lectura.
 - El técnico puede pulsar **NUEVA SUGERENCIA DE REGIONES** cuantas veces necesite; cada intento usa un frame transitorio con el zoom actual y reemplaza únicamente las sugerencias de totalizador/diales. Las lupas izquierda/derecha disminuyen/aumentan zoom como botones, respetando los límites reportados por Android.
 - Un toque sobre el preview fija el punto normalizado de enfoque y exposición de la cámara Android y muestra transitoriamente el indicador de enfoque.
-- Durante una corrida la cámara permanece preparada entre capturas cuando el hardware lo permite. Cada cuatro segundos y justo antes de fotografiar se restauran zoom congelado, enfoque automático, exposición y último punto de enfoque. La Evidence guardada siempre es el cuadro completo; las regiones de totalizador/dial solo producen recortes derivados para captura manual.
+- Durante una corrida la cámara permanece preparada entre capturas cuando el hardware lo permite. Zoom congelado, enfoque automático y exposición se preparan antes de habilitar INICIAR; no se cierra la cámara al confirmar regiones, no se fuerza un reenfoque periódico ni inmediatamente antes de cada disparo y no se introduce una espera fija. El regreso desde background prepara la cámara antes de habilitar acciones. INICIO pendiente impide otra captura y FINAL. La solicitud se envía inmediatamente con cámara preparada; la exposición física conserva la latencia propia del dispositivo. La Evidence guardada siempre es el cuadro completo; las regiones de totalizador/dial solo producen recortes derivados para captura manual.
 - Después de `FIJAR REGIONES`, la tarjeta de fotografía se contrae para priorizar formato, escala y `ANALIZAR LECTURA`.
 - La configuración visual se usa exclusivamente para recortar y presentar las regiones de la Evidence FINAL.
 - FINAL reutiliza el formato congelado. Una inconsistencia o carácter ambiguo exige confirmación/corrección humana y no invalida una fotografía íntegra.
@@ -166,7 +197,7 @@ El error de puntos es solo diagnóstico. El resultado oficial siempre es endpoin
 
 ## 10. Sincronización (`features/sync`)
 - Todo se guarda primero en Drift/archivos locales.
-- Al recuperar señal se suben usuarios necesarios, expediente, caudales, muestras, puntos y evidencias de manera idempotente.
+- En Android productivo, Historial → expediente → Resumen ofrece **SINCRONIZAR**. El envío es explícito: obtiene/reutiliza sesión Field para el usuario local (incluidos accesos maestros) y sube expediente, caudales, muestras, puntos y evidencias de manera idempotente. No exige cerrar sesión después de actualizar un APK que operaba offline.
 - UI muestra estados: local/pending/syncing/synced/conflict/error.
 - No se purgan automáticamente expedientes ni fotografías sincronizadas.
 
@@ -179,3 +210,28 @@ Configuración operativa con valores por defecto y validaciones:
 - Incertidumbre base de lectura.
 
 El MPE se deriva de la zona Q1-Q4; cualquier override excepcional debe quedar explícito y auditado, no oculto.
+
+### Recuperación BLE 1.7.6 (ADR-029)
+
+BUSCAR no valida ni desconecta el dispositivo que pertenece al transporte
+activo, incluso durante recuperación. El enlace físico en preparación no se
+presenta como listo. READ y NOTIFY se reconcilian en orden sin reaplicar una
+respuesta de lectura atrasada. El último contador se guarda después de encolar
+sus pulsos; fallos de persistencia se informan y bloquean FINAL de esa Sample.
+Un resultado de escritura ilegible no se reintenta ciegamente.
+
+Al volver a foreground se verifica el enlace y se lee el contador; una sesión
+sana no se reconstruye. Permisos denegados y Bluetooth apagado suspenden los
+reintentos. Tras habilitarlos, volver a la app permite verificar y recuperar.
+Tres preparaciones GATT fallidas con enlace todavía conectado permiten escalar
+a una desconexión y nuevo intento directo; un read fallido aislado no lo hace.
+
+Si una Sample BLE ya iniciada requiere reconstruir su fuente (por ejemplo,
+tras muerte del proceso), la app no puede probar la última frontera común
+entre progreso y checkpoint. La marca comprometida y exige repetirla; no estima
+pulsos ni continúa hacia cierre válido. Background con fuente viva conserva
+la recuperación normal. La configuración del dispositivo se relee de storage.
+
+Si FINAL ya está persistido, reanudar BLE abre la captura de lecturas sin
+reconstruir adquisición ni comprometer el endpoint terminado por esa causa.
+Las validaciones de evidencia y cierre permanecen vigentes.

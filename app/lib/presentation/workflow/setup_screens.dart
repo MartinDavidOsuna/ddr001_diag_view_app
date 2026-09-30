@@ -500,6 +500,10 @@ final class TestSetupScreen extends ConsumerStatefulWidget {
 }
 
 final class _TestSetupScreenState extends ConsumerState<TestSetupScreen> {
+  final _form = GlobalKey<FormState>();
+  late final _k = TextEditingController(
+    text: ref.read(appControllerProvider).litersPerPulse.toString(),
+  );
   late final _step = TextEditingController(
     text: ref.read(appControllerProvider).evidenceStepLiters.toString(),
   );
@@ -536,6 +540,7 @@ final class _TestSetupScreenState extends ConsumerState<TestSetupScreen> {
 
   @override
   void dispose() {
+    _k.dispose();
     _step.dispose();
     _uncertainty.dispose();
     _minimum.dispose();
@@ -555,224 +560,264 @@ final class _TestSetupScreenState extends ConsumerState<TestSetupScreen> {
     final controller = ref.read(appControllerProvider.notifier);
     return AppScaffold(
       title: 'Preparación',
-      child: SectionCard(
-        title: 'Configuración',
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _summary('Medidor', state.meter?.id ?? '—'),
-            _summary('Q1 — Caudal operativo', 'Calculado durante la prueba'),
-            _summary('Q2 — Caudal medio', 'Calculado durante la prueba'),
-            _summary('Método', methodLabel(state.selectedMethod)),
-            if (state.selectedMethod == MeasurementMethod.simulation)
-              _summary(
-                'Escenario',
-                _simulationScenarioLabel(state.selectedSimulationScenario),
+      child: Form(
+        key: _form,
+        child: SectionCard(
+          title: 'Configuración',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _summary('Medidor', state.meter?.id ?? '—'),
+              _summary('Q1 — Caudal operativo', 'Calculado durante la prueba'),
+              _summary('Q2 — Caudal medio', 'Calculado durante la prueba'),
+              _summary('Método', methodLabel(state.selectedMethod)),
+              if (state.selectedMethod == MeasurementMethod.simulation)
+                _summary(
+                  'Escenario',
+                  _simulationScenarioLabel(state.selectedSimulationScenario),
+                ),
+              TextFormField(
+                key: const Key('config-reference-k'),
+                controller: _k,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'Medidor patrón · litros por pulso',
+                  helperText: 'Bluetooth, manual, LED o simulación · Q1 y Q2',
+                ),
+                validator: _positivePulseValue,
               ),
-            _summary('K para Q1', '${state.litersPerPulse} L/pulso'),
-            _summary('K para Q2', '${state.litersPerPulse} L/pulso'),
-            const Divider(),
-            if (state.selectedMethod == MeasurementMethod.simulation) ...[
-              const StatusBanner(
-                text:
-                    'MODO SIMULACIÓN · PRUEBA SIMULADA — NO CORRESPONDE A UNA VERIFICACIÓN FÍSICA',
-                color: AppColors.warning,
-                icon: Icons.science_outlined,
+              const Divider(),
+              if (state.selectedMethod == MeasurementMethod.simulation) ...[
+                const StatusBanner(
+                  text:
+                      'MODO SIMULACIÓN · PRUEBA SIMULADA — NO CORRESPONDE A UNA VERIFICACIÓN FÍSICA',
+                  color: AppColors.warning,
+                  icon: Icons.science_outlined,
+                ),
+                const SizedBox(height: 10),
+              ],
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      key: const Key('config-minimum-volume'),
+                      controller: _minimum,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: const InputDecoration(
+                        labelText: 'Vmín orientativo (L)',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextField(
+                      key: const Key('config-maximum-volume'),
+                      controller: _maximum,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: const InputDecoration(
+                        labelText: 'Vmáx orientativo (L)',
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 10),
-            ],
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    key: const Key('config-minimum-volume'),
-                    controller: _minimum,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: 'Vmín orientativo (L)',
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    key: const Key('config-maximum-volume'),
-                    controller: _maximum,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: 'Vmáx orientativo (L)',
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      key: const Key('config-control-start-min'),
+                      controller: _startMin,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: const InputDecoration(
+                        labelText: 'Caudal mínimo para iniciar (L/s)',
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    key: const Key('config-control-start-min'),
-                    controller: _startMin,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: 'Caudal mínimo para iniciar (L/s)',
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextField(
+                      key: const Key('config-control-start-max'),
+                      controller: _startMax,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: const InputDecoration(
+                        labelText: 'Caudal máximo para iniciar (L/s)',
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    key: const Key('config-control-start-max'),
-                    controller: _startMax,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: 'Caudal máximo para iniciar (L/s)',
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              key: const Key('config-hydrant-k'),
-              controller: _hydrantK,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
+                ],
               ),
-              decoration: const InputDecoration(
-                labelText: 'Medidor del hidrante · litros por pulso',
+              const SizedBox(height: 10),
+              TextFormField(
+                validator: _positivePulseValue,
+                key: const Key('config-hydrant-k'),
+                controller: _hydrantK,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'Medidor del hidrante · litros por pulso',
+                ),
               ),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    key: const Key('config-odometer-scale'),
-                    controller: _odometerScale,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: 'Escala del odómetro (L/unidad)',
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    key: const Key('config-needle-scale'),
-                    controller: _needleScale,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: 'Escala aguja (L/vuelta)',
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      key: const Key('config-odometer-scale'),
+                      controller: _odometerScale,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: const InputDecoration(
+                        labelText: 'Escala del odómetro (L/unidad)',
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    key: const Key('config-totalizer-integers'),
-                    controller: _integerDigits,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: const InputDecoration(
-                      labelText: 'Enteros del odómetro',
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextField(
+                      key: const Key('config-needle-scale'),
+                      controller: _needleScale,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: const InputDecoration(
+                        labelText: 'Escala aguja (L/vuelta)',
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: DropdownButtonFormField<int>(
-                    key: const Key('config-totalizer-decimals'),
-                    initialValue: _decimalPlaces,
-                    decoration: const InputDecoration(labelText: 'Decimales'),
-                    items: const [0, 1, 2, 3]
-                        .map(
-                          (value) => DropdownMenuItem(
-                            value: value,
-                            child: Text(
-                              value == 0 ? 'Sin decimales' : '$value',
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      key: const Key('config-totalizer-integers'),
+                      controller: _integerDigits,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: const InputDecoration(
+                        labelText: 'Enteros del odómetro',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: DropdownButtonFormField<int>(
+                      key: const Key('config-totalizer-decimals'),
+                      initialValue: _decimalPlaces,
+                      decoration: const InputDecoration(labelText: 'Decimales'),
+                      items: const [0, 1, 2, 3]
+                          .map(
+                            (value) => DropdownMenuItem(
+                              value: value,
+                              child: Text(
+                                value == 0 ? 'Sin decimales' : '$value',
+                              ),
                             ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) =>
-                        setState(() => _decimalPlaces = value ?? 0),
+                          )
+                          .toList(),
+                      onChanged: (value) =>
+                          setState(() => _decimalPlaces = value ?? 0),
+                    ),
                   ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                key: const Key('config-step'),
+                controller: _step,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
                 ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              key: const Key('config-step'),
-              controller: _step,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
+                decoration: const InputDecoration(
+                  labelText: 'Paso de evidencia (L)',
+                ),
               ),
-              decoration: const InputDecoration(
-                labelText: 'Paso de evidencia (L)',
+              const SizedBox(height: 10),
+              TextField(
+                key: const Key('config-u'),
+                controller: _uncertainty,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'Incertidumbre base uL (L)',
+                ),
               ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              key: const Key('config-u'),
-              controller: _uncertainty,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
+              const SizedBox(height: 10),
+              const SizedBox(height: 8),
+              FilledButton(
+                key: const Key('start-sample'),
+                onPressed: state.busy
+                    ? null
+                    : () {
+                        if (!_form.currentState!.validate()) return;
+                        try {
+                          controller.updateSetup(
+                            litersPerPulse: double.parse(
+                              _k.text.replaceAll(',', '.'),
+                            ),
+                            evidenceStepLiters:
+                                double.tryParse(_step.text) ?? 25,
+                            uncertaintyLiters:
+                                double.tryParse(_uncertainty.text) ?? 1,
+                            minimumVolumeLiters:
+                                double.tryParse(_minimum.text) ?? 100,
+                            maximumVolumeLiters:
+                                double.tryParse(_maximum.text) ?? 300,
+                            controlStartMinimumLps:
+                                double.tryParse(_startMin.text) ?? .5,
+                            controlStartMaximumLps:
+                                double.tryParse(_startMax.text) ?? 50,
+                            hydrantLitersPerPulse: double.parse(
+                              _hydrantK.text.replaceAll(',', '.'),
+                            ),
+                            litersPerOdometerUnit:
+                                double.tryParse(_odometerScale.text) ?? 1000,
+                            needleLitersPerRevolution:
+                                double.tryParse(_needleScale.text) ?? 100,
+                            totalizerIntegerDigits:
+                                int.tryParse(_integerDigits.text) ?? 5,
+                            totalizerDecimalPlaces: _decimalPlaces,
+                          );
+                          controller.startSample();
+                        } on ArgumentError catch (error) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('${error.message}')),
+                          );
+                        }
+                      },
+                child: Text(
+                  state.selectedMethod == MeasurementMethod.simulation
+                      ? 'INICIAR SIMULACIÓN'
+                      : 'PREPARAR CÁMARA',
+                ),
               ),
-              decoration: const InputDecoration(
-                labelText: 'Incertidumbre base uL (L)',
-              ),
-            ),
-            const SizedBox(height: 10),
-            const SizedBox(height: 8),
-            FilledButton(
-              key: const Key('start-sample'),
-              onPressed: () {
-                controller.updateSetup(
-                  litersPerPulse: state.litersPerPulse,
-                  evidenceStepLiters: double.tryParse(_step.text) ?? 25,
-                  uncertaintyLiters: double.tryParse(_uncertainty.text) ?? 1,
-                  minimumVolumeLiters: double.tryParse(_minimum.text) ?? 100,
-                  maximumVolumeLiters: double.tryParse(_maximum.text) ?? 300,
-                  controlStartMinimumLps: double.tryParse(_startMin.text) ?? .5,
-                  controlStartMaximumLps: double.tryParse(_startMax.text) ?? 50,
-                  hydrantLitersPerPulse: double.tryParse(_hydrantK.text) ?? 1,
-                  litersPerOdometerUnit:
-                      double.tryParse(_odometerScale.text) ?? 1000,
-                  needleLitersPerRevolution:
-                      double.tryParse(_needleScale.text) ?? 100,
-                  totalizerIntegerDigits:
-                      int.tryParse(_integerDigits.text) ?? 5,
-                  totalizerDecimalPlaces: _decimalPlaces,
-                );
-                controller.startSample();
-              },
-              child: Text(
-                state.selectedMethod == MeasurementMethod.simulation
-                    ? 'INICIAR SIMULACIÓN'
-                    : 'PREPARAR CÁMARA',
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  String? _positivePulseValue(String? text) {
+    final value = double.tryParse((text ?? '').replaceAll(',', '.'));
+    return value == null || !value.isFinite || value <= 0
+        ? 'Introduce litros por pulso mayores que cero.'
+        : null;
   }
 
   Widget _summary(String label, String value) => Padding(

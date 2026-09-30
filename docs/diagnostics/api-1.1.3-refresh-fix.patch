@@ -1,0 +1,226 @@
+diff --git a/docs/release/20260918-refresh-invalid-token-fix.md b/docs/release/20260918-refresh-invalid-token-fix.md
+new file mode 100644
+index 0000000..64548b7
+--- /dev/null
++++ b/docs/release/20260918-refresh-invalid-token-fix.md
+@@ -0,0 +1,56 @@
++# API 1.1.3 — refresh inválido devuelve 401
++
++## Problema y corrección
++
++En 1.1.2, POST /api/v1/field-sessions/refresh llama a verifyRefresh antes de SQL.
++jsonwebtoken lanza JsonWebTokenError (o sus subclases) ante JWT malformado,
++firma diferente, token aún no válido o refresh administrativo expirado.
++La excepción escapaba al handler genérico y producía HTTP 500 con
++`An unexpected error occurred.`. El cliente conserva credenciales ante 5xx,
++por lo que repetía el fallo en vez de recuperar la autenticación.
++
++verifyRefresh convierte exclusivamente esos rechazos JWT en AppError 401,
++code INVALID_REFRESH_TOKEN. Errores inesperados y fallos SQL siguen siendo 500.
++Se preservan firma, tipo, secretos separados, expiración Admin y política
++Field permanente controlada por revocación/estado SQL. No se permite un token
++inválido ni se omite un control de acceso.
++
++La app 1.7.3+22 ya limpia la credencial remota rechazada con 401 y recupera su
++sesión local por el flujo Field existente. No necesita otra APK para recibir
++esta corrección. No es un bypass general de 500 ni de 403.
++
++## Evidencia
++
++Tres regresiones HTTP fallan antes del cambio (reciben 500) y pasan después
++(reciben 401 sin tocar SQL): JWT malformado, firma de otra clave y nbf futuro.
++Pruebas preservan aceptación Field expirado y rechazo Admin expirado.
++La reproducción no demuestra qué condición concreta tiene el token del Pixel;
++no se extrajo ni registró esa credencial.
++
++## Recuperación inmediata
++
++Cerrar sesión en la app y entrar con la misma identidad descarta las
++credenciales remotas antiguas y conserva SQLite/fotos. Abrir el expediente
++existente en Historial y sincronizar. No desinstalar ni borrar almacenamiento.
++Si aparece otro error, registrar su operación y estado; un inicio de sesión
++fallido necesita diagnóstico separado y no demuestra recepción del expediente.
++
++## Despliegue pendiente
++
++Base origin/main ce2fd46; rama local fix/refresh-invalid-token-401.
++Cambios preparados en un worktree separado, sin modificar el checkout original.
++No se desplegó, reinició, migró, publicó ni hizo push de producción.
++Sin migraciones ni cambios de secretos/configuración requeridos.
++Desplegar el artefacto revisado con el procedimiento operativo habitual,
++preservando .env, storage y rollback anterior. Validar 401 con credencial
++sintética inválida y después renovación válida/sync/ACK del expediente real.
++
++## Validación final
++
++- 366 pruebas unitarias aprobadas, 57 archivos.
++- TypeScript, ESLint y build aprobados.
++- E2E funcional en DDR001_Hidrantes_TEST aprobado: se agregó renovación real
++  inmediatamente después del login y se usa el access token renovado para
++  fotografías, sync, replay y consultas.
++- Código probado con DB TEST y storage local aislado; sin prueba de tokens
++  reales ni escrituras de expedientes en producción.
+diff --git a/package-lock.json b/package-lock.json
+index 0fb174b..59a7f4d 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,12 +1,12 @@
+ {
+   "name": "rvs-api",
+-  "version": "1.1.2",
++  "version": "1.1.3",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "rvs-api",
+-      "version": "1.1.2",
++      "version": "1.1.3",
+       "dependencies": {
+         "argon2": "^0.41.1",
+         "cors": "^2.8.5",
+diff --git a/package.json b/package.json
+index ce5c8fb..40e1978 100644
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "rvs-api",
+-  "version": "1.1.2",
++  "version": "1.1.3",
+   "private": true,
+   "type": "module",
+   "engines": {
+diff --git a/src/security/jwt.ts b/src/security/jwt.ts
+index c8482b3..98c195e 100644
+--- a/src/security/jwt.ts
++++ b/src/security/jwt.ts
+@@ -71,14 +71,27 @@ export function issueAdminTokens(data: Omit<AdminClaims, 'tokenId' | 'type'>) {
+ }
+ export function verifyRefresh(token: string, kind: 'field' | 'admin'): AuthPrincipal {
+   const e = getEnv();
+-  const value = jwt.verify(
+-    token,
+-    kind === 'field' ? e.FIELD_REFRESH_SECRET : e.ADMIN_REFRESH_SECRET,
+-    // La vigencia de campo la controla el estado revocable de la sesión en
+-    // SQL. El JWT conserva firma e identidad, pero no cierra por tiempo una
+-    // sesión de captura. Los tokens administrativos sí conservan expiración.
+-    kind === 'field' ? { ignoreExpiration: true } : undefined,
+-  ) as FieldClaims | AdminClaims;
++  let value: FieldClaims | AdminClaims;
++  try {
++    value = jwt.verify(
++      token,
++      kind === 'field' ? e.FIELD_REFRESH_SECRET : e.ADMIN_REFRESH_SECRET,
++      // Field lifetime remains controlled by revocable SQL session state.
++      // Only admin refresh credentials expire by JWT time.
++      kind === 'field' ? { ignoreExpiration: true } : undefined,
++    ) as FieldClaims | AdminClaims;
++  } catch (error) {
++    if (error instanceof jwt.JsonWebTokenError) {
++      throw new AppError(
++        401,
++        'Invalid refresh token',
++        'La credencial de renovación ya no es válida. Inicia sesión nuevamente.',
++        [],
++        'INVALID_REFRESH_TOKEN',
++      );
++    }
++    throw error;
++  }
+   if (value.type !== kind) throw new AppError(401, 'Invalid token', 'Token audience is invalid.');
+   return toPrincipal(value);
+ }
+diff --git a/tests/integration/functional-diagnostics-flow.integration.test.ts b/tests/integration/functional-diagnostics-flow.integration.test.ts
+index 173a738..07921fc 100644
+--- a/tests/integration/functional-diagnostics-flow.integration.test.ts
++++ b/tests/integration/functional-diagnostics-flow.integration.test.ts
+@@ -101,7 +101,12 @@ describe.skipIf(!enabled)('Functional Diagnostics Field TEST flow', () => {
+         },
+       });
+     expect(login.status).toBe(201);
+-    accessToken = String(login.body.accessToken);
++    const refreshed = await request(app)
++      .post('/api/v1/field-sessions/refresh')
++      .send({ refreshToken: String(login.body.refreshToken) });
++    expect(refreshed.status).toBe(200);
++    expect(refreshed.body.refreshToken).not.toBe(login.body.refreshToken);
++    accessToken = String(refreshed.body.accessToken);
+     userId = String(login.body.userId);
+     const auth = { Authorization: `Bearer ${accessToken}` };
+     const access = await request(app).get('/api/v1/functional-diagnostics/me/access').set(auth);
+diff --git a/tests/unit/permanent-field-session.test.ts b/tests/unit/permanent-field-session.test.ts
+index 23e4dee..f3def98 100644
+--- a/tests/unit/permanent-field-session.test.ts
++++ b/tests/unit/permanent-field-session.test.ts
+@@ -1,5 +1,6 @@
+ import jwt from 'jsonwebtoken';
+ import { describe, expect, it } from 'vitest';
++import { AppError } from '../../src/shared/errors.js';
+ import { verifyRefresh } from '../../src/security/jwt.js';
+ 
+ describe('sesión permanente de campo', () => {
+@@ -35,6 +36,11 @@ describe('sesión permanente de campo', () => {
+       { noTimestamp: true },
+     );
+ 
+-    expect(() => verifyRefresh(token, 'admin')).toThrow();
++    expect(() => verifyRefresh(token, 'admin')).toThrow(AppError);
++    try {
++      verifyRefresh(token, 'admin');
++    } catch (error) {
++      expect(error).toMatchObject({ status: 401, code: 'INVALID_REFRESH_TOKEN' });
++    }
+   });
+ });
+diff --git a/tests/unit/refresh-invalid-token.test.ts b/tests/unit/refresh-invalid-token.test.ts
+new file mode 100644
+index 0000000..f69340d
+--- /dev/null
++++ b/tests/unit/refresh-invalid-token.test.ts
+@@ -0,0 +1,45 @@
++import jwt from 'jsonwebtoken';
++import request from 'supertest';
++import { describe, expect, it, vi } from 'vitest';
++
++vi.mock('../../src/db/pool.js', async (importOriginal) => {
++  const actual = await importOriginal<typeof import('../../src/db/pool.js')>();
++  return {
++    ...actual,
++    db: vi.fn(() => {
++      throw new Error('Invalid JWT must not query SQL');
++    }),
++  };
++});
++const { createApp } = await import('../../src/app.js');
++const { db } = await import('../../src/db/pool.js');
++
++const claims = {
++  type: 'field',
++  userId: '00000000-0000-4000-8000-000000000001',
++  workSessionId: '00000000-0000-4000-8000-000000000002',
++  deviceId: '00000000-0000-4000-8000-000000000003',
++  tokenId: '00000000-0000-4000-8000-000000000004',
++};
++
++describe('refresh invalid credential HTTP contract', () => {
++  for (const [name, token] of [
++    ['malformed', 'not-a-jwt'],
++    ['different signing key', jwt.sign(claims, 'x'.repeat(32))],
++    [
++      'not yet valid',
++      jwt.sign({ ...claims, nbf: Math.floor(Date.now() / 1000) + 3600 }, 'r'.repeat(32)),
++    ],
++  ]) {
++    it(`${name} returns 401 before touching SQL`, async () => {
++      vi.mocked(db).mockClear();
++      const response = await request(createApp())
++        .post('/api/v1/field-sessions/refresh')
++        .send({ refreshToken: token });
++      expect(response.status).toBe(401);
++      expect(response.body).toMatchObject({ code: 'INVALID_REFRESH_TOKEN' });
++      expect(db).not.toHaveBeenCalled();
++      expect(JSON.stringify(response.body)).not.toContain(token);
++    });
++  }
++});

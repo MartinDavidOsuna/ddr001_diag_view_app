@@ -9,6 +9,7 @@ import '../../domain/models.dart';
 import '../app_controller.dart';
 import '../common/app_scaffold.dart';
 import '../home/home_screens.dart';
+import 'correction_dialog.dart';
 
 final class SampleResultScreen extends ConsumerWidget {
   const SampleResultScreen({super.key});
@@ -239,6 +240,28 @@ final class CaseSummaryScreen extends ConsumerWidget {
                 Text(
                   'Resultado global: ${overallLabel(state.activeCase?.overallVerdict)}',
                 ),
+                if (state.activeCase?.status ==
+                    VerificationCaseStatus.closed) ...[
+                  Text(
+                    'Revisión del reporte: ${state.activeCase!.reportVersion}',
+                  ),
+                  OutlinedButton.icon(
+                    key: const Key('edit-case-identification'),
+                    onPressed: state.busy
+                        ? null
+                        : () => showCorrectionDialog(context),
+                    icon: const Icon(Icons.edit_outlined),
+                    label: const Text('CORREGIR IDENTIFICACIÓN'),
+                  ),
+                  TextButton(
+                    onPressed: () => showCorrectionHistory(
+                      context,
+                      ref,
+                      state.activeCase!.id,
+                    ),
+                    child: const Text('VER CORRECCIONES'),
+                  ),
+                ],
               ],
             ),
           ),
@@ -252,6 +275,11 @@ final class CaseSummaryScreen extends ConsumerWidget {
           else
             for (final entry in grouped.entries) ...[
               _FlowSummary(
+                onEdit:
+                    state.activeCase?.status == VerificationCaseStatus.closed &&
+                        !state.busy
+                    ? (sample) => showCorrectionDialog(context, sample: sample)
+                    : null,
                 flow: entry.key,
                 samples: entry.value,
                 selectedSampleIds: state.reportSampleIds,
@@ -271,7 +299,7 @@ final class CaseSummaryScreen extends ConsumerWidget {
                       builder: (context) => AlertDialog(
                         title: const Text('Terminar expediente'),
                         content: const Text(
-                          'El expediente cerrado será de solo lectura y no aceptará nuevas muestras.',
+                          'El expediente no aceptará nuevas muestras. Las lecturas manuales podrán corregirse con trazabilidad desde el historial.',
                         ),
                         actions: [
                           TextButton(
@@ -292,7 +320,7 @@ final class CaseSummaryScreen extends ConsumerWidget {
             )
           else
             const StatusBanner(
-              text: 'Expediente finalizado · solo lectura',
+              text: 'Expediente finalizado · correcciones manuales disponibles',
               color: AppColors.heading,
               icon: Icons.lock_outline,
             ),
@@ -362,12 +390,20 @@ final class CaseSummaryScreen extends ConsumerWidget {
                   : controller.syncCurrentCase,
               icon: const Icon(Icons.sync),
               label: Text(
-                'SYNC · ${state.syncMessage}',
+                (state.syncMessage.contains('Campos:') ||
+                        state.syncMessage.startsWith('Pendiente (editada) ·'))
+                    ? 'SINCRONIZAR · ${state.syncMessage.split(' · ').first}'
+                    : 'SINCRONIZAR · ${state.syncMessage}',
                 style: state.syncMessage == 'Sincronizado'
                     ? const TextStyle(color: AppColors.success)
                     : null,
               ),
             ),
+            if ((state.syncMessage.contains('Campos:') ||
+                state.syncMessage.startsWith('Pendiente (editada) ·'))) ...[
+              const SizedBox(height: 8),
+              SelectableText(state.syncMessage),
+            ],
           ],
           const SizedBox(height: 8),
           OutlinedButton(
@@ -382,6 +418,7 @@ final class CaseSummaryScreen extends ConsumerWidget {
 
 final class _FlowSummary extends StatelessWidget {
   const _FlowSummary({
+    this.onEdit,
     required this.flow,
     required this.samples,
     required this.selectedSampleIds,
@@ -389,6 +426,7 @@ final class _FlowSummary extends StatelessWidget {
     required this.pointsBySample,
     required this.evidenceBySample,
   });
+  final void Function(Sample)? onEdit;
   final FlowPoint flow;
   final List<Sample> samples;
   final Set<String> selectedSampleIds;
@@ -428,6 +466,13 @@ final class _FlowSummary extends StatelessWidget {
                 ),
               ),
             ),
+            if (onEdit != null)
+              OutlinedButton.icon(
+                key: Key('edit-sample-${sample.id}'),
+                onPressed: () => onEdit!(sample),
+                icon: const Icon(Icons.edit_outlined),
+                label: const Text('CORREGIR LECTURAS Y CONFIGURACIÓN'),
+              ),
             _LocalSampleDetails(
               sample: sample,
               points: pointsBySample[sample.id] ?? const [],

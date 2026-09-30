@@ -3,15 +3,20 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:ddr001_diag_view_app/app/app_dependencies.dart';
+import 'package:ddr001_diag_view_app/presentation/app_controller.dart';
+import '../support/presentation_fixture.dart';
 import 'package:ddr001_diag_view_app/core/metrology/metrology.dart';
 import 'package:ddr001_diag_view_app/data/local/database/app_database.dart'
     hide Meter, User;
 import 'package:ddr001_diag_view_app/data/local/filesystem/evidence_file_store.dart';
 import 'package:ddr001_diag_view_app/data/local/repositories/local_closure_services.dart';
+import 'package:ddr001_diag_view_app/data/local/repositories/local_correction_service.dart';
 import 'package:ddr001_diag_view_app/data/local/repositories/local_repositories.dart';
 import 'package:ddr001_diag_view_app/domain/models.dart';
 import 'package:ddr001_diag_view_app/infrastructure/remote/functional_sync_engine.dart';
 import 'package:ddr001_diag_view_app/infrastructure/remote/remote_api.dart';
+import 'package:ddr001_diag_view_app/infrastructure/remote/sync_point_identity.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -67,6 +72,358 @@ void main() {
         )).map((item) => item.syncStatus),
         everyElement(EvidenceSyncStatus.synced),
       );
+    },
+  );
+
+  test(
+    'edited case checks capability every time and uploads only after API becomes ready',
+    () async {
+      await fixture.seedClosedCase();
+      await LocalVerificationCaseClosureService(database).closeCase(
+        caseId: _caseId,
+        requiredFlowPoints: {FlowPoint.q1},
+        at: _time,
+      );
+      final engine = fixture.engine((request) async {
+        if (request.url.path.endsWith('/me/access')) return _access();
+        if (request.url.path.endsWith('/evidence')) return _evidenceAck();
+        if (request.url.path.endsWith('/sync/push')) return _receipt(request);
+        throw StateError('Unexpected route');
+      });
+      expect(
+        (await engine.syncCase(caseId: _caseId, localUserId: _userId)).outcome,
+        FunctionalSyncOutcome.synced,
+      );
+      final corrections = LocalCorrectionService(
+        database,
+        LocalEvidenceFileStore(directory),
+      );
+      await corrections.correct(
+        caseId: _caseId,
+        actorId: _userId,
+        expectedChecksum: (await fixture.cases.getById(_caseId))!.checksum!,
+        reason: 'Banco equivocado',
+        testBenchId: 'Banco corregido',
+      );
+      var ready = false;
+      var accessCalls = 0;
+      var pushes = 0;
+      final blocked = fixture.engine((request) async {
+        if (request.url.path.endsWith('/me/access')) {
+          accessCalls++;
+          return _access(correctionsReady: ready);
+        }
+        if (request.url.path.endsWith('/sync/push')) {
+          pushes++;
+          expect(ready, isTrue);
+          final body = jsonDecode(request.body) as Map;
+          expect(body['schema'], 'functional-diagnostics.corrections/v1');
+          expect(
+            body['baseCaseChecksum'],
+            isNot(body['corrections'][0]['resultCaseChecksum']),
+          );
+          return _receipt(request);
+        }
+        throw StateError(
+          'No evidence or mutation before capability negotiation',
+        );
+      });
+      final result = await blocked.syncCase(
+        caseId: _caseId,
+        localUserId: _userId,
+      );
+      expect(result.outcome, FunctionalSyncOutcome.error);
+      expect(result.message, contains('Hace falta actualizar la API'));
+      expect(await corrections.hasPending(_caseId), isTrue);
+      expect(pushes, 0);
+      ready = true;
+      final updated = await blocked.syncCase(
+        caseId: _caseId,
+        localUserId: _userId,
+      );
+      expect(
+        updated.outcome,
+        FunctionalSyncOutcome.synced,
+        reason: updated.message,
+      );
+      expect(await corrections.hasPending(_caseId), isFalse);
+      expect(accessCalls, 2);
+      expect(pushes, 1);
+    },
+  );
+
+  test(
+    'editing before first request sends recalculated revision and acknowledges only current queue',
+    () async {
+      await fixture.seedClosedCase();
+      await LocalVerificationCaseClosureService(database).closeCase(
+        caseId: _caseId,
+        requiredFlowPoints: {FlowPoint.q1},
+        at: _time,
+      );
+      final corrections = LocalCorrectionService(
+        database,
+        LocalEvidenceFileStore(directory),
+      );
+      await corrections.correct(
+        caseId: _caseId,
+        actorId: _userId,
+        expectedChecksum: (await fixture.cases.getById(_caseId))!.checksum!,
+        reason: 'Banco equivocado',
+        testBenchId: 'Banco corregido',
+      );
+      final engine = fixture.engine((request) async {
+        if (request.url.path.endsWith('/me/access')) {
+          return _access(correctionsReady: true);
+        }
+        if (request.url.path.endsWith('/evidence')) return _evidenceAck();
+        if (request.url.path.endsWith('/sync/push')) {
+          expect(request.body, contains('Banco corregido'));
+          return _receipt(request);
+        }
+        throw StateError('Unexpected route');
+      });
+      expect(
+        (await engine.syncCase(caseId: _caseId, localUserId: _userId)).outcome,
+        FunctionalSyncOutcome.synced,
+      );
+      expect(await corrections.hasPending(_caseId), isFalse);
+      expect(await fixture.queue.listPending(), isEmpty);
+    },
+  );
+
+  test(
+    'incomplete ACK cannot acknowledge an edited first publication',
+    () async {
+      await fixture.seedClosedCase();
+      await LocalVerificationCaseClosureService(database).closeCase(
+        caseId: _caseId,
+        requiredFlowPoints: {FlowPoint.q1},
+        at: _time,
+      );
+      final corrections = LocalCorrectionService(database, fixture.fileStore);
+      await corrections.correct(
+        caseId: _caseId,
+        actorId: _userId,
+        expectedChecksum: (await fixture.cases.getById(_caseId))!.checksum!,
+        reason: 'Banco',
+        testBenchId: 'Corregido',
+      );
+      final engine = fixture.engine((request) async {
+        if (request.url.path.endsWith('/me/access')) {
+          return _access(correctionsReady: true);
+        }
+        if (request.url.path.endsWith('/evidence')) return _evidenceAck();
+        if (request.url.path.endsWith('/sync/push')) {
+          final body = jsonDecode(_receipt(request).body) as Map;
+          (body['data']['items'] as List).removeLast();
+          return http.Response(jsonEncode(body), 200);
+        }
+        throw StateError('Unexpected route');
+      });
+      expect(
+        (await engine.syncCase(caseId: _caseId, localUserId: _userId)).outcome,
+        FunctionalSyncOutcome.pending,
+      );
+      expect(await corrections.hasPending(_caseId), isTrue);
+      expect(
+        (await fixture.batches.latestForCase(_caseId))!.state,
+        SyncBatchState.ambiguous,
+      );
+    },
+  );
+  test('graph ACK without correction IDs cannot confirm a revision', () async {
+    await fixture.seedClosedCase();
+    await LocalVerificationCaseClosureService(
+      database,
+    ).closeCase(caseId: _caseId, requiredFlowPoints: {FlowPoint.q1}, at: _time);
+    final corrections = LocalCorrectionService(database, fixture.fileStore);
+    await corrections.correct(
+      caseId: _caseId,
+      actorId: _userId,
+      expectedChecksum: (await fixture.cases.getById(_caseId))!.checksum!,
+      reason: 'Banco',
+      testBenchId: 'Corregido',
+    );
+    final engine = fixture.engine((request) async {
+      if (request.url.path.endsWith('/me/access')) {
+        return _access(correctionsReady: true);
+      }
+      if (request.url.path.endsWith('/evidence')) return _evidenceAck();
+      if (request.url.path.endsWith('/sync/push')) {
+        final body = jsonDecode(_receipt(request).body) as Map;
+        (body['data'] as Map).remove('appliedCorrectionIds');
+        return http.Response(jsonEncode(body), 200);
+      }
+      throw StateError('Unexpected route');
+    });
+    expect(
+      (await engine.syncCase(caseId: _caseId, localUserId: _userId)).outcome,
+      FunctionalSyncOutcome.pending,
+    );
+    expect(await corrections.hasPending(_caseId), isTrue);
+    expect(
+      (await fixture.batches.latestForCase(_caseId))!.state,
+      SyncBatchState.ambiguous,
+    );
+  });
+
+  test(
+    'graph ACK with stale case checksum cannot confirm a revision',
+    () async {
+      await fixture.seedClosedCase();
+      await LocalVerificationCaseClosureService(database).closeCase(
+        caseId: _caseId,
+        requiredFlowPoints: {FlowPoint.q1},
+        at: _time,
+      );
+      final corrections = LocalCorrectionService(database, fixture.fileStore);
+      await corrections.correct(
+        caseId: _caseId,
+        actorId: _userId,
+        expectedChecksum: (await fixture.cases.getById(_caseId))!.checksum!,
+        reason: 'Banco',
+        testBenchId: 'Corregido',
+      );
+      final engine = fixture.engine((request) async {
+        if (request.url.path.endsWith('/me/access')) {
+          return _access(correctionsReady: true);
+        }
+        if (request.url.path.endsWith('/evidence')) return _evidenceAck();
+        if (request.url.path.endsWith('/sync/push')) {
+          final body = jsonDecode(_receipt(request).body) as Map;
+          body['data']['caseChecksum'] = 'stale';
+          return http.Response(jsonEncode(body), 200);
+        }
+        throw StateError('Unexpected route');
+      });
+      expect(
+        (await engine.syncCase(caseId: _caseId, localUserId: _userId)).outcome,
+        FunctionalSyncOutcome.pending,
+      );
+      expect(await corrections.hasPending(_caseId), isTrue);
+      expect(
+        (await fixture.batches.latestForCase(_caseId))!.state,
+        SyncBatchState.ambiguous,
+      );
+    },
+  );
+
+  test(
+    'missing or incompatible correction capability blocks first publication before evidence uploads',
+    () async {
+      await fixture.seedClosedCase();
+      await LocalVerificationCaseClosureService(database).closeCase(
+        caseId: _caseId,
+        requiredFlowPoints: {FlowPoint.q1},
+        at: _time,
+      );
+      final corrections = LocalCorrectionService(database, fixture.fileStore);
+      await corrections.correct(
+        caseId: _caseId,
+        actorId: _userId,
+        expectedChecksum: (await fixture.cases.getById(_caseId))!.checksum!,
+        reason: 'Banco',
+        testBenchId: 'Corregido',
+      );
+      for (final shape in [
+        null,
+        {
+          'manualCorrections': {'ready': true, 'schema': 'unknown'},
+        },
+        {
+          'manualCorrections': {
+            'ready': 'true',
+            'schema': 'functional-diagnostics.corrections/v1',
+          },
+        },
+      ]) {
+        var calls = 0;
+        final engine = fixture.engine((request) async {
+          calls++;
+          expect(request.url.path, endsWith('/me/access'));
+          final body = jsonDecode(_access().body) as Map;
+          body['data']['capabilities'] = shape;
+          return http.Response(jsonEncode(body), 200);
+        });
+        final result = await engine.syncCase(
+          caseId: _caseId,
+          localUserId: _userId,
+        );
+        expect(result.outcome, FunctionalSyncOutcome.error);
+        expect(result.message, contains('Hace falta actualizar la API'));
+        expect(calls, 1);
+        expect(await corrections.hasPending(_caseId), isTrue);
+        expect(await fixture.batches.latestForCase(_caseId), isNull);
+      }
+    },
+  );
+
+  test(
+    'lost correction ACK is recovered before sending a newer local revision',
+    () async {
+      await fixture.seedClosedCase();
+      await LocalVerificationCaseClosureService(database).closeCase(
+        caseId: _caseId,
+        requiredFlowPoints: {FlowPoint.q1},
+        at: _time,
+      );
+      final corrections = LocalCorrectionService(database, fixture.fileStore);
+      Future<void> edit(String bench) async => corrections.correct(
+        caseId: _caseId,
+        actorId: _userId,
+        expectedChecksum: (await fixture.cases.getById(_caseId))!.checksum!,
+        reason: 'Banco',
+        testBenchId: bench,
+      );
+      await edit('Revisión 2');
+      Map<String, Object?>? previous;
+      final first = fixture.engine((request) async {
+        if (request.url.path.endsWith('/me/access')) {
+          return _access(correctionsReady: true);
+        }
+        if (request.url.path.endsWith('/evidence')) return _evidenceAck();
+        previous = (jsonDecode(request.body) as Map).cast<String, Object?>();
+        return http.Response('unavailable', 503);
+      });
+      expect(
+        (await first.syncCase(caseId: _caseId, localUserId: _userId)).outcome,
+        FunctionalSyncOutcome.pending,
+      );
+      await edit('Revisión 3');
+      var recovered = false;
+      var pushes = 0;
+      final retry = fixture.engine((request) async {
+        if (request.url.path.endsWith('/me/access')) {
+          return _access(correctionsReady: true);
+        }
+        if (request.url.path.endsWith('/sync/status')) {
+          recovered = true;
+          return _receiptFor(previous!);
+        }
+        if (request.url.path.endsWith('/sync/push')) {
+          expect(recovered, isTrue);
+          pushes++;
+          final body = jsonDecode(request.body) as Map;
+          expect(body['batchId'], isNot(previous!['batchId']));
+          expect(body['baseBatchId'], previous!['batchId']);
+          expect(body['corrections'], hasLength(1));
+          expect(request.body, contains('Revisión 3'));
+          return _receipt(request);
+        }
+        throw StateError('Unexpected route');
+      });
+      final result = await retry.syncCase(
+        caseId: _caseId,
+        localUserId: _userId,
+      );
+      expect(
+        result.outcome,
+        FunctionalSyncOutcome.synced,
+        reason: result.message,
+      );
+      expect(pushes, 1);
+      expect(await corrections.hasPending(_caseId), isFalse);
     },
   );
 
@@ -195,6 +552,121 @@ void main() {
   );
 
   test(
+    'repairs a persisted 422 point batch, retaining batch identity and local data',
+    () async {
+      const legacyId = 'point-77777777-7777-4777-8777-777777777777';
+      final sample = await fixture.seedClosedCase(pointId: legacyId);
+      var pushes = 0;
+      final engine = fixture.engine((request) async {
+        if (request.url.path.endsWith('/me/access')) return _access();
+        if (request.url.path.endsWith('/evidence')) return _evidenceAck();
+        if (request.url.path.endsWith('/sync/push')) {
+          pushes++;
+          if (pushes == 1) {
+            return http.Response(
+              jsonEncode({
+                'error': {
+                  'code': 'VALIDATION_FAILED',
+                  'message': 'One or more fields are invalid.',
+                },
+              }),
+              422,
+            );
+          }
+          final sent = jsonDecode(request.body) as Map<String, Object?>;
+          final point = (sent['items'] as List)
+              .cast<Map<String, Object?>>()
+              .singleWhere((i) => i['entityType'] == 'POINT');
+          expect(point['entityId'], syncPointId(_sampleId, legacyId));
+          expect((point['payload'] as Map)['pointId'], point['entityId']);
+          expect(point['payloadSha256'], canonicalSha256(point['payload']));
+          return _receipt(request);
+        }
+        throw StateError('Unexpected route');
+      });
+      await engine.syncCase(caseId: _caseId, localUserId: _userId);
+      final failed = (await fixture.batches.unresolvedForCase(_caseId))!;
+      // Simulate the exact batch stored by 1.7.4, before this transport adapter existed.
+      final oldRequest = jsonDecode(failed.requestJson) as Map<String, Object?>;
+      final oldPoint = (oldRequest['items'] as List)
+          .cast<Map<String, Object?>>()
+          .singleWhere((i) => i['entityType'] == 'POINT');
+      oldPoint['entityId'] = legacyId;
+      (oldPoint['payload'] as Map)['pointId'] = legacyId;
+      oldPoint['payloadSha256'] = canonicalSha256(oldPoint['payload']);
+      await database.customStatement(
+        'UPDATE sync_batches SET request_json = ?, request_sha256 = ? WHERE id = ?',
+        [jsonEncode(oldRequest), canonicalSha256(oldRequest), failed.id],
+      );
+      final result = await engine.syncCase(
+        caseId: _caseId,
+        localUserId: _userId,
+      );
+      expect(result.outcome, FunctionalSyncOutcome.synced);
+      expect((await fixture.batches.latestForCase(_caseId))!.id, failed.id);
+      expect(
+        (await fixture.samples.getById(_sampleId))!.checksum,
+        sample.checksum,
+      );
+      expect(
+        (await fixture.points.listBySample(_sampleId)).single.id,
+        legacyId,
+      );
+      for (final e in await fixture.evidence.listBySample(_sampleId)) {
+        expect(await File(e.localPath).exists(), isTrue);
+      }
+    },
+  );
+
+  for (final ambiguous in [false, true]) {
+    test(
+      'point repair cannot rewrite ${ambiguous ? 'ambiguous' : 'conflict'} requests',
+      () async {
+        await fixture.seedClosedCase();
+        final batch = await fixture.batches.savePending(
+          SyncBatch(
+            id: _caseId,
+            caseId: _caseId,
+            requestJson: '{}',
+            requestSha256: 'a' * 64,
+            state: SyncBatchState.pending,
+            attempts: 0,
+            createdAt: _time,
+            updatedAt: _time,
+          ),
+        );
+        if (ambiguous) {
+          await fixture.batches.markAmbiguous(
+            batch.id,
+            error: 'VALIDATION_FAILED: old',
+            at: _time,
+          );
+        } else {
+          await fixture.batches.markConflict(
+            batch.id,
+            error: 'VALIDATION_FAILED: old',
+            at: _time,
+          );
+        }
+        await expectLater(
+          fixture.batches.repairFailedRequest(
+            id: batch.id,
+            requestJson: '{"changed":true}',
+            requestSha256: 'b' * 64,
+            at: _time,
+            repairPointIds: true,
+          ),
+          throwsStateError,
+        );
+        expect(
+          (await fixture.batches.latestForCase(_caseId))!.requestJson,
+          '{}',
+        );
+      },
+    );
+  }
+
+  test(
     '409 receipt preserves local case, checksum and evidence files',
     () async {
       final sample = await fixture.seedClosedCase();
@@ -283,6 +755,123 @@ void main() {
     expect(await fixture.evidence.listBySample(_sampleId), hasLength(2));
   });
 
+  test(
+    'history bulk sync filters owner/open cases, ignores double activation and continues after failure',
+    () async {
+      await fixture.seedClosedCase();
+      final closure = LocalVerificationCaseClosureService(database);
+      await closure.closeCase(
+        caseId: _caseId,
+        requiredFlowPoints: {FlowPoint.q1},
+        at: _time,
+      );
+      final original = (await fixture.cases.getById(_caseId))!;
+      await fixture.users.save(
+        User(
+          id: 'other-user',
+          email: 'other@example.test',
+          phone: '4491234568',
+          createdAt: _time,
+        ),
+      );
+      for (final id in [
+        'empty-closed',
+        'open',
+        'foreign-closed',
+        'edited-closed',
+      ]) {
+        await fixture.cases.create(
+          VerificationCase(
+            id: id,
+            meterId: original.meterId,
+            userId: id == 'foreign-closed' ? 'other-user' : _userId,
+            status: VerificationCaseStatus.open,
+            createdAt: _time.add(const Duration(seconds: 1)),
+            reportVersion: 1,
+          ),
+        );
+        if (id == 'edited-closed') {
+          await fixture.flows.create(
+            FlowPointRecord(
+              id: 'edited-flow',
+              caseId: id,
+              code: FlowPoint.q1,
+              mpePct: 2,
+              status: FlowRecordStatus.open,
+              createdAt: _time,
+            ),
+          );
+        }
+        if (id != 'open') {
+          await closure.closeCase(
+            caseId: id,
+            requiredFlowPoints: {FlowPoint.q1},
+            at: _time,
+          );
+        }
+      }
+      await LocalCorrectionService(database, fixture.fileStore).correct(
+        caseId: 'edited-closed',
+        actorId: _userId,
+        expectedChecksum: (await fixture.cases.getById(
+          'edited-closed',
+        ))!.checksum!,
+        reason: 'Banco',
+        testBenchId: 'Banco corregido',
+      );
+      var accessCalls = 0;
+      var pushes = 0;
+      final started = Completer<void>();
+      final release = Completer<void>();
+      final engine = fixture.engine((request) async {
+        if (request.url.path.endsWith('/me/access')) {
+          accessCalls++;
+          if (!started.isCompleted) {
+            started.complete();
+            await release.future;
+          }
+          return _access();
+        }
+        if (request.url.path.endsWith('/evidence')) return _evidenceAck();
+        if (request.url.path.endsWith('/sync/push')) {
+          pushes++;
+          return _receipt(request);
+        }
+        throw StateError('Unexpected route');
+      });
+      final session = MemorySessionStore();
+      await session.saveActiveUserId(_userId);
+      final dependencies = AppDependencies.compose(
+        database: database,
+        fileStore: fixture.fileStore,
+        sessionStore: session,
+      ).copyWith(syncEngine: engine);
+      final controller = AppController(dependencies);
+      await controller.initialize();
+      await controller.showHistory();
+      final first = controller.syncPendingCases();
+      await started.future;
+      await controller.syncPendingCases();
+      release.complete();
+      await first;
+      expect(accessCalls, 3);
+      expect(pushes, 1);
+      expect(controller.state.syncMessage, '1 sincronizadas · 2 pendientes');
+      expect(
+        controller.state.caseSyncMessages['edited-closed'],
+        contains('Hace falta actualizar la API'),
+      );
+      expect(controller.state.caseSyncMessages[_caseId], 'Sincronizado');
+      expect(
+        controller.state.caseSyncMessages['empty-closed'],
+        startsWith('Error'),
+      );
+      expect(await fixture.batches.latestForCase('foreign-closed'), isNull);
+      expect(await fixture.batches.latestForCase('open'), isNull);
+      controller.dispose();
+    },
+  );
+
   test('one failed Case does not block the next queued Case', () async {
     await fixture.seedClosedCase();
     final engine = fixture.engine((request) async {
@@ -329,7 +918,7 @@ final class _SyncFixture {
   final LocalEvidenceFileStore fileStore;
   late final LocalSampleClosureService closure;
 
-  Future<Sample> seedClosedCase() async {
+  Future<Sample> seedClosedCase({String? pointId}) async {
     final evidenceBytes = await File(
       'assets/simulation/simulation_evidence_placeholder.png',
     ).readAsBytes();
@@ -431,6 +1020,18 @@ final class _SyncFixture {
         ),
       );
     }
+    if (pointId != null) {
+      await points.save(
+        TestPoint(
+          id: pointId,
+          sampleId: _sampleId,
+          type: PointType.start,
+          capturedAt: _time,
+          pulseCount: 0,
+          referenceLiters: 0,
+        ),
+      );
+    }
     return closure.closeValid(
       _sampleId,
       at: _time.add(const Duration(minutes: 1)),
@@ -461,17 +1062,28 @@ final class _SyncFixture {
       evidence: evidence,
       queue: queue,
       batches: batches,
+      corrections: LocalCorrectionService(database, fileStore),
     );
   }
 }
 
-http.Response _access({bool enabled = true}) => http.Response(
+http.Response _access({
+  bool enabled = true,
+  bool correctionsReady = false,
+  String correctionSchema = 'functional-diagnostics.corrections/v1',
+}) => http.Response(
   jsonEncode({
     'data': {
       'userId': _remoteUserId,
       'clientApp': functionalClientApp,
       'accessEnabled': enabled,
       'policyVersion': 1,
+      'capabilities': {
+        'manualCorrections': {
+          'ready': correctionsReady,
+          'schema': correctionSchema,
+        },
+      },
       'updatedAt': _time.toIso8601String(),
     },
   }),
@@ -501,6 +1113,14 @@ http.Response _receiptFor(
     jsonEncode({
       'data': {
         'receiptId': request['batchId'],
+        if (request['schema'] == 'functional-diagnostics.corrections/v1') ...{
+          'appliedCorrectionIds': (request['corrections'] as List)
+              .map((c) => c['correctionId'])
+              .toList(),
+          'caseChecksum': items.singleWhere(
+            (i) => i['entityType'] == 'CASE',
+          )['entityChecksum'],
+        },
         'status': conflict ? 'partial' : 'complete',
         'receivedAt': _time.toIso8601String(),
         'completedAt': _time.toIso8601String(),

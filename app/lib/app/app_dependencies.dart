@@ -11,6 +11,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../data/local/database/app_database.dart' hide User;
 import '../data/local/filesystem/evidence_file_store.dart';
 import '../data/local/repositories/local_closure_services.dart';
+import '../data/local/repositories/local_correction_service.dart';
 import '../data/local/repositories/local_repositories.dart';
 import '../domain/models.dart';
 import '../domain/pulse/pulse_progress_service.dart';
@@ -63,6 +64,12 @@ abstract interface class AuthService {
     required String phone,
   });
   Future<void> logout();
+}
+
+/// Remote authentication is requested explicitly by synchronization, including
+/// for sessions restored from an APK that operated entirely offline.
+abstract interface class RemoteSyncAuthService {
+  Future<void> ensureRemoteSession(User user);
 }
 
 abstract interface class LocationPort {
@@ -201,7 +208,8 @@ final class LocalAuthService implements AuthService {
   Future<void> logout() => sessionStore.clear();
 }
 
-final class OfflineFirstRemoteAuthService implements AuthService {
+final class OfflineFirstRemoteAuthService
+    implements AuthService, RemoteSyncAuthService {
   OfflineFirstRemoteAuthService({
     required this.local,
     required this.users,
@@ -236,29 +244,8 @@ final class OfflineFirstRemoteAuthService implements AuthService {
       phone: phone,
     );
     remoteNotice = null;
-    final previousCredentials = await credentials.readCredentials();
-    if (previousCredentials != null &&
-        (user.remoteUserId == null ||
-            previousCredentials.remoteUserId.toLowerCase() !=
-                user.remoteUserId!.toLowerCase())) {
-      await credentials.clear();
-    }
     try {
-      final metadata = await deviceMetadata.read();
-      final remote = await api.login(
-        displayName: user.displayName ?? displayName,
-        email: user.email,
-        phone: user.phone,
-        device: RemoteDeviceRegistration(
-          installationId: await installationIds.readOrCreate(),
-          platform: 'android',
-          manufacturer: metadata.brand ?? 'unknown',
-          model: metadata.model ?? 'unknown',
-          androidVersion: metadata.androidVersion ?? 'unknown',
-          appVersion: await appVersion(),
-        ),
-      );
-      await users.linkRemoteUser(user.id, remote.remoteUserId);
+      await ensureRemoteSession(user);
       final access = await api.access();
       if (!access.enabled) {
         remoteNotice =
@@ -266,9 +253,50 @@ final class OfflineFirstRemoteAuthService implements AuthService {
       }
     } on RemoteApiException catch (error) {
       remoteNotice =
-          'Sesión local activa. Sin conexión remota: ${error.message}';
+          'Sesión local activa. Sin conexión remota: ${error.diagnosticMessage}';
     }
     return (await users.getById(user.id))!;
+  }
+
+  @override
+  Future<void> ensureRemoteSession(User user) async {
+    // Reload the mapping: the controller may still hold the pre-sync User.
+    final stored = await users.getById(user.id);
+    if (stored == null ||
+        await local.sessionStore.readActiveUserId() != user.id) {
+      throw StateError(
+        'La sesión local cambió. Abra nuevamente el expediente.',
+      );
+    }
+    final previous = await credentials.readCredentials();
+    if (previous != null &&
+        stored.remoteUserId?.toLowerCase() ==
+            previous.remoteUserId.toLowerCase()) {
+      try {
+        // Uses the normal single-refresh policy. Only an expired/revoked
+        // authentication permits re-login; 403 and network errors stay visible.
+        await api.access();
+        return;
+      } on RemoteApiException catch (error) {
+        if (error.kind != RemoteFailureKind.unauthorized) rethrow;
+      }
+    }
+    await credentials.clear();
+    final metadata = await deviceMetadata.read();
+    final remote = await api.login(
+      displayName: stored.displayName ?? stored.email,
+      email: stored.email,
+      phone: stored.phone,
+      device: RemoteDeviceRegistration(
+        installationId: await installationIds.readOrCreate(),
+        platform: 'android',
+        manufacturer: metadata.brand ?? 'unknown',
+        model: metadata.model ?? 'unknown',
+        androidVersion: metadata.androidVersion ?? 'unknown',
+        appVersion: await appVersion(),
+      ),
+    );
+    await users.linkRemoteUser(stored.id, remote.remoteUserId);
   }
 
   @override
@@ -330,7 +358,8 @@ abstract final class MasterAccessIdentity {
 /// Allows the documented field master identity to establish a local session
 /// without making an API request. Every other identity follows the configured
 /// production authentication path unchanged.
-final class MasterAccessAuthService implements AuthService {
+final class MasterAccessAuthService
+    implements AuthService, RemoteSyncAuthService {
   MasterAccessAuthService({
     required this.primary,
     required this.local,
@@ -371,7 +400,20 @@ final class MasterAccessAuthService implements AuthService {
   }
 
   @override
+  Future<void> ensureRemoteSession(User user) async {
+    final remote = primary;
+    if (remote is! RemoteSyncAuthService) {
+      throw StateError('Backend no configurado para sincronizar.');
+    }
+    await (remote as RemoteSyncAuthService).ensureRemoteSession(user);
+  }
+
+  @override
   Future<void> logout() async {
+    if (primary is RemoteSyncAuthService) {
+      await primary.logout();
+      return;
+    }
     final userId = await sessionStore.readActiveUserId();
     final user = userId == null ? null : await users.getById(userId);
     if (user != null &&
@@ -614,6 +656,7 @@ final class AppDependencies {
               evidence: base.evidence,
               queue: base.sync,
               batches: base.syncBatches,
+              corrections: base.corrections,
             ),
     );
   }
@@ -676,6 +719,9 @@ final class AppDependencies {
   final EvidenceRepository evidence;
   final SyncQueueRepository sync;
   final SyncBatchRepository syncBatches;
+  LocalCorrectionService get corrections =>
+      LocalCorrectionService(database, fileStore);
+
   final SampleClosureService sampleClosure;
   final VerificationCaseClosureService caseClosure;
   final AuthService auth;

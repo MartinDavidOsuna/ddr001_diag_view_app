@@ -1149,10 +1149,14 @@ final class LocalSyncQueueRepository implements SyncQueueRepository {
   Future<List<domain.SyncItem>> listPending() async =>
       (await (database.select(database.syncItems)
                 ..where(
-                  (t) => t.state.isIn([
-                    domain.SyncState.pending.name,
-                    domain.SyncState.failed.name,
-                  ]),
+                  (t) =>
+                      t.state.isIn([
+                        domain.SyncState.pending.name,
+                        domain.SyncState.failed.name,
+                      ]) &
+                      const CustomExpression<bool>(
+                        'id NOT IN (SELECT sync_item_id FROM correction_superseded_queue)',
+                      ),
                 )
                 ..orderBy([(t) => OrderingTerm.asc(t.createdAtMs)]))
               .get())
@@ -1258,12 +1262,15 @@ final class LocalSyncBatchRepository implements SyncBatchRepository {
     required String requestJson,
     required String requestSha256,
     required DateTime at,
+    bool repairPointIds = false,
   }) async {
     final current = await _required(id);
     if (current.state != domain.SyncBatchState.failed ||
         current.receiptId != null ||
-        !_isPayloadHashFailure(current.lastError)) {
-      throw StateError('Only a rejected payload-hash batch can be repaired.');
+        !(repairPointIds
+            ? current.lastError?.startsWith('VALIDATION_FAILED:') == true
+            : _isPayloadHashFailure(current.lastError))) {
+      throw StateError('Only a known pre-receipt rejection can be repaired.');
     }
     await _update(
       id,

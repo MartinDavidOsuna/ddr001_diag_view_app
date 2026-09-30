@@ -4,6 +4,7 @@ import '../../domain/models.dart';
 import '../../domain/repositories.dart';
 import 'functional_sync_serializer.dart';
 import 'remote_api.dart';
+import 'sync_point_identity.dart';
 
 enum FunctionalSyncOutcome { synced, conflict, pending, error, accessDenied }
 
@@ -26,9 +27,11 @@ final class FunctionalSyncEngine {
     required this.evidence,
     required this.queue,
     required this.batches,
+    required this.corrections,
     this.serializer = const FunctionalSyncSerializer(),
   });
 
+  final CorrectionSyncState corrections;
   final RemoteApiClient api;
   final InstallationIdStore installationIds;
   final UserRepository users;
@@ -47,8 +50,10 @@ final class FunctionalSyncEngine {
     required String localUserId,
   }) async {
     try {
-      final latest = await batches.latestForCase(caseId);
-      if (latest?.state == SyncBatchState.synced) {
+      var pendingCorrections = await corrections.pendingPayloads(caseId);
+      final edited = pendingCorrections.isNotEmpty;
+      var latest = await batches.latestForCase(caseId);
+      if (!edited && latest?.state == SyncBatchState.synced) {
         return const FunctionalSyncResult(
           FunctionalSyncOutcome.synced,
           'Sincronizado',
@@ -61,6 +66,12 @@ final class FunctionalSyncEngine {
           'Sin acceso remoto · el expediente permanece local',
         );
       }
+      if (edited && !access.manualCorrectionsReady) {
+        return const FunctionalSyncResult(
+          FunctionalSyncOutcome.error,
+          'Hace falta actualizar la API para sincronizar verificaciones modificadas. Los cambios siguen guardados localmente.',
+        );
+      }
       final bundle = await _bundle(caseId, localUserId);
       for (final sample in bundle.samples) {
         for (final item in bundle.evidenceBySample[sample.id] ?? const []) {
@@ -69,11 +80,42 @@ final class FunctionalSyncEngine {
         }
       }
 
-      var batch = await batches.unresolvedForCase(caseId);
-      if (batch != null &&
+      SyncBatch? batch;
+      if (edited) {
+        if (latest != null &&
+            (latest.state == SyncBatchState.ambiguous ||
+                latest.state == SyncBatchState.sending)) {
+          final recovered = await api.syncStatus(latest.receiptId ?? latest.id);
+          if (recovered != null) {
+            final recovery = await _applyReceipt(latest, recovered);
+            latest = await batches.latestForCase(caseId);
+            if (latest?.state != SyncBatchState.synced) return recovery;
+            pendingCorrections = await corrections.pendingPayloads(caseId);
+            if (pendingCorrections.isEmpty) return recovery;
+          } else if (!_isCorrectionBatch(latest)) {
+            return const FunctionalSyncResult(
+              FunctionalSyncOutcome.pending,
+              'Pendiente · hay que confirmar el envío anterior antes de subir la corrección',
+            );
+          }
+        }
+        if (latest != null &&
+            latest.state != SyncBatchState.synced &&
+            _isCorrectionBatch(latest)) {
+          batch = latest;
+        }
+      } else {
+        batch = await batches.unresolvedForCase(caseId);
+      }
+      if (!edited &&
+          batch != null &&
           batch.state == SyncBatchState.failed &&
-          _isPayloadHashFailure(batch.lastError)) {
-        batch = await _repairPayloadHashes(batch);
+          batch.receiptId == null) {
+        if (_isPayloadHashFailure(batch.lastError)) {
+          batch = await _repairPayloadHashes(batch);
+        } else if (batch.lastError?.startsWith('VALIDATION_FAILED:') == true) {
+          batch = await _repairPayloadHashes(batch, repairPointIds: true);
+        }
       }
       if (batch?.state == SyncBatchState.conflict) {
         return FunctionalSyncResult(
@@ -81,7 +123,7 @@ final class FunctionalSyncEngine {
           batch!.lastError ?? 'Conflicto remoto',
         );
       }
-      if (batch?.state == SyncBatchState.ambiguous) {
+      if (!edited && batch?.state == SyncBatchState.ambiguous) {
         final recovered = await api.syncStatus(batch!.receiptId ?? batch.id);
         if (recovered != null) return _applyReceipt(batch, recovered);
       }
@@ -92,12 +134,33 @@ final class FunctionalSyncEngine {
           installationId: await installationIds.readOrCreate(),
           generatedAt: now,
         );
+        final request = Map<String, Object?>.from(serialized.request);
+        if (edited) {
+          final baseRequest = latest == null
+              ? null
+              : jsonDecode(latest.requestJson) as Map;
+          final baseCase = ((baseRequest?['items'] as List?) ?? [])
+              .cast<Map>()
+              .where(
+                (item) =>
+                    item['entityType'] == 'CASE' && item['entityId'] == caseId,
+              )
+              .firstOrNull;
+          request.addAll({
+            'schema': 'functional-diagnostics.corrections/v1',
+            'corrections': pendingCorrections,
+            'baseBatchId': latest?.id,
+            'baseCaseChecksum': baseCase?['entityChecksum'],
+            'baseCasePayloadSha256': baseCase?['payloadSha256'],
+            'allowCreate': latest?.state != SyncBatchState.synced,
+          });
+        }
         batch = await batches.savePending(
           SyncBatch(
             id: serialized.id,
             caseId: caseId,
-            requestJson: serialized.requestJson,
-            requestSha256: serialized.requestSha256,
+            requestJson: jsonEncode(request),
+            requestSha256: canonicalSha256(request),
             state: SyncBatchState.pending,
             attempts: 0,
             createdAt: now,
@@ -116,18 +179,18 @@ final class FunctionalSyncEngine {
         if (error.kind == RemoteFailureKind.conflict) {
           await batches.markConflict(
             batch.id,
-            error: error.message,
+            error: error.diagnosticMessage,
             at: DateTime.now().toUtc(),
           );
           return FunctionalSyncResult(
             FunctionalSyncOutcome.conflict,
-            'Conflicto · ${error.message}',
+            'Conflicto · ${error.diagnosticMessage}',
           );
         }
         if (error.retryable) {
           await batches.markAmbiguous(
             batch.id,
-            error: error.message,
+            error: error.diagnosticMessage,
             at: DateTime.now().toUtc(),
           );
           return const FunctionalSyncResult(
@@ -137,26 +200,26 @@ final class FunctionalSyncEngine {
         }
         await batches.markFailed(
           batch.id,
-          error: '${error.code ?? error.kind.name}: ${error.message}',
+          error: '${error.code ?? error.kind.name}: ${error.diagnosticMessage}',
           at: DateTime.now().toUtc(),
         );
         return FunctionalSyncResult(
           FunctionalSyncOutcome.error,
-          'Error · ${error.message}',
+          'Error · ${error.diagnosticMessage}',
         );
       }
     } on RemoteApiException catch (error) {
       if (error.kind == RemoteFailureKind.forbidden) {
         return FunctionalSyncResult(
           FunctionalSyncOutcome.accessDenied,
-          'Sin acceso remoto · ${error.message}',
+          'Sin acceso remoto · ${error.diagnosticMessage}',
         );
       }
       return FunctionalSyncResult(
         error.retryable
             ? FunctionalSyncOutcome.pending
             : FunctionalSyncOutcome.error,
-        '${error.retryable ? 'Pendiente' : 'Error'} · ${error.message}',
+        '${error.retryable ? 'Pendiente' : 'Error'} · ${error.diagnosticMessage}',
       );
     } catch (error) {
       return FunctionalSyncResult(
@@ -166,9 +229,13 @@ final class FunctionalSyncEngine {
     }
   }
 
-  Future<SyncBatch> _repairPayloadHashes(SyncBatch batch) async {
+  Future<SyncBatch> _repairPayloadHashes(
+    SyncBatch batch, {
+    bool repairPointIds = false,
+  }) async {
     final request = (jsonDecode(batch.requestJson) as Map)
         .cast<String, Object?>();
+    if (repairPointIds && !normalizeSyncPointIds(request)) return batch;
     final items = (request['items']! as List<Object?>)
         .cast<Map<String, Object?>>();
     for (final item in items) {
@@ -179,6 +246,7 @@ final class FunctionalSyncEngine {
       id: batch.id,
       requestJson: requestJson,
       requestSha256: canonicalSha256(request),
+      repairPointIds: repairPointIds,
       at: DateTime.now().toUtc(),
     );
   }
@@ -261,7 +329,7 @@ final class FunctionalSyncEngine {
         status: conflict
             ? EvidenceSyncStatus.conflict
             : EvidenceSyncStatus.error,
-        error: '${error.code ?? error.kind.name}: ${error.message}',
+        error: '${error.code ?? error.kind.name}: ${error.diagnosticMessage}',
       );
       return FunctionalSyncResult(
         conflict
@@ -273,7 +341,7 @@ final class FunctionalSyncEngine {
             ? 'Conflicto'
             : error.retryable
             ? 'Pendiente'
-            : 'Error'} · ${error.message}',
+            : 'Error'} · ${error.diagnosticMessage}',
       );
     }
   }
@@ -314,10 +382,59 @@ final class FunctionalSyncEngine {
         '${receipt.hasRetryableRejection ? 'Pendiente' : 'Error'} · $rejected',
       );
     }
+    final request = jsonDecode(batch.requestJson) as Map;
+    final requestItems = (request['items'] as List).cast<Map>();
+    final correctionIds = ((request['corrections'] as List?) ?? [])
+        .cast<Map>()
+        .map((c) => c['correctionId'] as String)
+        .toList();
+    final caseItem = requestItems
+        .where((i) => i['entityType'] == 'CASE')
+        .firstOrNull;
+    final correctionAckComplete =
+        correctionIds.isEmpty ||
+        (correctionIds.every(receipt.appliedCorrectionIds.contains) &&
+            receipt.caseChecksum == caseItem?['entityChecksum']);
+    final complete = requestItems.every(
+      (sent) => receipt.items.any(
+        (ack) =>
+            ack.itemId == sent['itemId'] &&
+            ack.entityId == sent['entityId'] &&
+            ack.entityType == sent['entityType'] &&
+            const {'created', 'exists', 'accepted'}.contains(ack.status),
+      ),
+    );
+    if (!complete || !correctionAckComplete) {
+      await batches.markAmbiguous(
+        batch.id,
+        error: 'ACK incompleto; falta confirmar la revisión enviada.',
+        at: now,
+      );
+      return const FunctionalSyncResult(
+        FunctionalSyncOutcome.pending,
+        'Pendiente · ACK incompleto',
+      );
+    }
     await batches.markSynced(batch.id, receiptId: receipt.receiptId, at: now);
     final ids = receipt.items.map((item) => item.entityId).toSet();
     for (final item in await queue.listPending()) {
-      if (ids.contains(item.entityId)) await queue.markSynced(item.id, at: now);
+      final sent = requestItems.any(
+        (sent) =>
+            sent['entityId'] == item.entityId &&
+            (sent['entityChecksum'] == item.checksum ||
+                (item.entityType == 'evidence' &&
+                    (sent['payload'] as Map)['clientSha256'] == item.checksum)),
+      );
+      if (ids.contains(item.entityId) && sent) {
+        await queue.markSynced(item.id, at: now);
+      }
+    }
+    await corrections.acknowledge(batch.caseId, correctionIds);
+    if (await corrections.hasPending(batch.caseId)) {
+      return const FunctionalSyncResult(
+        FunctionalSyncOutcome.pending,
+        'Pendiente (editada) · quedan correcciones por enviar',
+      );
     }
     return const FunctionalSyncResult(
       FunctionalSyncOutcome.synced,
@@ -329,3 +446,7 @@ final class FunctionalSyncEngine {
 bool _isPayloadHashFailure(String? error) =>
     error?.contains('PAYLOAD_HASH_MISMATCH') == true ||
     error?.contains('payloadSha256 does not match') == true;
+
+bool _isCorrectionBatch(SyncBatch batch) =>
+    (jsonDecode(batch.requestJson) as Map)['schema'] ==
+    'functional-diagnostics.corrections/v1';

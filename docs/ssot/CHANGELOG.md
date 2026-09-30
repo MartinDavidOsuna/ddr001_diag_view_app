@@ -1,6 +1,71 @@
 # CHANGELOG funcional
 
+## 1.8.0+26 — 2026-09-30
+- Preparación permite editar litros por pulso del medidor patrón en todos los métodos, además del hidrante. Ambos valores iniciales son 10; no modifica configuraciones históricas.
+- Historial permite corregir identificación, lecturas manuales y configuración de cálculo de verificaciones finalizadas con motivo, snapshots antes/después y recálculo transaccional de resultados, estadísticas y checksums.
+- Historial añade sincronización secuencial de todas las verificaciones finalizadas pendientes del usuario activo.
+- Las correcciones quedan Pendiente (editada). Todas consultan soporte de revisiones en la API antes de enviar. Sin capability compatible muestran error y la cola global continúa; con soporte usan un nuevo batch y ACK explícito de revisiones. Se conservan ACK/request originales; no se modificó el servidor.
+- Schema 15 aditivo para auditoría y ámbito controlado de corrección; adquisición, fotos, firmware, UUID/protocolo y fórmulas no cambian. ADR-030.
+
+## 1.7.6+25 — 2026-09-25
+- Coordina propiedad entre BUSCAR y transporte BLE; limpia listeners de scan incluso ante fallo.
+- Evita falso rollback por READ duplicado y atrasado respecto a NOTIFY.
+- Ordena checkpoints detrás de pulsos, captura errores de persistencia y verifica escrituras ambiguas antes de reintentar.
+- Bloquea cierre de una Sample BLE ya iniciada si requiere reconstruir la fuente sin poder probar continuidad; conserva recuperación normal con fuente viva.
+- Invalida callbacks de asociaciones anteriores y comprueba enlace al reanudar; pausa recuperación sin Bluetooth/permisos.
+- Escala tras tres preparaciones GATT fallidas; conserva conexión directa, protocolo y backoff.
+- Conserva compatibilidad de permisos Android 7–11. Sin cambios de firmware, metrología, esquema o API.
+- Pruebas deterministas y Android sin ESP32; validación física pendiente (auditoría 2026-09-25).
+
+## Versión 1.7.5+24 — UUID remoto para puntos locales — 2026-09-18
+- Corrige HTTP 422 `items[n].payload.pointId`: los puntos locales `point-<UUID>` ahora tienen un UUID v5 determinista exclusivamente en transporte. UUID ya válidos se conservan. Evidencias y referencias usan la misma identidad.
+- Repara únicamente lotes fallidos por VALIDATION_FAILED, sin receipt, que contienen IDs de punto no UUID; conserva batchId, itemId, payload funcional y checksums metrológicos, recalculando las huellas de transporte afectadas. No modifica lotes ambiguos, confirmados ni en conflicto.
+- Sin cambios a API, datos cerrados, fotos, metrología, adquisición, BLE o firmware. El expediente existente se reintenta después de actualizar.
+
+
+## Versión 1.7.4+23 — campos rechazados por validación remota — 2026-09-18
+- Muestra las rutas y códigos de hasta ocho campos rechazados en errores 422, leyendo tanto `error.details.issues` como `errors` del contrato Field. No muestra valores recibidos ni cuerpos crudos.
+- No cambia la API, el payload ni los datos cerrados. Esta entrega permite identificar el rechazo concreto antes de corregir su causa; no afirma resuelto el 422.
+
+
+## Versión 1.7.3+22 — diagnóstico de errores de sincronización — 2026-09-18
+- Interpreta errores Field (`application/problem+json`) y funcionales anidados. Muestra operación, HTTP, detalle seguro y request ID válido. Respuestas HTML o JSON de tipo inesperado no ocultan el estado HTTP ni se muestran crudas.
+- Distingue inicio/renovación de sesión, acceso, fotografía, envío del expediente y confirmación. Conserva los estados de reintento y las credenciales ante 5xx.
+- Sin cambios a metrología, muestras cerradas, fotografías, protocolo BLE, API o esquema. Esta versión mejora el diagnóstico: no afirma corregido el HTTP 500 del servidor.
+
+
+
+## Versión 1.7.2+21 — sincronización productiva y captura preparada — 2026-09-18
+- APK productivo compilado con `app/config/production.json`: API `http://cifra.aquafim.com:3002`, permiso INTERNET explícito y excepción HTTP limitada a ese hostname. El backend sigue siendo `ddr001_api`/SQL Server; no se despliega ni modifica el servidor.
+- Resumen muestra **SINCRONIZAR · estado**. Al pulsarlo, las sesiones locales restauradas y maestras obtienen una sesión Field real sin logout ni cambio de UUID local. Reutiliza tokens del mismo usuario, mantiene el refresh normal y sólo reautentica ante 401; un 403 o una falla de red no se ocultan. Logout maestro revoca también su sesión remota.
+- Mantiene la cámara abierta de Preparación a Prueba. Q2, repeticiones y regreso desde background la preparan antes de habilitar los botones. El disparo oficial elimina reapertura, zoom/reenfoque redundantes y espera artificial de 250 ms; enfoque automático continuo y resolución se conservan, flash apagado.
+- Retira el reenfoque periódico cada 4 s que podía cruzarse con el disparo. START no se solapa con otra captura ni FINAL. Pausar espera una captura en vuelo. Logs de solicitud/archivo disponible permiten medir latencia de software, sin afirmar timestamp de exposición ni latencia física cero.
+- Endurece persistencia de pulsos: una escritura fallida no consume la secuencia ni inutiliza permanentemente la cola. En BLE el error bloquea FINAL, se informa y se intenta persistir adquisición comprometida; no se compensa ni fabrica volumen. Pruebas con 1000 secuencias y duplicados.
+- Sin cambios al firmware, ancho físico de pulso, K, UUID/protocolo BLE, keepalive, motor metrológico, checksums cerrados ni schema Drift. Los 80 ms configurados por el operador permanecen en el flujómetro.
+- Entrega prevista en Download del Pixel, sin instalar ni borrar datos. Validación física del retardo de exposición y sincronización del expediente real pendiente de instalar y operar esta versión.
+
+## Versión 1.7.1+20 — recuperación BLE conservadora e Inicio directo — 2026-09-17
+- Mantiene flutter_blue_plus 1.36.8, device.connect directo, UUID, READ+NOTIFY y protocolo v1/v2. Sustituye el límite de tres recuperaciones por un único ciclo cancelable con backoff 1/2/4/8/15/30 s, sin scan obligatorio, autoConnect ni firmware nuevo.
+- READY exige descubrir GATT, suscribir y leer/reconciliar el contador. Errores temporales de enlace, notificación, GATT o keepalive no se convierten prematuramente en integridad comprometida. Keepalive conserva 10 s sin solaparse; rollback conserva bloqueo permanente de esa fuente.
+- Stop/dispose invalidan resultados tardíos y cancelan recuperación. Inicio/FINAL de BLE esperan transporte READY para no aceptar una frontera aún no reconciliada; captura de los demás métodos no cambia.
+- Con sesión válida, Android abre Inicio sin pantalla automática de recuperación; conserva pruebas incompletas y ofrece reanudarlas explícitamente, sin borrar datos.
+- Agrega pruebas de conexión directa, backoff mayor de tres intentos, carreras de stop/dispose, fallos GATT, pérdida de notifications, deltas exactos, wrap/rollback y suscripciones Sample A→B→A. Sin cambios a backend, API, Drift, metrología, reportes ni firmware en esta intervención.
+- APK para transferencia a Download del Pixel, sin instalación. Validación física RF/Android del nuevo binario pendiente; límites de reboot y background documentados en ADR-025.
+
+## Versión 1.7.0+19 — paridad de presentación Web / SIMULACIÓN Android — 2026-09-10
+- Corrige la generación bloqueante de reportes Web con fotografías grandes: reutiliza bytes validados por ruta/SHA-256 durante cada exportación, el Base64 por HTML y una sola imagen PDF por evidencia idéntica, conservando todos los registros y sus leyendas. El PDF cede periódicamente el control al navegador; la interfaz informa la etapa y permite reintentar ante errores de carga/integridad.
+- Agrega regresiones Chrome que generan y verifican los cuatro formatos con la fotografía real de 1254×1254, incluidos cierre Q1/Q2, deduplicación de imágenes y recuperación tras fallo de integridad.
+- Sustituye el recorrido Web reducido por Inicio, Identificación con confirmación sin GPS, Método, Preparación completa, Prueba, Lecturas, Resultado, repetición Q1/Q2, Resumen, Historial, Ajustes y Manual, en una columna portrait.
+- Conserva ESP32/Bluetooth y control remoto verdes exclusivamente en Prueba en curso, incluido el preflujo, como Android; desaparecen de Lecturas, Resultado y demás pantallas.
+- Captura fotografías simuladas INICIO/INTERMEDIA/FINAL durante la adquisición con hora, pulsos, volumen, caudal, asset y SHA-256; muestra miniaturas ampliables y Registro. FINAL congela el endpoint y no fabrica intermedias durante el cálculo.
+- Preparación congela K, paso, escalas e incertidumbre por corrida. Lecturas empieza vacía y nunca precalcula una lectura final para forzar aprobación.
+- Agrega repeticiones, estadísticas/repetibilidad, selección de exportes, cierre explícito de solo lectura y recuperación local de la prueba sin pulsos por tiempo ausente. Conserva el historial Web anterior sin inventarle fotografías.
+- Extrae el renderizador Android CSV/JSON/HTML/PDF del adaptador de filesystem para reutilizar exactamente sus documentos y fotografías embebidas en Web; Android conserva su interfaz, layout de reportes y almacenamiento.
+- No habilita GPS, cámara, BLE, auth ni sincronización reales en la demo. No modifica Drift 14, API, firmware ni muestras Android.
+
 ## Versión 1.6.0+18 — demo Flutter Web autónoma — 2026-09-10
+- Retira del encabezado Web la leyenda «DEMO WEB LOCAL · SIN API / SIN BASE DE DATOS»; conserva el título y las advertencias de simulación dentro del contenido.
+- Corrige restricciones de ancho infinito en los botones de historial, descarga y confirmación de borrado de la demo; agrega regresiones de renderizado en Chrome sin cambiar el tema Android ni el procedimiento operativo.
 - Agrega una entrada Web local para presentaciones sin login, API, SQL ni producción; sólo ejecuta SIMULACIÓN Q1/Q2, conserva historial en el navegador y ofrece borrado total explícito.
 - La demo conserva preflujo Q1 5–7 L/s y Q2 2–3 L/s con variaciones máximas de 0.5 L/s, medición delimitada por botones, captura manual, motor metrológico real y reporte HTML descargable.
 - SIMULACIÓN Android y Web muestran indicadores verdes demostrativos de ESP32/Bluetooth y control remoto sin crear conexiones físicas.

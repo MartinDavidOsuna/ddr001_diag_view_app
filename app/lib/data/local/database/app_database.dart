@@ -329,12 +329,13 @@ final class AppDatabase extends _$AppDatabase {
     : super(driftDatabase(name: 'ddr001', native: const DriftNativeOptions()));
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (migrator) async {
       await migrator.createAll();
+      await _createCorrectionTables();
       await _createProtectionTriggers();
       await _createIndexes();
       await _createOperationalSettingsTable();
@@ -342,6 +343,7 @@ final class AppDatabase extends _$AppDatabase {
     onUpgrade: (migrator, from, to) async {
       if (from < 1) {
         await migrator.createAll();
+        await _createCorrectionTables();
         await _createProtectionTriggers();
         await _createIndexes();
       }
@@ -529,6 +531,17 @@ final class AppDatabase extends _$AppDatabase {
           ),
         );
       }
+      if (from < 15) {
+        await _createCorrectionTables();
+        for (final name in [
+          'protect_closed_sample_update',
+          'protect_closed_sample_point_update',
+          'protect_closed_case_update',
+        ]) {
+          await customStatement('DROP TRIGGER IF EXISTS $name');
+        }
+        await _createCorrectionUpdateTriggers();
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
@@ -586,12 +599,8 @@ final class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> _createProtectionTriggers() async {
-    await customStatement('''
-      CREATE TRIGGER protect_closed_sample_update
-      BEFORE UPDATE ON samples
-      WHEN OLD.status = 'closedValid'
-      BEGIN SELECT RAISE(ABORT, 'closed sample is immutable'); END
-    ''');
+    await _createCorrectionUpdateTriggers();
+
     await customStatement('''
       CREATE TRIGGER protect_closed_sample_delete
       BEFORE DELETE ON samples
@@ -617,24 +626,14 @@ final class AppDatabase extends _$AppDatabase {
       WHEN (SELECT status FROM samples WHERE id = NEW.sample_id) = 'closedValid'
       BEGIN SELECT RAISE(ABORT, 'closed sample points are immutable'); END
     ''');
-    await customStatement('''
-      CREATE TRIGGER protect_closed_sample_point_update
-      BEFORE UPDATE ON test_points
-      WHEN (SELECT status FROM samples WHERE id = OLD.sample_id) = 'closedValid'
-      BEGIN SELECT RAISE(ABORT, 'closed sample points are immutable'); END
-    ''');
+
     await customStatement('''
       CREATE TRIGGER protect_closed_sample_point_delete
       BEFORE DELETE ON test_points
       WHEN (SELECT status FROM samples WHERE id = OLD.sample_id) = 'closedValid'
       BEGIN SELECT RAISE(ABORT, 'closed sample points are immutable'); END
     ''');
-    await customStatement('''
-      CREATE TRIGGER protect_closed_case_update
-      BEFORE UPDATE ON verification_cases
-      WHEN OLD.status = 'closed'
-      BEGIN SELECT RAISE(ABORT, 'closed case is immutable'); END
-    ''');
+
     await customStatement('''
       CREATE TRIGGER protect_closed_case_delete
       BEFORE DELETE ON verification_cases
@@ -652,6 +651,64 @@ final class AppDatabase extends _$AppDatabase {
       BEFORE INSERT ON samples
       WHEN (SELECT c.status FROM verification_cases c JOIN flow_points f ON f.case_id = c.id WHERE f.id = NEW.flow_point_id) = 'closed'
       BEGIN SELECT RAISE(ABORT, 'closed case cannot accept samples'); END
+    ''');
+  }
+
+  Future<void> _createCorrectionTables() async {
+    await customStatement(
+      'CREATE TABLE IF NOT EXISTS correction_superseded_queue (sync_item_id TEXT PRIMARY KEY REFERENCES sync_items(id))',
+    );
+    await customStatement('''
+      CREATE TABLE IF NOT EXISTS case_corrections (
+        id TEXT PRIMARY KEY, case_id TEXT NOT NULL REFERENCES verification_cases(id),
+        sample_id TEXT REFERENCES samples(id), actor_id TEXT NOT NULL REFERENCES users(id),
+        corrected_at_ms INTEGER NOT NULL, reason TEXT NOT NULL,
+        before_json TEXT NOT NULL, after_json TEXT NOT NULL,
+        requires_remote_revision INTEGER NOT NULL,
+        acknowledged INTEGER NOT NULL DEFAULT 0
+      )
+    ''');
+    await customStatement('''
+      CREATE TRIGGER IF NOT EXISTS protect_correction_history_delete
+      BEFORE DELETE ON case_corrections
+      BEGIN SELECT RAISE(ABORT, 'correction history is immutable'); END
+    ''');
+    await customStatement('''
+      CREATE TRIGGER IF NOT EXISTS protect_correction_history_update
+      BEFORE UPDATE ON case_corrections
+      WHEN OLD.id IS NOT NEW.id OR OLD.case_id IS NOT NEW.case_id OR
+        OLD.sample_id IS NOT NEW.sample_id OR OLD.actor_id IS NOT NEW.actor_id OR
+        OLD.corrected_at_ms IS NOT NEW.corrected_at_ms OR OLD.reason IS NOT NEW.reason OR
+        OLD.before_json IS NOT NEW.before_json OR OLD.after_json IS NOT NEW.after_json OR
+        OLD.requires_remote_revision IS NOT NEW.requires_remote_revision
+      BEGIN SELECT RAISE(ABORT, 'correction history is immutable'); END
+    ''');
+    await customStatement('''
+      CREATE TABLE IF NOT EXISTS correction_write_scope (
+        case_id TEXT PRIMARY KEY REFERENCES verification_cases(id),
+        sample_id TEXT REFERENCES samples(id)
+      )
+    ''');
+  }
+
+  Future<void> _createCorrectionUpdateTriggers() async {
+    await customStatement('''
+      CREATE TRIGGER protect_closed_sample_update
+      BEFORE UPDATE ON samples
+      WHEN OLD.status = 'closedValid' AND NOT EXISTS (SELECT 1 FROM correction_write_scope WHERE sample_id = OLD.id)
+      BEGIN SELECT RAISE(ABORT, 'closed sample is immutable'); END
+    ''');
+    await customStatement('''
+      CREATE TRIGGER protect_closed_sample_point_update
+      BEFORE UPDATE ON test_points
+      WHEN (SELECT status FROM samples WHERE id = OLD.sample_id) = 'closedValid' AND NOT EXISTS (SELECT 1 FROM correction_write_scope WHERE sample_id = OLD.sample_id)
+      BEGIN SELECT RAISE(ABORT, 'closed sample points are immutable'); END
+    ''');
+    await customStatement('''
+      CREATE TRIGGER protect_closed_case_update
+      BEFORE UPDATE ON verification_cases
+      WHEN OLD.status = 'closed' AND NOT EXISTS (SELECT 1 FROM correction_write_scope WHERE case_id = OLD.id)
+      BEGIN SELECT RAISE(ABORT, 'closed case is immutable'); END
     ''');
   }
 

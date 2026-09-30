@@ -32,16 +32,45 @@ final class LocalSampleClosureService implements SampleClosureService {
   final Uuid _uuid;
 
   @override
-  Future<domain.Sample> closeValid(
+  Future<domain.Sample> closeValid(String sampleId, {required DateTime at}) =>
+      _calculate(sampleId, at: at);
+
+  Future<domain.Sample> recalculate(
     String sampleId, {
     required DateTime at,
+    ExpectedEvidencePlan? originalEvidencePlan,
+  }) => _calculate(
+    sampleId,
+    at: at,
+    correcting: true,
+    originalEvidencePlan: originalEvidencePlan,
+  );
+
+  Future<domain.Sample> _calculate(
+    String sampleId, {
+    required DateTime at,
+    bool correcting = false,
+    ExpectedEvidencePlan? originalEvidencePlan,
   }) => database.transaction(() async {
+    if (correcting &&
+        (await database
+                .customSelect(
+                  'SELECT 1 FROM correction_write_scope WHERE sample_id = ?',
+                  variables: [Variable(sampleId)],
+                )
+                .get())
+            .isEmpty) {
+      throw StateError('Corrección fuera de transacción.');
+    }
     final sampleRow = await (database.select(
       database.samples,
     )..where((t) => t.id.equals(sampleId))).getSingleOrNull();
     if (sampleRow == null) throw StateError('Sample not found.');
     final sample = await mapSampleWithSettings(database, sampleRow);
-    if (sample.status != domain.SampleStatus.running) {
+    if (sample.status !=
+        (correcting
+            ? domain.SampleStatus.closedValid
+            : domain.SampleStatus.running)) {
       throw StateError('Only a RUNNING sample can close.');
     }
     if (sample.acquisitionIntegrity.isCompromised) {
@@ -74,11 +103,16 @@ final class LocalSampleClosureService implements SampleClosureService {
       database.evidenceItems,
     )..where((t) => t.sampleId.equals(sampleId))).get();
     final evidence = evidenceRows.map(mapEvidence).toList(growable: false);
-    final evidencePlan = ExpectedEvidencePlan.derive(
-      evidenceStepLiters: config.evidenceStepLiters,
-      finalVolumeLiters: referenceLiters,
-    );
+    final evidencePlan =
+        originalEvidencePlan ??
+        ExpectedEvidencePlan.derive(
+          evidenceStepLiters: config.evidenceStepLiters,
+          finalVolumeLiters: referenceLiters,
+        );
     if (!await _evidenceIsComplete(evidence, evidencePlan)) {
+      if (correcting) {
+        throw StateError('La evidencia original no está completa.');
+      }
       await _markInvalid(sampleId, at);
       return mapSampleWithSettings(
         database,
@@ -284,7 +318,39 @@ final class LocalVerificationCaseClosureService
     required String caseId,
     required Set<metrology.FlowPoint> requiredFlowPoints,
     required DateTime at,
+  }) => _calculateCase(
+    caseId: caseId,
+    requiredFlowPoints: requiredFlowPoints,
+    at: at,
+  );
+
+  Future<domain.VerificationCase> recalculate({
+    required String caseId,
+    required Set<metrology.FlowPoint> requiredFlowPoints,
+    required DateTime at,
+  }) => _calculateCase(
+    caseId: caseId,
+    requiredFlowPoints: requiredFlowPoints,
+    at: at,
+    correcting: true,
+  );
+
+  Future<domain.VerificationCase> _calculateCase({
+    required String caseId,
+    required Set<metrology.FlowPoint> requiredFlowPoints,
+    required DateTime at,
+    bool correcting = false,
   }) => database.transaction(() async {
+    if (correcting &&
+        (await database
+                .customSelect(
+                  'SELECT 1 FROM correction_write_scope WHERE case_id = ?',
+                  variables: [Variable(caseId)],
+                )
+                .get())
+            .isEmpty) {
+      throw StateError('Corrección fuera de transacción.');
+    }
     if (requiredFlowPoints.isEmpty) {
       throw ArgumentError('At least one required flow point is needed.');
     }
@@ -293,7 +359,10 @@ final class LocalVerificationCaseClosureService
     )..where((t) => t.id.equals(caseId))).getSingleOrNull();
     if (caseRow == null) throw StateError('Verification case not found.');
     final verificationCase = mapCase(caseRow);
-    if (verificationCase.status != domain.VerificationCaseStatus.open) {
+    if (verificationCase.status !=
+        (correcting
+            ? domain.VerificationCaseStatus.closed
+            : domain.VerificationCaseStatus.open)) {
       throw StateError('Verification case is already CLOSED.');
     }
     final flowRows = await (database.select(

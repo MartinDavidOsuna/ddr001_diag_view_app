@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:ddr001_diag_view_app/domain/models.dart';
 import 'package:ddr001_diag_view_app/infrastructure/remote/remote_api.dart';
+import 'package:ddr001_diag_view_app/infrastructure/remote/sync_point_identity.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -219,6 +220,207 @@ void main() {
     );
   }
 
+  test(
+    'Field problem JSON retains login stage, detail and request ID',
+    () async {
+      final store = _MemoryCredentialStore();
+      final paths = <String>[];
+      final api = RemoteApiClient(
+        baseUrl: 'http://test.invalid',
+        credentials: store,
+        client: MockClient((request) async {
+          paths.add(request.url.path);
+          return http.Response(
+            jsonEncode({
+              'title': 'Internal server error',
+              'detail': 'An unexpected error occurred.',
+              'requestId': _tokenId,
+            }),
+            500,
+            headers: {'content-type': 'application/problem+json'},
+          );
+        }),
+      );
+      await expectLater(
+        api.login(
+          displayName: 'Test Operator',
+          email: 'test@example.invalid',
+          phone: '4491234567',
+          device: const RemoteDeviceRegistration(
+            installationId: _installationId,
+            platform: 'android',
+            manufacturer: 'Google',
+            model: 'Pixel 7 Pro',
+            androidVersion: '16',
+            appVersion: '1.7.3+22',
+          ),
+        ),
+        throwsA(
+          isA<RemoteApiException>()
+              .having(
+                (e) => e.message,
+                'detail',
+                'An unexpected error occurred.',
+              )
+              .having((e) => e.operation, 'operation', 'Inicio de sesión')
+              .having((e) => e.requestId, 'requestId', _tokenId)
+              .having(
+                (e) => e.diagnosticMessage,
+                'visible diagnostic',
+                contains('HTTP 500'),
+              )
+              .having((e) => e.retryable, 'retryable', isTrue),
+        ),
+      );
+      expect(paths, ['/api/v1/field-sessions/start']);
+      expect(await store.readCredentials(), isNull);
+    },
+  );
+
+  test(
+    'refresh 500 identifies refresh rather than the original access request',
+    () async {
+      final store = _MemoryCredentialStore.seeded();
+      final api = RemoteApiClient(
+        baseUrl: 'http://test.invalid',
+        credentials: store,
+        client: MockClient(
+          (request) async => request.url.path.endsWith('/refresh')
+              ? http.Response(
+                  jsonEncode({'detail': 'Refresh unavailable'}),
+                  500,
+                  headers: {'x-request-id': _tokenId},
+                )
+              : http.Response('{}', 401),
+        ),
+      );
+      await expectLater(
+        api.access(),
+        throwsA(
+          isA<RemoteApiException>()
+              .having((e) => e.operation, 'operation', 'Renovación de sesión')
+              .having((e) => e.requestId, 'requestId', _tokenId),
+        ),
+      );
+      expect((await store.readCredentials())?.accessToken, 'access-1');
+    },
+  );
+
+  for (final body in [
+    '<html>private proxy details</html>',
+    '[1,2]',
+    '{"error":"bad"}',
+    '',
+  ]) {
+    test('non-contract HTTP 500 remains retryable: $body', () async {
+      final store = _MemoryCredentialStore.seeded();
+      final api = RemoteApiClient(
+        baseUrl: 'http://test.invalid',
+        credentials: store,
+        client: MockClient((_) async => http.Response(body, 500)),
+      );
+      await expectLater(
+        api.access(),
+        throwsA(
+          isA<RemoteApiException>()
+              .having((e) => e.retryable, 'retryable', isTrue)
+              .having((e) => e.message, 'safe message', 'HTTP 500')
+              .having(
+                (e) => e.operation,
+                'operation',
+                'Verificación de acceso',
+              ),
+        ),
+      );
+      expect(await store.readCredentials(), isNotNull);
+    });
+  }
+
+  test(
+    'nested errors retain code and request ID on batch submission',
+    () async {
+      final api = RemoteApiClient(
+        baseUrl: 'http://test.invalid',
+        credentials: _MemoryCredentialStore.seeded(),
+        client: MockClient(
+          (_) async => http.Response(
+            jsonEncode({
+              'error': {
+                'code': 'INTERNAL_ERROR',
+                'message': 'Server unavailable',
+                'requestId': _tokenId,
+              },
+            }),
+            500,
+          ),
+        ),
+      );
+      await expectLater(
+        api.pushSync({}),
+        throwsA(
+          isA<RemoteApiException>()
+              .having((e) => e.code, 'code', 'INTERNAL_ERROR')
+              .having((e) => e.requestId, 'requestId', _tokenId)
+              .having((e) => e.operation, 'operation', 'Envío del expediente'),
+        ),
+      );
+    },
+  );
+
+  for (final fieldFormat in [false, true]) {
+    test(
+      '422 exposes field paths without received values: $fieldFormat',
+      () async {
+        final issues = [
+          {
+            'path': ['items', 4, 'payload', 'testBenchId'],
+            'code': 'too_small',
+            'message': 'private received value',
+            'received': 'private received value',
+          },
+          {
+            'path': ['items', 7, 'payload', 'meterFace', 'dial', 'radius'],
+            'code': 'invalid_type',
+          },
+        ];
+        final body = fieldFormat
+            ? {'detail': 'One or more fields are invalid.', 'errors': issues}
+            : {
+                'error': {
+                  'code': 'VALIDATION_FAILED',
+                  'message': 'One or more fields are invalid.',
+                  'details': {'issues': issues},
+                },
+              };
+        final api = RemoteApiClient(
+          baseUrl: 'http://test.invalid',
+          credentials: _MemoryCredentialStore.seeded(),
+          client: MockClient((_) async => http.Response(jsonEncode(body), 422)),
+        );
+        await expectLater(
+          api.pushSync({}),
+          throwsA(
+            isA<RemoteApiException>()
+                .having((e) => e.validationIssues, 'field issues', [
+                  'items[4].payload.testBenchId (too_small)',
+                  'items[7].payload.meterFace.dial.radius (invalid_type)',
+                ])
+                .having(
+                  (e) => e.diagnosticMessage,
+                  'no received values',
+                  isNot(contains('private received value')),
+                )
+                .having(
+                  (e) => e.retryable,
+                  'not retryable without correction',
+                  isFalse,
+                ),
+          ),
+        );
+      },
+    );
+  }
+
   test('canonical payload hash is independent of map key order', () {
     expect(
       canonicalSha256({'b': 2, 'a': 1}),
@@ -250,6 +452,7 @@ void main() {
       Evidence(
         id: '55555555-5555-4555-8555-555555555555',
         sampleId: '66666666-6666-4666-8666-666666666666',
+        pointId: 'point-55555555-5555-4555-8555-555555555555',
         type: EvidenceType.start,
         required: true,
         capturedAt: DateTime.utc(2026, 9, 2),
@@ -259,6 +462,13 @@ void main() {
       ),
     );
     expect(transport.contentType, 'image/png');
+    expect(
+      transport.metadata?['pointId'],
+      syncPointId(
+        '66666666-6666-4666-8666-666666666666',
+        'point-55555555-5555-4555-8555-555555555555',
+      ),
+    );
   });
 }
 
@@ -308,11 +518,14 @@ final class _MemoryCredentialStore implements RemoteCredentialStore {
 
 final class _CapturingMultipartClient extends http.BaseClient {
   String? contentType;
+  Map<String, Object?>? metadata;
 
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
     final multipart = request as http.MultipartRequest;
     contentType = multipart.files.single.contentType.toString();
+    metadata =
+        jsonDecode(multipart.fields['metadata']!) as Map<String, Object?>;
     await request.finalize().drain<void>();
     return http.StreamedResponse(
       Stream.value(

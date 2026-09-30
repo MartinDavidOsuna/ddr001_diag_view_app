@@ -20,13 +20,13 @@ No se captura `LPS aprox.` para verificaciones nuevas. El caudal mostrado durant
 
 ## 2. Constantes configurables
 Valores iniciales:
-- `K = 1 L/pulso`.
+- `K = 10 L/pulso` para nuevas configuraciones (patrón e hidrante); muestras existentes conservan su K. Véase ADR-030.
 - Paso de evidencia = `25 L`.
 - Volumen mínimo orientativo = `100 L`.
 - Volumen máximo orientativo = `300 L`.
 - Incertidumbre de lectura base `u_L = 1 L` mientras no exista un presupuesto más completo.
 
-Los valores realmente usados se congelan dentro de cada muestra cerrada.
+Los valores usados se conservan por muestra. ADR-030 permite corregir explícitamente la configuración de cálculo y recalcular, conservando siempre el snapshot original. Las fórmulas, MPE y pulsos no se editan.
 
 ## 3. Volumen patrón
 `V_ref = N × K`

@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'ble_permissions.dart';
 
 import '../../domain/pulse/esp32_counter_protocol.dart';
+import 'ble_connection_ownership.dart';
 
 final class BleDeviceCandidate {
   const BleDeviceCandidate({
@@ -24,41 +26,88 @@ final class BleDiscoveryService {
         normalizedServices.contains(Ddr001BleContract.serviceUuid);
   }
 
-  Future<List<BleDeviceCandidate>> scan() async {
-    final permissions = await [
-      Permission.bluetoothScan,
-      Permission.bluetoothConnect,
-    ].request();
-    if (permissions.values.any((status) => !status.isGranted)) {
+  Future<List<BleDeviceCandidate>>? _scanTask;
+
+  int _scanGeneration = 0;
+
+  Future<List<BleDeviceCandidate>> scan() =>
+      _scanTask ??= _scanWithDiagnostics().whenComplete(() => _scanTask = null);
+
+  Future<List<BleDeviceCandidate>> _scanWithDiagnostics() async {
+    final operation = ++_scanGeneration;
+    final watch = Stopwatch()..start();
+    void log(String result) => debugPrintSynchronously(
+      'DDR001 ${DateTime.now().toUtc().toIso8601String()} '
+      'BLE_SCAN operation=$operation $result ms=${watch.elapsedMilliseconds}',
+    );
+    log('start');
+    try {
+      final result = await _scan();
+      log('complete candidates=${result.length}');
+      return result;
+    } catch (error) {
+      log('failed type=${error.runtimeType}');
+      rethrow;
+    }
+  }
+
+  Future<List<BleDeviceCandidate>> _scan() async {
+    if (!await BlePermissions.requestScan()) {
       throw StateError('Se requieren permisos Bluetooth para buscar el ESP32.');
     }
+    if (await FlutterBluePlus.adapterState.first != BluetoothAdapterState.on) {
+      throw StateError(
+        'Bluetooth apagado. Active Bluetooth para buscar el ESP32.',
+      );
+    }
     final found = <String, BleDeviceCandidate>{};
-    final subscription = FlutterBluePlus.onScanResults.listen((results) {
-      for (final result in results) {
-        final name = result.advertisementData.advName;
-        if (isDdr001Esp32Advertisement(
-          name: name,
-          serviceUuids: result.advertisementData.serviceUuids.map(
-            (uuid) => uuid.toString(),
-          ),
-        )) {
-          found[result.device.remoteId.str] = BleDeviceCandidate(
-            id: result.device.remoteId.str,
-            name: name.isEmpty ? 'DDR001 ESP32' : name,
-            rssi: result.rssi,
-          );
+    Object? scanError;
+    final subscription = FlutterBluePlus.onScanResults.listen(
+      (results) {
+        for (final result in results) {
+          final name = result.advertisementData.advName;
+          if (isDdr001Esp32Advertisement(
+            name: name,
+            serviceUuids: result.advertisementData.serviceUuids.map(
+              (uuid) => uuid.toString(),
+            ),
+          )) {
+            found[result.device.remoteId.str] = BleDeviceCandidate(
+              id: result.device.remoteId.str,
+              name: name.isEmpty ? 'DDR001 ESP32' : name,
+              rssi: result.rssi,
+            );
+          }
         }
-      }
-    });
-    await FlutterBluePlus.startScan(
-      withServices: [Guid(Ddr001BleContract.serviceUuid)],
-      timeout: const Duration(seconds: 6),
+      },
+      onError: (Object error) {
+        scanError = error;
+      },
     );
-    await FlutterBluePlus.isScanning.where((value) => !value).first;
-    await subscription.cancel();
+    try {
+      await FlutterBluePlus.startScan(
+        withServices: [Guid(Ddr001BleContract.serviceUuid)],
+        timeout: const Duration(seconds: 6),
+      );
+      await FlutterBluePlus.isScanning
+          .where((value) => !value)
+          .first
+          .timeout(const Duration(seconds: 10));
+    } finally {
+      await subscription.cancel();
+      if (FlutterBluePlus.isScanningNow) await FlutterBluePlus.stopScan();
+    }
+    if (scanError != null) {
+      throw StateError('Falló la búsqueda Bluetooth. Intente nuevamente.');
+    }
     final validated = <BleDeviceCandidate>[];
     for (final candidate in found.values) {
-      if (await _validateGattContract(candidate)) validated.add(candidate);
+      if (await BleConnectionOwnership.shared.validate(
+        candidate.id,
+        () => _validateGattContract(candidate),
+      )) {
+        validated.add(candidate);
+      }
     }
     final values = validated..sort((a, b) => b.rssi.compareTo(a.rssi));
     return values;

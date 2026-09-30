@@ -1,5 +1,20 @@
 # SYNC_SPEC — Offline-first con DDR001 API compartido
 
+> **Actualización 1.8.0+26 (2026-09-30):** se permite corregir lecturas manuales
+> INICIO/FINAL, configuración de cálculo y cuenta/banco de verificaciones finalizadas mediante revisiones
+> locales auditadas. Esta excepción sustituye las prohibiciones generales de
+> edición de datos manuales cerrados que aparecen más abajo; adquisición,
+> pulsos y evidencias conservan su inmutabilidad. La configuración original queda en auditoría.
+> Ambas constantes K se configuran en Preparación, con 10 L/pulso iniciales
+> para pruebas nuevas; muestras previas conservan su K.
+> Historial incorpora sincronización de todas las verificaciones finalizadas
+> pendientes del usuario. Toda corrección queda **Pendiente (editada)** hasta que
+> la API anuncie soporte explícito de revisiones en `/me/access`. Sin soporte se
+> muestra el error de actualizar la API y continúan las demás verificaciones.
+> El cliente implementa el contrato opcional documentado; el servidor no se modificó.
+> Detalle normativo: [ADR-030](DECISIONS/ADR-030-local-manual-corrections.md).
+
+
 ## Principio
 
 Drift/SQLite y filesystem local son la persistencia primaria. La captura y el
@@ -27,6 +42,20 @@ reanudar operaciones remotas.
 
 El user UUID local se conserva como `clientUserId`; ownership servidor se toma
 del JWT. Nunca se reescribe una muestra/caso histórico para cambiar su user ID.
+
+## Activación productiva y sesiones locales previas
+
+El APK productivo se compila con `--dart-define-from-file=config/production.json`
+desde `app/`; el archivo contiene sólo la URL pública del backend. No contiene
+credenciales. Android permite HTTP únicamente para `cifra.aquafim.com`, mientras
+el despliegue actual publica el servicio en ese transporte.
+
+La acción **SINCRONIZAR** del resumen autentica la identidad local vigente si
+carece de credenciales remotas, incluidas las identidades maestras. Relee su
+vínculo remoto persistido antes de reutilizar tokens. Ante 401 agotado el refresh
+puede iniciar otra sesión con la misma identidad local; 403 y errores de red
+permanecen visibles. Restaurar la app sigue siendo enteramente local. Logout
+revoca la sesión Field también para maestros. UUID y datos históricos no cambian.
 
 ## Flujo V1
 
@@ -123,3 +152,27 @@ sin cambiar UUID, checksum metrológico ni contrato de la API.
 `GET /sync/pull` queda pospuesto. Las consultas `/cases` son vistas remotas
 read-only y no fusionan datos dentro de Drift. Un pull futuro requiere ADR para
 merge, tombstones, ownership e inmutabilidad.
+
+## Diagnóstico de errores remotos (1.7.3+22)
+
+Los errores HTTP conservan la operación ejecutada, estado, mensaje de los dos
+contratos (Field problem+json o functional `error`) y request ID UUID válido.
+La UI de sincronización muestra esos datos y el motor los conserva en los
+estados de error que ya persiste. Un fallo de renovación identifica esa
+operación, no la petición que originó el refresh. HTML y cuerpos inesperados
+no se muestran crudos; un 5xx conserva su categoría transitoria. No se registran
+tokens, cuerpos enviados ni imágenes para esta instrumentación.
+
+Los errores de validación (1.7.4+23) muestran hasta ocho rutas de campos y
+códigos recibidos en `error.details.issues` o `errors`. Se omiten valores
+rechazados y cuerpos crudos. El lote rechazado se conserva sin reinterpretar
+muestras cerradas ni eludir validaciones del servidor.
+
+## Identidad remota de puntos (ADR-028)
+
+IDs de Point locales no UUID se adaptan a UUID v5 deterministas únicamente en
+transporte (sampleId + pointId, namespace/nombre definidos en ADR-028). Se
+conservan IDs locales y checksums de muestras/casos. Metadata y referencias de
+Evidence usan la misma identidad remota. Lotes failed por VALIDATION_FAILED,
+sin receipt y con IDs legados, reparan esos campos y hashes de transporte con
+el mismo batchId/itemId. No se cambian lotes ambiguos, confirmados o en conflicto.

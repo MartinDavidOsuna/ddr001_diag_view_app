@@ -2,6 +2,7 @@ import 'package:ddr001_diag_view_app/app/app.dart';
 import 'package:ddr001_diag_view_app/app/app_dependencies.dart';
 import 'package:ddr001_diag_view_app/core/metrology/metrology.dart';
 import 'package:ddr001_diag_view_app/domain/models.dart';
+import 'package:ddr001_diag_view_app/infrastructure/remote/remote_api.dart';
 import 'package:ddr001_diag_view_app/presentation/home/manual_screen.dart';
 import 'package:ddr001_diag_view_app/presentation/app_controller.dart';
 import 'package:flutter/material.dart';
@@ -19,13 +20,44 @@ void main() {
     PackageInfo.setMockInitialValues(
       appName: 'DDR001',
       packageName: 'mx.aquafim.ddr001',
-      version: '1.3.4',
-      buildNumber: '14',
+      version: '1.8.0',
+      buildNumber: '26',
       buildSignature: '',
     );
     fixture = await PresentationFixture.create();
   });
   tearDown(() async => fixture.dispose());
+
+  testWidgets(
+    'configured Android shows SINCRONIZAR in an existing local case',
+    (tester) async {
+      final dependencies = fixture.dependencies.copyWith(
+        remoteApi: RemoteApiClient(
+          baseUrl: 'https://test.invalid',
+          credentials: _WidgetCredentials(),
+        ),
+      );
+      final controller = AppController(dependencies);
+      await tester.runAsync(() async {
+        await fixture.seedSession();
+        await controller.initialize();
+        await controller.identifyMeter(meterId: 'SYNC-EXISTING', lpsApprox: 5);
+        await controller.openCaseFromHistory(controller.state.activeCase!.id);
+      });
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appDependenciesProvider.overrideWithValue(dependencies),
+            appControllerProvider.overrideWith((ref) => controller),
+          ],
+          child: const Ddr001App(initialize: false),
+        ),
+      );
+      await tester.pump();
+      expect(find.byKey(const Key('sync-case')), findsOneWidget);
+      expect(find.text('SINCRONIZAR · Pendiente'), findsOneWidget);
+    },
+  );
 
   testWidgets('bootstrap navigates to login without session', (tester) async {
     await _pump(tester, fixture);
@@ -33,7 +65,7 @@ void main() {
     expect(find.byKey(const Key('login-display-name')), findsOneWidget);
     expect(find.byKey(const Key('login-email')), findsOneWidget);
     expect(find.text('VERIFICADOR FUNCIONAL'), findsOneWidget);
-    expect(find.text('Versión: 1.3.4+14'), findsOneWidget);
+    expect(find.text('Versión: 1.8.0+26'), findsOneWidget);
   });
 
   testWidgets('bootstrap navigates home with persistent session', (
@@ -44,7 +76,7 @@ void main() {
     expect(find.text('NUEVA VERIFICACIÓN'), findsOneWidget);
     expect(find.text('Hola, Técnico de Campo'), findsOneWidget);
     expect(find.textContaining('Modo offline'), findsOneWidget);
-    expect(find.text('Versión: 1.3.4+14'), findsOneWidget);
+    expect(find.text('Versión: 1.8.0+26'), findsOneWidget);
     expect(find.byKey(const Key('aquafim-logo-symbol')), findsOneWidget);
   });
 
@@ -73,6 +105,33 @@ void main() {
     expect(find.text('NUEVA VERIFICACIÓN'), findsOneWidget);
     expect(find.text('Hola, Martín Osuna'), findsOneWidget);
     expect(fixture.session.userId, isNotNull);
+  });
+
+  testWidgets('incomplete sample opens home and resumes only on request', (
+    tester,
+  ) async {
+    late String sampleId;
+    await tester.runAsync(() async {
+      await fixture.seedSession();
+      final controller = AppController(fixture.dependencies);
+      await controller.initialize();
+      await controller.identifyMeter(meterId: 'STARTUP-RECOVERY');
+      controller.selectMethod(MeasurementMethod.manual);
+      await controller.startSample();
+      sampleId = controller.state.sample!.id;
+    });
+    await _pump(tester, fixture);
+    expect(find.text('NUEVA VERIFICACIÓN'), findsOneWidget);
+    expect(find.text('Recuperación'), findsNothing);
+    expect(find.byKey(const Key('resume-saved-sample')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('resume-saved-sample')));
+    await _settle(tester);
+    expect(find.text('NUEVA VERIFICACIÓN'), findsNothing);
+    final saved = await tester.runAsync(
+      () => fixture.dependencies.samples.getById(sampleId),
+    );
+    expect(saved!.status, SampleStatus.running);
+    expect(saved.pulseCount, 0);
   });
 
   testWidgets('identification omits manually entered Q1 and Q2 flow', (
@@ -140,7 +199,7 @@ void main() {
     expect(find.text('Correo'), findsOneWidget);
     expect(find.text('Teléfono'), findsOneWidget);
     expect(find.byKey(const Key('manual-de-uso')), findsOneWidget);
-    expect(find.text('Versión: 1.3.4+14'), findsOneWidget);
+    expect(find.text('Versión: 1.8.0+26'), findsOneWidget);
     expect(find.byKey(const Key('visual-calibration-debug')), findsNothing);
     expect(find.textContaining('Contraseña'), findsNothing);
     await tester.tap(find.byKey(const Key('logout')));
@@ -242,29 +301,30 @@ void main() {
     expect(find.byType(Scrollable), findsWidgets);
   });
 
-  testWidgets('recovery displays and resumes the exact RUNNING sample', (
-    tester,
-  ) async {
-    final controller = AppController(fixture.dependencies);
-    await tester.runAsync(() async {
-      await fixture.seedSession();
-      await controller.initialize();
-      await controller.startIdentification();
-      await controller.identifyMeter(meterId: 'REC-1', lpsApprox: 20);
-      controller.selectMethod(MeasurementMethod.manual);
-      await controller.startSample();
-    });
-    final sampleId = controller.state.sample!.id;
-    await _pump(tester, fixture);
-    expect(find.text('Prueba en curso'), findsWidgets);
-    expect(find.text('REC-1'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('resume-sample')));
-    await _settle(tester);
-    expect(find.byKey(const Key('manual-pulse')), findsOneWidget);
-    expect(find.text('Medidor REC-1'), findsOneWidget);
-    final persisted = await fixture.dependencies.samples.getById(sampleId);
-    expect(persisted?.id, sampleId);
-  });
+  testWidgets(
+    'home resumes the exact RUNNING sample without automatic recovery page',
+    (tester) async {
+      final controller = AppController(fixture.dependencies);
+      await tester.runAsync(() async {
+        await fixture.seedSession();
+        await controller.initialize();
+        await controller.startIdentification();
+        await controller.identifyMeter(meterId: 'REC-1', lpsApprox: 20);
+        controller.selectMethod(MeasurementMethod.manual);
+        await controller.startSample();
+      });
+      final sampleId = controller.state.sample!.id;
+      await _pump(tester, fixture);
+      expect(find.text('NUEVA VERIFICACIÓN'), findsOneWidget);
+      expect(find.text('Recuperación'), findsNothing);
+      await tester.tap(find.byKey(const Key('resume-saved-sample')));
+      await _settle(tester);
+      expect(find.byKey(const Key('manual-pulse')), findsOneWidget);
+      expect(find.text('Medidor REC-1'), findsOneWidget);
+      final persisted = await fixture.dependencies.samples.getById(sampleId);
+      expect(persisted?.id, sampleId);
+    },
+  );
 }
 
 final class _WidgetLocation implements LocationPort {
@@ -299,4 +359,17 @@ Future<void> _settle(WidgetTester tester) async {
   );
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 250));
+}
+
+final class _WidgetCredentials implements RemoteCredentialStore {
+  @override
+  Future<void> clear() async {}
+  @override
+  Future<String?> read() async => null;
+  @override
+  Future<RemoteCredentials?> readCredentials() async => null;
+  @override
+  Future<void> write(String token) async {}
+  @override
+  Future<void> writeCredentials(RemoteCredentials credentials) async {}
 }

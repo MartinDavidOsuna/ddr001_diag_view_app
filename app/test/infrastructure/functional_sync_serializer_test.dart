@@ -1,10 +1,12 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:ddr001_diag_view_app/core/metrology/metrology.dart';
 import 'package:ddr001_diag_view_app/domain/models.dart';
 import 'package:ddr001_diag_view_app/infrastructure/remote/functional_sync_serializer.dart';
 import 'package:ddr001_diag_view_app/infrastructure/remote/remote_api.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ddr001_diag_view_app/infrastructure/remote/sync_point_identity.dart';
 
 void main() {
   test('complete Q1 case serializes to the implemented sync/v1 contract', () {
@@ -55,6 +57,53 @@ void main() {
     expect(jsonDecode(serialized.requestJson), request);
   });
 
+  for (final method in [MeasurementMethod.manual, MeasurementMethod.ble]) {
+    test('legacy point IDs have stable UUID transport identity for $method', () {
+      const localId = 'point-77777777-7777-4777-8777-777777777777';
+      final bundle = _bundle(pointId: localId, method: method);
+      final serialized = const FunctionalSyncSerializer().serialize(
+        bundle: bundle,
+        installationId: _installationId,
+        generatedAt: _time,
+        batchId: _batchId,
+      );
+      final items = (serialized.request['items'] as List)
+          .cast<Map<String, Object?>>();
+      final point = items.singleWhere((i) => i['entityType'] == 'POINT');
+      final remoteId = syncPointId(_sampleId, localId);
+      // Golden vector independently computed with Python uuid.uuid5.
+      expect(remoteId, 'd0a6ba44-d70a-5de0-a306-94fbdf57986c');
+      expect(
+        remoteId,
+        matches(
+          RegExp(
+            r'^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+          ),
+        ),
+      );
+      expect(point['entityId'], remoteId);
+      expect((point['payload'] as Map)['pointId'], remoteId);
+      expect(
+        (items.firstWhere((i) => i['entityType'] == 'EVIDENCE_REF')['payload']
+            as Map)['pointId'],
+        remoteId,
+      );
+      expect(bundle.pointsBySample[_sampleId]!.single.id, localId);
+      expect(bundle.samples.single.checksum, _checksum);
+      expect(syncPointId(_sampleId, remoteId), remoteId);
+      expect(syncPointId(_flowId, localId), isNot(remoteId));
+      for (final item in items) {
+        expect(item['payloadSha256'], canonicalSha256(item['payload']));
+      }
+      const directory = String.fromEnvironment('SYNC_CONTRACT_FIXTURE_DIR');
+      if (directory.isNotEmpty) {
+        File(
+          '$directory/${method.name}.json',
+        ).writeAsStringSync(serialized.requestJson);
+      }
+    });
+  }
+
   test('simulation marker and scenario survive contract serialization', () {
     final serialized = const FunctionalSyncSerializer().serialize(
       bundle: _bundle(simulation: true),
@@ -78,13 +127,15 @@ Map<String, Object?> _payload(List<Map<String, Object?>> items, String type) =>
     items.singleWhere((item) => item['entityType'] == type)['payload']!
         as Map<String, Object?>;
 
-FunctionalCaseBundle _bundle({bool simulation = false}) {
+FunctionalCaseBundle _bundle({
+  bool simulation = false,
+  String pointId = _pointId,
+  MeasurementMethod method = MeasurementMethod.manual,
+}) {
   const startEvidenceId = '77777777-7777-4777-8777-777777777777';
   const finalEvidenceId = '88888888-8888-4888-8888-888888888888';
   final configuration = SampleConfiguration(
-    measurementMethod: simulation
-        ? MeasurementMethod.simulation
-        : MeasurementMethod.manual,
+    measurementMethod: simulation ? MeasurementMethod.simulation : method,
     litersPerPulse: 1,
     evidenceStepLiters: 25,
     readingUncertaintyLiters: 0.5,
@@ -142,7 +193,7 @@ FunctionalCaseBundle _bundle({bool simulation = false}) {
     Evidence(
       id: startEvidenceId,
       sampleId: _sampleId,
-      pointId: _pointId,
+      pointId: pointId,
       type: EvidenceType.start,
       required: true,
       volumeRefLiters: 0,
@@ -206,7 +257,7 @@ FunctionalCaseBundle _bundle({bool simulation = false}) {
     pointsBySample: {
       _sampleId: [
         TestPoint(
-          id: _pointId,
+          id: pointId,
           sampleId: _sampleId,
           type: PointType.start,
           pulseCount: 0,

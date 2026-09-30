@@ -58,6 +58,17 @@ final class HomeScreen extends ConsumerWidget {
                   label: const Text('NUEVA VERIFICACIÓN'),
                 ),
                 const SizedBox(height: 10),
+                if (state.sample?.status == SampleStatus.running ||
+                    (state.sample?.isSimulation == true &&
+                        state.sample?.status == SampleStatus.draft)) ...[
+                  OutlinedButton.icon(
+                    key: const Key('resume-saved-sample'),
+                    onPressed: controller.resumeSample,
+                    icon: const Icon(Icons.play_arrow),
+                    label: const Text('REANUDAR PRUEBA GUARDADA'),
+                  ),
+                  const SizedBox(height: 10),
+                ],
                 OutlinedButton.icon(
                   onPressed: controller.showHistory,
                   icon: const Icon(Icons.history),
@@ -151,6 +162,30 @@ final class HistoryScreen extends ConsumerWidget {
     final state = ref.watch(appControllerProvider);
     return AppScaffold(
       title: 'Historial local',
+      actions: [
+        IconButton(
+          key: const Key('sync-all-cases'),
+          tooltip: 'Sincronizar todas las verificaciones pendientes',
+          onPressed: state.busy
+              ? null
+              : () async {
+                  await ref
+                      .read(appControllerProvider.notifier)
+                      .syncPendingCases();
+                  if (context.mounted) {
+                    final current = ref.read(appControllerProvider);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          current.errorMessage ?? current.syncMessage,
+                        ),
+                      ),
+                    );
+                  }
+                },
+          icon: const Icon(Icons.sync),
+        ),
+      ],
       child: state.cases.isEmpty
           ? const SectionCard(
               title: 'Expedientes',
@@ -165,9 +200,11 @@ final class HistoryScreen extends ConsumerWidget {
                     (item) => Padding(
                       padding: const EdgeInsets.only(bottom: 10),
                       child: InkWell(
-                        onTap: () => ref
-                            .read(appControllerProvider.notifier)
-                            .openCaseFromHistory(item.id),
+                        onTap: state.busy
+                            ? null
+                            : () => ref
+                                  .read(appControllerProvider.notifier)
+                                  .openCaseFromHistory(item.id),
                         borderRadius: BorderRadius.circular(AppRadius.card),
                         child: SectionCard(
                           title: 'Medidor ${item.meterId}',
@@ -182,19 +219,16 @@ final class HistoryScreen extends ConsumerWidget {
                               Text(
                                 'Resultado: ${overallLabel(item.overallVerdict)}',
                               ),
-                              if (ref
-                                  .read(appDependenciesProvider)
-                                  .backendSyncConfigured)
-                                Text(
-                                  'Sincronización: ${state.caseSyncMessages[item.id] ?? 'Pendiente'}',
-                                  style: TextStyle(
-                                    color:
-                                        state.caseSyncMessages[item.id] ==
-                                            'Sincronizado'
-                                        ? AppColors.success
-                                        : AppColors.muted,
-                                  ),
+                              Text(
+                                'Sincronización: ${state.caseSyncMessages[item.id] ?? 'Pendiente'}',
+                                style: TextStyle(
+                                  color:
+                                      state.caseSyncMessages[item.id] ==
+                                          'Sincronizado'
+                                      ? AppColors.success
+                                      : AppColors.muted,
                                 ),
+                              ),
                             ],
                           ),
                         ),
@@ -311,7 +345,7 @@ final class _OperationalSettingsState
     title: 'Ajustes (avanzado)',
     child: Column(
       children: [
-        _field(_k, 'K (L/pulso)'),
+        _field(_k, 'Medidor patrón · litros por pulso'),
         _field(_step, 'Paso captura/evidencia (L)'),
         _field(_minimum, 'Vmín orientativo (L)'),
         _field(_maximum, 'Vmáx orientativo (L)'),
@@ -324,20 +358,28 @@ final class _OperationalSettingsState
         const SizedBox(height: 12),
         FilledButton(
           onPressed: () {
-            ref
-                .read(appControllerProvider.notifier)
-                .updateSetup(
-                  litersPerPulse: double.tryParse(_k.text) ?? 1,
-                  evidenceStepLiters: double.tryParse(_step.text) ?? 25,
-                  uncertaintyLiters: double.tryParse(_uncertainty.text) ?? 1,
-                  minimumVolumeLiters: double.tryParse(_minimum.text) ?? 100,
-                  maximumVolumeLiters: double.tryParse(_maximum.text) ?? 300,
-                );
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Ajustes aplicados a nuevas muestras.'),
-              ),
-            );
+            try {
+              ref
+                  .read(appControllerProvider.notifier)
+                  .updateSetup(
+                    litersPerPulse:
+                        double.tryParse(_k.text.replaceAll(',', '.')) ??
+                        double.nan,
+                    evidenceStepLiters: double.tryParse(_step.text) ?? 25,
+                    uncertaintyLiters: double.tryParse(_uncertainty.text) ?? 1,
+                    minimumVolumeLiters: double.tryParse(_minimum.text) ?? 100,
+                    maximumVolumeLiters: double.tryParse(_maximum.text) ?? 300,
+                  );
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Ajustes aplicados a nuevas muestras.'),
+                ),
+              );
+            } on ArgumentError catch (error) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text('${error.message}')));
+            }
           },
           child: const Text('GUARDAR AJUSTES'),
         ),

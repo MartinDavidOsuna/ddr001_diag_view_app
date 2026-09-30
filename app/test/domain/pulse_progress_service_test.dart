@@ -4,6 +4,7 @@ import 'package:ddr001_diag_view_app/core/metrology/models/measurement_method.da
 import 'package:ddr001_diag_view_app/domain/pulse/pulse_progress_service.dart';
 import 'package:ddr001_diag_view_app/domain/pulse/pulse_source.dart';
 import 'package:ddr001_diag_view_app/domain/models.dart';
+import 'package:ddr001_diag_view_app/domain/repositories.dart';
 import 'package:ddr001_diag_view_app/domain/pulse/esp32_counter_protocol.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -34,6 +35,46 @@ void main() {
     );
   }
 
+  test(
+    'post-commit error is verified without duplicating the sequence',
+    () async {
+      await fixture.running(method: MeasurementMethod.ble);
+      final repository = _FailingProgressRepository(fixture.samples);
+      final service = PulseProgressService(repository);
+      final pulse = event('one', PulseSourceType.ble, sequence: 100);
+      expect(await service.acceptPulse('sample-1', pulse), 1);
+      expect(await service.acceptPulse('sample-1', pulse), 1);
+      expect((await fixture.samples.getById('sample-1'))!.pulseCount, 1);
+    },
+  );
+
+  test(
+    'unreadable commit outcome blocks only that Sample, never silently retries',
+    () async {
+      await fixture.running(method: MeasurementMethod.ble);
+      await fixture.running(
+        id: 'sample-2',
+        number: 2,
+        method: MeasurementMethod.ble,
+      );
+      final repository = _FailingProgressRepository(fixture.samples)
+        ..failReadBack = true;
+      final service = PulseProgressService(repository);
+      final pulse = event('one', PulseSourceType.ble, sequence: 100);
+      await expectLater(
+        service.acceptPulse('sample-1', pulse),
+        throwsStateError,
+      );
+      repository.failReadBack = false;
+      await expectLater(
+        service.acceptPulse('sample-1', pulse),
+        throwsStateError,
+      );
+      expect((await fixture.samples.getById('sample-1'))!.pulseCount, 1);
+      expect(await service.acceptPulse('sample-2', pulse), 1);
+    },
+  );
+
   test('one common event increments and persists N and Vref', () async {
     await fixture.running(method: MeasurementMethod.manual);
     final service = PulseProgressService(fixture.samples);
@@ -60,6 +101,63 @@ void main() {
     ]);
     expect((await fixture.samples.getById('sample-1'))!.pulseCount, 3);
   });
+
+  test(
+    'failed database write can retry the same sequence without poisoning the queue',
+    () async {
+      await fixture.running(method: MeasurementMethod.ble);
+      final service = PulseProgressService(fixture.samples);
+      await fixture.database.customStatement("""
+      CREATE TEMP TRIGGER reject_pulse_write BEFORE UPDATE OF pulse_count ON samples
+      BEGIN SELECT RAISE(ABORT, 'injected disk write failure'); END
+    """);
+      final pulse = event('retry', PulseSourceType.ble, sequence: 100);
+      await expectLater(
+        service.acceptPulse('sample-1', pulse),
+        throwsA(isA<Exception>()),
+      );
+      expect((await fixture.samples.getById('sample-1'))!.pulseCount, 0);
+      await fixture.database.customStatement('DROP TRIGGER reject_pulse_write');
+      expect(await service.acceptPulse('sample-1', pulse), 1);
+      expect(await service.acceptPulse('sample-1', pulse), 1);
+      expect(
+        await service.acceptPulse(
+          'sample-1',
+          event('next', PulseSourceType.ble, sequence: 101),
+        ),
+        2,
+      );
+    },
+  );
+
+  test(
+    'a queued burst of 1000 BLE sequences and duplicates persists exactly once',
+    () async {
+      await fixture.running(method: MeasurementMethod.ble);
+      final service = PulseProgressService(fixture.samples);
+      final pending = <Future<int>>[];
+      for (var i = 1; i <= 1000; i++) {
+        pending.add(
+          service.acceptPulse(
+            'sample-1',
+            event('pulse-$i', PulseSourceType.ble, sequence: i),
+          ),
+        );
+        if (i % 10 == 0) {
+          pending.add(
+            service.acceptPulse(
+              'sample-1',
+              event('duplicate-$i', PulseSourceType.ble, sequence: i),
+            ),
+          );
+        }
+      }
+      await Future.wait(pending);
+      final saved = (await fixture.samples.getById('sample-1'))!;
+      expect(saved.pulseCount, 1000);
+      expect(saved.referenceLitersProgress, 1000);
+    },
+  );
 
   test('same source sequence is accepted once locally', () async {
     await fixture.running(method: MeasurementMethod.ble);
@@ -143,4 +241,38 @@ void main() {
       );
     },
   );
+}
+
+final class _FailingProgressRepository extends Fake
+    implements SampleRepository {
+  _FailingProgressRepository(this.delegate);
+  final SampleRepository delegate;
+  bool failReadBack = false;
+  bool wrote = false;
+
+  @override
+  Future<Sample?> getById(String id) {
+    if (wrote && failReadBack) throw StateError('readback unavailable');
+    return delegate.getById(id);
+  }
+
+  @override
+  Future<Sample> updateProgress({
+    required String id,
+    required int pulseCount,
+    double? referenceLiters,
+    double? manualIndicatedLiters,
+    DateTime? firstPulseAt,
+    ConfirmedReading? initialReading,
+    ConfirmedReading? finalReading,
+  }) async {
+    await delegate.updateProgress(
+      id: id,
+      pulseCount: pulseCount,
+      referenceLiters: referenceLiters,
+      firstPulseAt: firstPulseAt,
+    );
+    wrote = true;
+    throw StateError('failure after commit');
+  }
 }

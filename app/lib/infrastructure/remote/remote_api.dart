@@ -9,6 +9,7 @@ import 'package:http_parser/http_parser.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../domain/models.dart';
+import 'sync_point_identity.dart';
 
 const functionalClientApp = 'ddr001_diag_view';
 
@@ -135,11 +136,13 @@ final class FunctionalAccess {
     required this.remoteUserId,
     required this.enabled,
     required this.policyVersion,
+    this.manualCorrectionsReady = false,
   });
 
   final String remoteUserId;
   final bool enabled;
   final int policyVersion;
+  final bool manualCorrectionsReady;
 }
 
 final class EvidenceUploadAck {
@@ -170,7 +173,11 @@ final class SyncReceiptAck {
     required this.receiptId,
     required this.status,
     required this.items,
+    this.appliedCorrectionIds = const [],
+    this.caseChecksum,
   });
+  final List<String> appliedCorrectionIds;
+  final String? caseChecksum;
   final String receiptId;
   final String status;
   final List<SyncItemAck> items;
@@ -198,12 +205,27 @@ final class RemoteApiException implements Exception {
     required this.message,
     this.statusCode,
     this.code,
+    this.operation,
+    this.requestId,
+    this.validationIssues = const [],
   });
 
   final RemoteFailureKind kind;
   final String message;
   final int? statusCode;
   final String? code;
+  final String? operation;
+  final String? requestId;
+  final List<String> validationIssues;
+
+  String get diagnosticMessage => [
+    ?operation,
+    if (statusCode != null && message != 'HTTP $statusCode') 'HTTP $statusCode',
+    message,
+    if (validationIssues.isNotEmpty) 'Campos: ${validationIssues.join('; ')}',
+    if (requestId != null) 'Ref. $requestId',
+  ].join(' · ');
+
   bool get retryable => switch (kind) {
     RemoteFailureKind.rateLimited || RemoteFailureKind.transient => true,
     _ => false,
@@ -257,7 +279,7 @@ final class RemoteApiClient {
           )
           .timeout(jsonTimeout),
     );
-    final body = _decode(response);
+    final body = _decode(response, operation: 'Inicio de sesión');
     final result = RemoteCredentials(
       accessToken: body['accessToken']! as String,
       refreshToken: body['refreshToken']! as String,
@@ -278,6 +300,7 @@ final class RemoteApiClient {
       remoteUserId: data['userId']! as String,
       enabled: data['accessEnabled']! as bool,
       policyVersion: data['policyVersion']! as int,
+      manualCorrectionsReady: _supportsManualCorrections(data['capabilities']),
     );
   }
 
@@ -327,7 +350,8 @@ final class RemoteApiClient {
         'schema': 'functional-diagnostics.evidence/v1',
         'evidenceId': evidence.id,
         'sampleId': evidence.sampleId,
-        if (evidence.pointId != null) 'pointId': evidence.pointId,
+        if (evidence.pointId != null)
+          'pointId': syncPointId(evidence.sampleId, evidence.pointId!),
         'type': _evidenceType(evidence.type),
         'required': evidence.required,
         if (evidence.volumeRefLiters != null)
@@ -351,7 +375,9 @@ final class RemoteApiClient {
     }
 
     final response = await _authorized(send);
-    final data = _decode(response)['data']! as Map<String, Object?>;
+    final data =
+        _decode(response, operation: 'Subida de fotografía')['data']!
+            as Map<String, Object?>;
     return EvidenceUploadAck(
       status: data['status']! as String,
       storageKey: data['storageKey']! as String,
@@ -414,7 +440,7 @@ final class RemoteApiClient {
         _ => throw ArgumentError.value(method, 'method'),
       };
     });
-    return _decode(response);
+    return _decode(response, operation: _operationFor(path));
   }
 
   Future<http.Response> _authorized(
@@ -453,7 +479,7 @@ final class RemoteApiClient {
           )
           .timeout(jsonTimeout),
     );
-    final body = _decode(response);
+    final body = _decode(response, operation: 'Renovación de sesión');
     final refreshed = RemoteCredentials(
       accessToken: body['accessToken']! as String,
       refreshToken: body['refreshToken']! as String,
@@ -488,15 +514,105 @@ final class RemoteApiClient {
     }
   }
 
-  Map<String, Object?> _decode(http.Response response) {
-    final decoded = response.body.isEmpty
-        ? <String, Object?>{}
-        : jsonDecode(response.body) as Map<String, Object?>;
-    if (response.statusCode >= 200 && response.statusCode < 300) return decoded;
-    final error = decoded['error'] as Map<String, Object?>?;
-    final code = error?['code'] as String?;
+  static String _operationFor(String path) {
+    if (path.contains('/me/access')) return 'Verificación de acceso';
+    if (path.contains('/sync/push')) return 'Envío del expediente';
+    if (path.contains('/sync/status')) return 'Confirmación del envío';
+    if (path.contains('/field-sessions/')) return 'Cierre de sesión';
+    return 'Consulta remota';
+  }
+
+  Map<String, Object?> _decode(
+    http.Response response, {
+    required String operation,
+  }) {
+    Map<String, Object?> decoded = {};
+    var validObject = false;
+    try {
+      final value = jsonDecode(response.body);
+      if (value is Map<String, Object?>) {
+        decoded = value;
+        validObject = true;
+      }
+    } on FormatException {
+      // HTML/plain-text proxy errors must retain their HTTP failure category.
+      // Never display the raw response body, which can contain internal data.
+    }
+    final success = response.statusCode >= 200 && response.statusCode < 300;
+    if (success) {
+      if (validObject || response.body.isEmpty) return decoded;
+      throw RemoteApiException(
+        kind: RemoteFailureKind.transient,
+        message: 'El servidor devolvió una respuesta no válida.',
+        statusCode: response.statusCode,
+        code: 'REMOTE_INVALID_RESPONSE',
+        operation: operation,
+      );
+    }
+    String? text(Object? value) {
+      if (value is! String || value.trim().isEmpty) return null;
+      final clean = value.replaceAll(RegExp(r'[\x00-\x1f\x7f]'), ' ').trim();
+      return clean.length > 240 ? '${clean.substring(0, 240)}…' : clean;
+    }
+
+    final nested = decoded['error'];
+    final error = nested is Map<String, Object?> ? nested : null;
+    final code =
+        text(error?['code']) ??
+        text(decoded['code']) ??
+        text(decoded['domainCode']);
     final message =
-        error?['message'] as String? ?? 'HTTP ${response.statusCode}';
+        text(error?['message']) ??
+        text(decoded['detail']) ??
+        text(decoded['title']) ??
+        'HTTP ${response.statusCode}';
+    String? requestId;
+    for (final value in [
+      error?['requestId'],
+      decoded['requestId'],
+      response.headers['x-request-id'],
+    ]) {
+      if (value is String &&
+          RegExp(
+            r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+          ).hasMatch(value)) {
+        requestId = value;
+        break;
+      }
+    }
+    final details = error?['details'];
+    final issuesValue = details is Map<String, Object?>
+        ? details['issues']
+        : null;
+    final rawIssues = issuesValue ?? decoded['errors'];
+    final validationIssues = <String>[];
+    if (rawIssues is List) {
+      for (final issue in rawIssues.take(8)) {
+        if (issue is! Map<String, Object?>) continue;
+        final path = issue['path'];
+        if (path is! List) continue;
+        final segments = <String>[];
+        for (final segment in path.take(12)) {
+          if (segment is int && segment >= 0) {
+            segments.add('[$segment]');
+          } else if (segment is String &&
+              RegExp(r'^[A-Za-z_][A-Za-z0-9_]{0,63}$').hasMatch(segment)) {
+            segments.add('${segments.isEmpty ? '' : '.'}$segment');
+          }
+        }
+        final field = segments.isEmpty ? 'lote' : segments.join();
+        final issueCode = issue['code'];
+        final safeCode =
+            issueCode is String && RegExp(r'^[a-z_]{1,40}$').hasMatch(issueCode)
+            ? issueCode
+            : 'invalid';
+        // Only paths and classification: never echo received values or raw bodies.
+        validationIssues.add('$field ($safeCode)');
+      }
+      if (rawIssues.length > 8) {
+        validationIssues.add('y ${rawIssues.length - 8} más');
+      }
+    }
     final kind = switch (response.statusCode) {
       401 => RemoteFailureKind.unauthorized,
       403 => RemoteFailureKind.forbidden,
@@ -512,6 +628,9 @@ final class RemoteApiClient {
       message: message,
       statusCode: response.statusCode,
       code: code,
+      operation: operation,
+      requestId: requestId,
+      validationIssues: List.unmodifiable(validationIssues),
     );
   }
 }
@@ -543,6 +662,10 @@ MediaType _evidenceMediaType(List<int> bytes) {
 
 SyncReceiptAck _receipt(Map<String, Object?> data) => SyncReceiptAck(
   receiptId: data['receiptId']! as String,
+  appliedCorrectionIds:
+      (data['appliedCorrectionIds'] as List?)?.whereType<String>().toList() ??
+      const [],
+  caseChecksum: data['caseChecksum'] as String?,
   status: data['status']! as String,
   items: (data['items']! as List<Object?>)
       .cast<Map<String, Object?>>()
@@ -600,3 +723,12 @@ String _evidenceType(EvidenceType type) => switch (type) {
   EvidenceType.finalEvidence => 'FINAL',
   EvidenceType.extra => 'EXTRA',
 };
+
+// Explicit protocol negotiation: a server version number alone is insufficient.
+bool _supportsManualCorrections(Object? capabilities) {
+  if (capabilities is! Map) return false;
+  final capability = capabilities['manualCorrections'];
+  return capability is Map &&
+      capability['ready'] == true &&
+      capability['schema'] == 'functional-diagnostics.corrections/v1';
+}

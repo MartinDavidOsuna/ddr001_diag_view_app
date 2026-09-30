@@ -38,6 +38,7 @@ void main() {
 
     controller.startMeasurement();
     controller.pulseCount = 202;
+    controller.advanceSimulation(const Duration(microseconds: 1));
     controller.finishMeasurement();
     await controller.calculate(
       initialTotalizer: 10.345,
@@ -54,6 +55,7 @@ void main() {
     expect(controller.flowLps, inInclusiveRange(2, 3));
     controller.startMeasurement();
     controller.pulseCount = 75;
+    controller.advanceSimulation(const Duration(microseconds: 1));
     controller.finishMeasurement();
     await controller.calculate(
       initialTotalizer: 20,
@@ -65,7 +67,7 @@ void main() {
 
     expect(controller.history, hasLength(1));
     expect(controller.history.single.samples, hasLength(2));
-    expect(controller.page, WebDemoPage.report);
+    expect(controller.page, WebDemoPage.summary);
 
     final recovered = WebDemoController(random: Random(11));
     addTearDown(recovered.dispose);
@@ -88,6 +90,7 @@ void main() {
     controller.beginCase(meter: 'M', bench: 'B');
     controller.startMeasurement();
     controller.pulseCount = 250;
+    controller.advanceSimulation(const Duration(microseconds: 1));
     controller.finishMeasurement();
 
     await controller.calculate(

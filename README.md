@@ -1,25 +1,19 @@
-# DDR001 Verificador de Medidores
+# DDR001 Verificador Funcional
 
-La V1 integra el pipeline común MANUAL/BLE/LED, LECTURA VISUAL, evidencia, registro, reportes offline y backend PostgreSQL. Stage 5 usa GPIO27 para pulsos y LED integrado GPIO2; BLE tuvo validación física previa y la corrida final LED/Pixel permanece pendiente de acceso al hardware.
+App Flutter Android offline-first con Drift/SQLite. El backend productivo es
+`ddr001_api` (Node.js/TypeScript + SQL Server). `backend/` es referencia
+histórica Prisma/PostgreSQL y no se despliega.
 
-La Etapa 4 ofrece una aplicación Flutter Android portrait funcional y offline en `app/`: flujo Stage 3 completo más cámara real, evidencia hasheada, OCR on-device, detección de aguja y confirmación humana trazable.
-
-```powershell
+```sh
 cd app
 flutter pub get
-dart run build_runner build
-flutter run
+flutter build apk --release --dart-define-from-file=config/production.json
 ```
 
-El primer acceso crea y conserva la identidad localmente, sin requerir backend. Si se configura el backend experimental, la aplicación utiliza el proveedor remoto:
-
-```powershell
-flutter build apk --debug --dart-define=DDR001_API_BASE_URL=http://servidor:3000
-```
-
-El backend está en `backend/`. Consulte su README y `docs/deployment/WINDOWS_SERVER_2018.md` para crear PostgreSQL, aplicar migraciones y configurar filesystem de evidencia.
-
-Migración del verificador de medidores a **Flutter Android** con backend **Node.js + TypeScript + Express + Prisma + PostgreSQL**.
+La configuración productiva habilita **SINCRONIZAR** en el resumen del
+expediente. Sin `DDR001_API_BASE_URL`, el build conserva operación sólo local
+y oculta el botón. No se requiere servidor para capturar ni consultar trabajo.
+Consulte [la guía de entrega Android](docs/deployment/ANDROID_PRODUCTION.md).
 
 ## Estado
 - **Etapa 0 SSOT: cerrada** (v9, 2026-08-08).

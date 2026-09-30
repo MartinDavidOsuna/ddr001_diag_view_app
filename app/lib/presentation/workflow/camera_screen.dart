@@ -53,9 +53,17 @@ final class _CameraCaptureScreenState extends ConsumerState<CameraCaptureScreen>
   final Set<String> _triedSuggestionIds = <String>{};
   List<DialCandidate> _suggestedDials = const [];
 
+  late final CameraPort? _sharedCamera;
+  AppPage _currentPage = AppPage.camera;
+
   @override
   void initState() {
     super.initState();
+    _sharedCamera = ref.read(appDependenciesProvider).camera;
+    ref.listenManual(
+      appControllerProvider,
+      (_, next) => _currentPage = next.page,
+    );
     final face = ref.read(appControllerProvider).sample?.meterFaceConfiguration;
     final appState = ref.read(appControllerProvider);
     _digitCount =
@@ -174,10 +182,11 @@ final class _CameraCaptureScreenState extends ConsumerState<CameraCaptureScreen>
     _odometer.dispose();
     _needle.dispose();
     _dialScale.dispose();
-    // AppDependencies owns the shared camera. Evidence releases it so the LED
-    // ImageStream can reuse the same physical camera without closing its
-    // brightness stream for the rest of the process lifetime.
-    unawaited(ref.read(appDependenciesProvider).camera?.pause());
+    // The run screen inherits the warm camera. Disposing it here would reopen
+    // the sensor on INICIAR and move the START photograph several seconds late.
+    if (_currentPage != AppPage.run) {
+      unawaited(_sharedCamera?.pause());
+    }
     super.dispose();
   }
 

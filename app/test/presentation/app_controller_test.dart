@@ -504,6 +504,41 @@ void main() {
     },
   );
 
+  test(
+    'START dispatches the prepared camera without reopening or changing zoom',
+    () async {
+      final camera = _FakeCameraPort();
+      controller = AppController(fixture.dependencies.copyWith(camera: camera));
+      await _prepare(controller, method: MeasurementMethod.manual);
+      await controller.startSample();
+      await controller.confirmLiveCameraPreparation(
+        const DialVisionConfiguration(
+          totalizerRegion: TotalizerRegion(NormalizedRect(.1, .1, .5, .2)),
+          selectedDial: NormalizedCircle(.6, .6, .15),
+        ),
+      );
+      expect(camera.pauseCount, 0);
+      final resumes = camera.resumeCount;
+      final zooms = camera.zoomCount;
+      final shutter = Completer<void>();
+      camera.nextCaptureGate = shutter;
+      final starting = controller.beginMeasurement();
+      expect(camera.captureCount, 1);
+      expect(camera.resumeCount, resumes);
+      expect(camera.zoomCount, zooms);
+      await controller.beginMeasurement();
+      await controller.requestFinalEvidence();
+      expect(camera.captureCount, 1);
+      expect(controller.state.capturePurpose, CapturePurpose.start);
+      shutter.complete();
+      await starting;
+      expect(
+        controller.state.evidence.where((e) => e.type == EvidenceType.start),
+        hasLength(1),
+      );
+    },
+  );
+
   test('RUNNING sample is recovered by a new controller', () async {
     final camera = _FakeCameraPort();
     final dependencies = fixture.dependencies.copyWith(
@@ -527,10 +562,10 @@ void main() {
     );
     final restarted = AppController(dependencies);
     await restarted.initialize();
-    expect(restarted.state.page, AppPage.recovery);
+    expect(restarted.state.page, AppPage.home);
     expect(restarted.state.sample?.id, controller.state.sample?.id);
     expect(restarted.state.sample?.pulseCount, 2);
-    expect(restarted.state.sample?.referenceLitersProgress, 2);
+    expect(restarted.state.sample?.referenceLitersProgress, 20);
     await restarted.resumeSample();
     expect(restarted.state.page, AppPage.run);
     expect(restarted.state.sample?.pulseCount, 2);
@@ -738,6 +773,11 @@ void main() {
 
   test('FINAL evidence freezes pulse endpoint used by closure', () async {
     await _prepare(controller, method: MeasurementMethod.manual);
+    controller.updateSetup(
+      litersPerPulse: 1,
+      evidenceStepLiters: 25,
+      uncertaintyLiters: 1,
+    );
     await controller.startSample();
     await controller.beginMeasurement();
     for (var index = 0; index < 27; index++) {
@@ -1029,6 +1069,9 @@ final class _FakeTokenStore implements TokenStore {
 
 final class _FakeCameraPort implements CameraPort {
   int captureCount = 0;
+  int resumeCount = 0;
+  int pauseCount = 0;
+  int zoomCount = 0;
   Completer<void>? nextCaptureGate;
   String get lastCapturePath =>
       '${Directory.systemTemp.path}/ddr001-auto-intermediate-$captureCount.jpg';
@@ -1039,7 +1082,10 @@ final class _FakeCameraPort implements CameraPort {
   @override
   Future<double> getMaxZoomLevel() async => 8;
   @override
-  Future<void> setZoomLevel(double zoomLevel) async {}
+  Future<void> setZoomLevel(double zoomLevel) async {
+    zoomCount++;
+  }
+
   @override
   Future<void> focusAt({required double x, required double y}) async {}
   @override
@@ -1062,12 +1108,17 @@ final class _FakeCameraPort implements CameraPort {
   @override
   Future<bool> openSettings() async => true;
   @override
-  Future<void> pause() async {}
+  Future<void> pause() async {
+    pauseCount++;
+  }
+
   @override
   Future<CameraPermissionState> requestPermission() async =>
       CameraPermissionState.granted;
   @override
-  Future<void> resume() async {}
+  Future<void> resume() async {
+    resumeCount++;
+  }
 }
 
 final class _FakeVisualPipeline implements VisualReadingPipeline {

@@ -129,7 +129,7 @@ void main() {
 
       final restarted = _controller(fixture);
       await restarted.initialize();
-      expect(restarted.state.page, AppPage.recovery);
+      expect(restarted.state.page, AppPage.home);
       await restarted.resumeSample();
       expect(restarted.state.page, AppPage.run);
       expect(restarted.state.measurementStarted, isFalse);

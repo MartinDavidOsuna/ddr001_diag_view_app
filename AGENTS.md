@@ -15,7 +15,7 @@
 - No rediseñar libremente UI; usar capturas.
 - No integrar el simulador web a Flutter. **No eliminar LECTURA VISUAL**: es funcionalidad productiva para medidores reales y debe migrarse desde la lógica visual representada por el prototipo.
 - No inventar endpoints de la API de hidrantes; inspeccionarla y consumirla read-only.
-- Muestras cerradas son inmutables.
+- Muestras cerradas son inmutables salvo correcciones de lecturas, identificación y configuración de cálculo explícitas y auditadas conforme a ADR-030; adquisición y evidencias originales no se editan.
 - Lógica metrológica fuera de widgets y cubierta por tests.
 - Cambios de comportamiento/modelo/API requieren SSOT + CHANGELOG; decisiones relevantes requieren ADR.
 

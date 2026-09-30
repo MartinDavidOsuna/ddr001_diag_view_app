@@ -12,6 +12,7 @@ import '../../domain/models.dart';
 import '../../domain/pulse/pulse_flow_estimate.dart';
 import '../../domain/remote_test_control.dart';
 import '../../infrastructure/camera/camera_models.dart';
+import '../../infrastructure/camera/camera_port.dart';
 import '../../infrastructure/pulse/led_pulse_detector.dart';
 import '../app_controller.dart';
 import '../common/app_scaffold.dart';
@@ -22,7 +23,8 @@ final class TestRunScreen extends ConsumerStatefulWidget {
   ConsumerState<TestRunScreen> createState() => _TestRunScreenState();
 }
 
-final class _TestRunScreenState extends ConsumerState<TestRunScreen> {
+final class _TestRunScreenState extends ConsumerState<TestRunScreen>
+    with WidgetsBindingObserver {
   static const _remoteChannel = MethodChannel('ddr001/remote_test_control');
   final _visualReference = TextEditingController(text: '125');
   final _remoteFocusNode = FocusNode(debugLabel: 'bluetooth-shutter-control');
@@ -34,10 +36,23 @@ final class _TestRunScreenState extends ConsumerState<TestRunScreen> {
   int _lastExpectedEvidenceCount = 0;
   Timer? _remoteKeepAliveTimer;
   bool _checkingRemote = false;
+  bool _cameraReady = false;
+  String? _cameraPreparationError;
+  int _cameraPreparationGeneration = 0;
+
+  late final CameraPort? _sharedCamera;
+  AppPage _currentPage = AppPage.run;
 
   @override
   void initState() {
     super.initState();
+    _sharedCamera = ref.read(appDependenciesProvider).camera;
+    ref.listenManual(
+      appControllerProvider,
+      (_, next) => _currentPage = next.page,
+    );
+    WidgetsBinding.instance.addObserver(this);
+    unawaited(_prepareCamera());
     _remoteChannel.setMethodCallHandler((call) async {
       if (call.method == 'shutterPressed' && mounted) {
         _triggerRemoteAction();
@@ -57,6 +72,44 @@ final class _TestRunScreenState extends ConsumerState<TestRunScreen> {
       const Duration(seconds: 10),
       (_) => unawaited(_refreshRemoteConnection()),
     );
+  }
+
+  Future<void> _prepareCamera() async {
+    final generation = ++_cameraPreparationGeneration;
+    final sample = ref.read(appControllerProvider).sample;
+    final camera = ref.read(appDependenciesProvider).camera;
+    try {
+      if (sample != null && !sample.isSimulation && camera != null) {
+        await camera.resume();
+        if (!mounted || generation != _cameraPreparationGeneration) return;
+        await camera.setZoomLevel(sample.configuration.cameraZoomLevel);
+      }
+      if (mounted && generation == _cameraPreparationGeneration) {
+        setState(() {
+          _cameraReady = true;
+          _cameraPreparationError = null;
+        });
+      }
+    } catch (_) {
+      if (mounted && generation == _cameraPreparationGeneration) {
+        setState(() {
+          _cameraReady = false;
+          _cameraPreparationError = 'No fue posible preparar la cámara.';
+        });
+      }
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState lifecycle) {
+    if (lifecycle == AppLifecycleState.inactive ||
+        lifecycle == AppLifecycleState.paused) {
+      ++_cameraPreparationGeneration;
+      setState(() => _cameraReady = false);
+      unawaited(ref.read(appDependenciesProvider).camera?.pause());
+    } else if (lifecycle == AppLifecycleState.resumed) {
+      unawaited(_prepareCamera());
+    }
   }
 
   Future<void> _refreshRemoteConnection() async {
@@ -90,6 +143,11 @@ final class _TestRunScreenState extends ConsumerState<TestRunScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    ++_cameraPreparationGeneration;
+    if (_currentPage != AppPage.camera) {
+      unawaited(_sharedCamera?.pause());
+    }
     _visualReference.dispose();
     _remoteFocusNode.dispose();
     _scrollController.dispose();
@@ -124,7 +182,11 @@ final class _TestRunScreenState extends ConsumerState<TestRunScreen> {
       return;
     }
     final state = ref.read(appControllerProvider);
-    if (state.finalizingMeasurement) return;
+    if (state.finalizingMeasurement ||
+        !_cameraReady ||
+        state.capturePurpose == CapturePurpose.start) {
+      return;
+    }
     final sample = state.sample;
     if (sample == null) return;
     final controller = ref.read(appControllerProvider.notifier);
@@ -248,7 +310,9 @@ final class _TestRunScreenState extends ConsumerState<TestRunScreen> {
             litersPerPulse: config.litersPerPulse,
             hydrantLitersPerPulse: config.hydrantLitersPerPulse,
             simulatedFlowLps: state.simulationFlowLps,
-            canFinish: reference > 0,
+            cameraReady: _cameraReady,
+            canFinish:
+                reference > 0 && state.capturePurpose != CapturePurpose.start,
             onFinish: sample.isSimulation || dependenciesHaveCamera(ref)
                 ? controller.requestFinalEvidence
                 : controller.showReadings,
@@ -258,6 +322,16 @@ final class _TestRunScreenState extends ConsumerState<TestRunScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (_cameraPreparationError != null) ...[
+                Text(
+                  _cameraPreparationError!,
+                  style: const TextStyle(color: AppColors.danger),
+                ),
+                TextButton(
+                  onPressed: _prepareCamera,
+                  child: const Text('REINTENTAR CÁMARA'),
+                ),
+              ],
               if (sample.isSimulation) ...[
                 const StatusBanner(
                   text:
@@ -521,6 +595,7 @@ final class _PinnedRunStatus extends StatefulWidget {
     required this.hydrantLitersPerPulse,
     required this.simulatedFlowLps,
     required this.canFinish,
+    required this.cameraReady,
     required this.onFinish,
     required this.onBegin,
   });
@@ -543,6 +618,7 @@ final class _PinnedRunStatus extends StatefulWidget {
   final double hydrantLitersPerPulse;
   final double? simulatedFlowLps;
   final bool canFinish;
+  final bool cameraReady;
   final VoidCallback onFinish;
   final VoidCallback onBegin;
 
@@ -731,13 +807,19 @@ final class _PinnedRunStatusState extends State<_PinnedRunStatus> {
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.success,
                 ),
-                onPressed: flowInRange ? widget.onBegin : null,
-                child: const Text('INICIAR PRUEBA'),
+                onPressed: flowInRange && widget.cameraReady
+                    ? widget.onBegin
+                    : null,
+                child: Text(
+                  widget.cameraReady ? 'INICIAR PRUEBA' : 'PREPARANDO CÁMARA…',
+                ),
               )
             else
               FilledButton(
                 key: const Key('finish-run'),
-                onPressed: widget.canFinish ? widget.onFinish : null,
+                onPressed: widget.canFinish && widget.cameraReady
+                    ? widget.onFinish
+                    : null,
                 child: const Text('FINALIZAR Y CONFIRMAR LECTURAS'),
               ),
           ],

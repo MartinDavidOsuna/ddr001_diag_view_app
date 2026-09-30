@@ -1,5 +1,20 @@
 # API_CONTRACT — DDR001 Verificador Funcional online/offline-first
 
+> **Actualización 1.8.0+26 (2026-09-30):** se permite corregir lecturas manuales
+> INICIO/FINAL, configuración de cálculo y cuenta/banco de verificaciones finalizadas mediante revisiones
+> locales auditadas. Esta excepción sustituye las prohibiciones generales de
+> edición de datos manuales cerrados que aparecen más abajo; adquisición,
+> pulsos y evidencias conservan su inmutabilidad. La configuración original queda en auditoría.
+> Ambas constantes K se configuran en Preparación, con 10 L/pulso iniciales
+> para pruebas nuevas; muestras previas conservan su K.
+> Historial incorpora sincronización de todas las verificaciones finalizadas
+> pendientes del usuario. Toda corrección queda **Pendiente (editada)** hasta que
+> la API anuncie soporte explícito de revisiones en `/me/access`. Sin soporte se
+> muestra el error de actualizar la API y continúan las demás verificaciones.
+> El cliente implementa el contrato opcional documentado; el servidor no se modificó.
+> Detalle normativo: [ADR-030](DECISIONS/ADR-030-local-manual-corrections.md).
+
+
 > Estado: contrato implementado en Flutter contra la Field API de Macroetapa 2. El backend productivo es
 > `ddr001_api` sobre SQL Server 2014. `backend/` en este repositorio es referencia
 > histórica Prisma/PostgreSQL y no se despliega.

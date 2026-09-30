@@ -87,6 +87,7 @@ abstract interface class SyncBatchRepository {
     required String requestJson,
     required String requestSha256,
     required DateTime at,
+    bool repairPointIds = false,
   });
   Future<SyncBatch?> unresolvedForCase(String caseId);
   Future<SyncBatch?> latestForCase(String caseId);
@@ -143,4 +144,12 @@ abstract interface class VerificationCaseClosureService {
     required Set<FlowPoint> requiredFlowPoints,
     required DateTime at,
   });
+}
+
+/// Local correction state must participate in every remote synchronization.
+abstract interface class CorrectionSyncState {
+  Future<bool> hasPending(String caseId);
+  Future<bool> requiresRemoteRevision(String caseId);
+  Future<List<Map<String, Object?>>> pendingPayloads(String caseId);
+  Future<void> acknowledge(String caseId, Iterable<String> correctionIds);
 }

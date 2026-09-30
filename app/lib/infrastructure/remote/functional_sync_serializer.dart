@@ -6,6 +6,7 @@ import '../../core/metrology/metrology.dart';
 import '../../domain/integrity_checksum.dart';
 import '../../domain/models.dart';
 import 'remote_api.dart';
+import 'sync_point_identity.dart';
 
 final class FunctionalCaseBundle {
   const FunctionalCaseBundle({
@@ -204,13 +205,20 @@ final class FunctionalSyncSerializer {
         _settings(sample),
       );
       for (final point in bundle.pointsBySample[sample.id] ?? const []) {
-        add('POINT', point.id, sample.id, null, _point(point));
+        add(
+          'POINT',
+          syncPointId(sample.id, point.id),
+          sample.id,
+          null,
+          _point(point),
+        );
       }
       for (final evidence in bundle.evidenceBySample[sample.id] ?? const []) {
         add('EVIDENCE_REF', evidence.id, sample.id, null, {
           'evidenceId': evidence.id,
           'sampleId': sample.id,
-          if (evidence.pointId != null) 'pointId': evidence.pointId,
+          if (evidence.pointId != null)
+            'pointId': syncPointId(evidence.sampleId, evidence.pointId!),
           'type': _evidenceType(evidence.type),
           'required': evidence.required,
           if (evidence.volumeRefLiters != null)
@@ -384,7 +392,7 @@ Map<String, Object?> _settings(Sample sample) {
 }
 
 Map<String, Object?> _point(TestPoint point) => {
-  'pointId': point.id,
+  'pointId': syncPointId(point.sampleId, point.id),
   'sampleId': point.sampleId,
   'type': switch (point.type) {
     PointType.start => 'START',

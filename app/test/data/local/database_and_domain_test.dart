@@ -27,8 +27,8 @@ void main() {
     await directory.delete(recursive: true);
   });
 
-  test('schema version 14 creates domain and remote sync state tables', () async {
-    expect(database.schemaVersion, 14);
+  test('schema version 15 creates domain and remote sync state tables', () async {
+    expect(database.schemaVersion, 15);
     final rows = await database
         .customSelect(
           "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",

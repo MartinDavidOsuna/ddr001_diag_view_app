@@ -1,6 +1,21 @@
 # PROJECT_TRUTH — DDR001 Verificador de Medidores
 
-- Versión de aplicación vigente: `1.6.0+18`. Login, Inicio y Ajustes muestran la versión instalada. La identidad funcional visible es **VERIFICADOR FUNCIONAL** y Android muestra **AQ VF DDR001**; el encabezado común y el splash Flutter conservan la identidad Aquafim.
+> **Actualización 1.8.0+26 (2026-09-30):** se permite corregir lecturas manuales
+> INICIO/FINAL, configuración de cálculo y cuenta/banco de verificaciones finalizadas mediante revisiones
+> locales auditadas. Esta excepción sustituye las prohibiciones generales de
+> edición de datos manuales cerrados que aparecen más abajo; adquisición,
+> pulsos y evidencias conservan su inmutabilidad. La configuración original queda en auditoría.
+> Ambas constantes K se configuran en Preparación, con 10 L/pulso iniciales
+> para pruebas nuevas; muestras previas conservan su K.
+> Historial incorpora sincronización de todas las verificaciones finalizadas
+> pendientes del usuario. Toda corrección queda **Pendiente (editada)** hasta que
+> la API anuncie soporte explícito de revisiones en `/me/access`. Sin soporte se
+> muestra el error de actualizar la API y continúan las demás verificaciones.
+> El cliente implementa el contrato opcional documentado; el servidor no se modificó.
+> Detalle normativo: [ADR-030](DECISIONS/ADR-030-local-manual-corrections.md).
+
+
+- Versión de aplicación vigente: `1.8.0+26`. Login, Inicio y Ajustes muestran la versión instalada. La identidad funcional visible es **VERIFICADOR FUNCIONAL** y Android muestra **AQ VF DDR001**; el encabezado común y el splash Flutter conservan la identidad Aquafim.
 - Política de incrementos y archivos coordinados: `VERSIONING.md`.
 
 > **Estado:** SSOT consolidada — Etapa 0 cerrada el 2026-08-08.
@@ -12,6 +27,7 @@ Migrar el verificador web legado a una aplicación **Flutter nativa para Android
 ## 2. Alcance inmediato
 - Plataforma móvil productiva: **Android únicamente**, orientación **portrait**.
 - Existe una entrada Flutter Web autónoma exclusivamente para presentaciones locales: sólo SIMULACIÓN Q1/Q2, sin login, API, SQL ni producción. Persiste su historial en almacenamiento del navegador y puede borrarlo explícitamente sin afectar Drift.
+- La presentación Web reproduce el recorrido de SIMULACIÓN Android en formato portrait: Inicio, Identificación, Método, Preparación, Prueba con evidencias y registro, Lecturas, Resultado, repeticiones Q1/Q2, Resumen y exportes. Comparte tarjetas, avisos, tema, motor metrológico y renderizador CSV/JSON/HTML/PDF. Los indicadores de ESP32/control sólo aparecen en Prueba en curso.
 - App: Flutter + Riverpod + Drift/SQLite.
 - Backend oficial: repositorio `ddr001_api`, Node.js + TypeScript + Express + SQL Server 2014; `backend/` es referencia histórica Prisma/PostgreSQL no desplegable.
 - Repositorios oficiales separados para app y API.
@@ -40,7 +56,7 @@ Migrar el verificador web legado a una aplicación **Flutter nativa para Android
 - `email + teléfono` son la llave de identificación/autenticación. El nombre es un atributo de identidad/perfil, no una tercera credencial ni un secreto; no existe password ni pantalla de alta.
 - Primer login: si el usuario no existe localmente en DDR001 Verificador, se da de alta automáticamente en el dispositivo con el nombre capturado. No requiere backend. Un usuario local legado sin nombre conserva su mismo ID y recibe el nombre capturado al volver a acceder.
 - Sesión persistente: no caduca para el usuario durante la operación normal. Solo termina cuando el usuario ejecuta explícitamente **Cerrar sesión**.
-- La sesión local es la autoridad operativa vigente. El proveedor remoto preparado sólo se activa cuando se configura explícitamente el backend.
+- La sesión local es la autoridad operativa vigente. El APK productivo configura explícitamente el backend mediante `app/config/production.json`; SINCRONIZAR obtiene credenciales remotas para sesiones locales previas, incluidos maestros, sin cambiar UUID ni requerir logout.
 - Las identidades maestras documentadas para Martin Osuna, Rene y Omar conservan su normalización canónica; el acceso local no se limita a esas identidades.
 
 ## 6. Identificación del medidor y sistema de hidrantes
@@ -66,7 +82,7 @@ Jerarquía principal:
 ## 8. Fuentes de adquisición y simulación trazable
 - **Manual/tap**.
 - **LED emitido por ESP32**, detectado por cámara. Un pulso detectado equivale al volumen configurado `K`.
-- **Bluetooth desde ESP32**. Cada evento/notificación válida equivale igualmente a `K` litros.
+- **Bluetooth desde ESP32**. READ/NOTIFY entregan el contador acumulativo uint32; cada incremento reconciliado equivale a `K` litros. Una notificación puede recuperar varios pulsos; un contador duplicado no agrega ninguno.
 - **LECTURA VISUAL** se utiliza con medidores reales en campo y no es simulación. El archivo web legado sigue siendo únicamente una herramienta externa de validación y no se integra ni se modifica.
 - **SIMULACIÓN** es una fuente local exclusiva de QA, explícitamente rotulada como no física. Antes de INICIAR presenta un caudal fluctuante de campo; Q1 permanece entre 5 y 7 L/s y Q2 entre 2 y 3 L/s, con cambios consecutivos máximos de 0.5 L/s. El operador decide cuándo iniciar y finalizar. Sólo desde INICIAR se acumulan tiempo, pulsos y Vref. Al terminar captura manualmente las lecturas INICIO/FINAL y el motor real decide con Vref, Vind, U y MPE; no existe un resultado prefabricado.
 - Una Sample simulada persiste su escenario, participa en recovery y permanece marcada en Historial, CSV, JSON, HTML y PDF. No inicia BLE ni exige backend, Internet, cámara o ESP32.
@@ -74,7 +90,7 @@ Jerarquía principal:
 - Las fuentes de pulsos, incluida SIMULACIÓN, implementan la abstracción común `PulseSource`; LECTURA VISUAL comparte Sample/Evidence sin fabricar pulsos.
 - En ESP32 v2, GPIO27 recibe el flujómetro 1 de control calibrado y gobierna Vref/integridad; GPIO25 recibe pulsos opcionales del flujómetro 2 bajo prueba. La ausencia de pulsos GPIO25 no es una falla y el medidor 2 continúa documentándose mediante fotografías y lecturas.
 - Firmware ESP32 V1.0 filtra GPIO25/GPIO27 con PCNT integrado, exige un pulso LOW de al menos 17 ms, rearme HIGH y debounce. Cada unidad se configura con serie/versión; `--nombre ESP32-NS1001-V1.0` anuncia `DDR001-PULSE-NS1001-V1.0` para conservar el contrato de descubrimiento.
-- ESP32 y control remoto mantienen presencia mediante keepalive cada 10 s. Una falta de respuesta no declara desconexión hasta agotar tres reintentos; una respuesta válida restablece el ciclo.
+- ESP32 y control remoto mantienen presencia mediante keepalive cada 10 s. BLE recupera transporte/GATT y contador con reintentos persistentes de 1, 2, 4, 8, 15 y hasta 30 s, sin cambiar la conexión directa ni firmware. El control remoto conserva sus tres comprobaciones negativas. Un rollback del contador no se recupera como continuidad válida (ADR-025).
 - La conexión BLE física persiste entre Método, Preparación y Preparación de cámara, incluso al navegar con Atrás o comenzar una verificación nueva. Cambiar o fijar regiones no recrea ni desconecta la fuente; solamente `DESCONECTAR ESP32` destruye el transporte durante la vida de la app. En Fuente/Método, BUSCAR siempre renueva la lista con dispositivos que acrediten nombre, servicio, característica y payload DDR001.
 - Un ESP32 con GATT activo puede dejar de anunciarse y aun así permanece conectado: BUSCAR combina anuncios válidos con la conexión DDR001 activa y nunca elimina el módulo confirmado por lecturas exitosas. Keepalive duplicado no publica cambios de UI ni persistencia.
 

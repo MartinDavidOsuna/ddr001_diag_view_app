@@ -14,7 +14,19 @@ import '../pulse/led_pulse_detector.dart';
 
 final class FlutterCameraAdapter
     implements CameraPort, LedBrightnessPort, LiveCameraAnalysisPort {
+  FlutterCameraAdapter();
+
+  @visibleForTesting
+  FlutterCameraAdapter.withController(CameraController controller)
+    : _controller = controller;
+
   CameraController? _controller;
+  Future<void>? _initializationTask;
+  Future<void>? _pauseTask;
+  Future<CapturedPhoto>? _captureTask;
+  double _minimumZoom = 1;
+  double _maximumZoom = 1;
+  double? _appliedZoomLevel;
   final _brightness =
       StreamController<({double brightness, DateTime timestamp})>.broadcast();
   bool _streaming = false;
@@ -27,7 +39,6 @@ final class FlutterCameraAdapter
   Completer<String>? _analysisFrameCompleter;
   double _desiredZoomLevel = 1;
   Offset _desiredFocusPoint = const Offset(.5, .5);
-  Timer? _focusMaintenanceTimer;
   bool _restoringOptics = false;
 
   int get framesReceived => _framesReceived;
@@ -53,10 +64,15 @@ final class FlutterCameraAdapter
 
   @override
   Future<void> initialize() async {
+    await _pauseTask;
+    await (_initializationTask ??= _initialize().whenComplete(
+      () => _initializationTask = null,
+    ));
+  }
+
+  Future<void> _initialize() async {
     final existing = _controller;
     if (existing != null && existing.value.isInitialized) {
-      await _restoreOptics();
-      _startFocusMaintenance();
       return;
     }
     final cameras = await availableCameras();
@@ -72,12 +88,13 @@ final class FlutterCameraAdapter
       imageFormatGroup: ImageFormatGroup.yuv420,
     );
     await controller.initialize();
-    final minimumZoom = await controller.getMinZoomLevel();
-    final maximumZoom = await controller.getMaxZoomLevel();
-    _desiredZoomLevel = _desiredZoomLevel.clamp(minimumZoom, maximumZoom);
+    _minimumZoom = await controller.getMinZoomLevel();
+    _maximumZoom = await controller.getMaxZoomLevel();
+    _desiredZoomLevel = _desiredZoomLevel.clamp(_minimumZoom, _maximumZoom);
     _controller = controller;
+    _appliedZoomLevel = null;
+    await controller.setFlashMode(FlashMode.off);
     await _restoreOptics();
-    _startFocusMaintenance();
   }
 
   @override
@@ -106,9 +123,10 @@ final class FlutterCameraAdapter
     _desiredZoomLevel = zoomLevel;
     final controller = _controller;
     if (controller == null || !controller.value.isInitialized) return;
-    final minimum = await controller.getMinZoomLevel();
-    final maximum = await controller.getMaxZoomLevel();
-    await controller.setZoomLevel(zoomLevel.clamp(minimum, maximum));
+    final target = zoomLevel.clamp(_minimumZoom, _maximumZoom);
+    if (_appliedZoomLevel == target) return;
+    await controller.setZoomLevel(target);
+    _appliedZoomLevel = target;
   }
 
   @override
@@ -127,16 +145,36 @@ final class FlutterCameraAdapter
   }
 
   @override
-  Future<CapturedPhoto> capture() async {
-    final controller = _controller;
-    if (controller == null || !controller.value.isInitialized) {
-      throw StateError('La cámara no está lista.');
+  Future<CapturedPhoto> capture() {
+    if (_captureTask != null) {
+      return Future.error(StateError('Ya hay una fotografía en curso.'));
     }
-    await stopAnalysisFrames();
-    await _restoreOptics();
-    await Future<void>.delayed(const Duration(milliseconds: 250));
+    return _captureTask = _capture().whenComplete(() => _captureTask = null);
+  }
+
+  Future<CapturedPhoto> _capture() async {
+    final controller = _controller;
+    if (controller == null ||
+        !controller.value.isInitialized ||
+        _pauseTask != null) {
+      throw StateError(
+        'La cámara no está lista. Espere a que termine de prepararse.',
+      );
+    }
+    final elapsed = Stopwatch()..start();
+    // Preparation already configured optics. Never reopen, refocus or add a
+    // settling delay here: dispatch the shutter immediately for a warm camera.
+    if (_analysisStreaming) await stopAnalysisFrames();
+    debugPrintSynchronously(
+      'DDR001 CAMERA_SHUTTER_REQUEST dispatchMs=${elapsed.elapsedMilliseconds}',
+    );
     final file = await controller.takePicture();
-    return CapturedPhoto(path: file.path, capturedAt: DateTime.now().toUtc());
+    final availableAt = DateTime.now().toUtc();
+    debugPrintSynchronously(
+      'DDR001 CAMERA_FILE_READY elapsedMs=${elapsed.elapsedMilliseconds}',
+    );
+    // This is file availability, not a claim about the sensor exposure time.
+    return CapturedPhoto(path: file.path, capturedAt: availableAt);
   }
 
   @override
@@ -260,25 +298,28 @@ final class FlutterCameraAdapter
   }
 
   @override
-  Future<void> pause() async {
-    _focusMaintenanceTimer?.cancel();
-    _focusMaintenanceTimer = null;
+  Future<void> pause() =>
+      _pauseTask ??= _pause().whenComplete(() => _pauseTask = null);
+
+  Future<void> _pause() async {
+    final initializing = _initializationTask;
+    final capturing = _captureTask;
+    try {
+      await initializing;
+    } catch (_) {}
+    try {
+      await capturing;
+    } catch (_) {}
     await stopAnalysisFrames();
     await stop();
     final controller = _controller;
     _controller = null;
+    _appliedZoomLevel = null;
     await controller?.dispose();
   }
 
   @override
   Future<void> resume() => initialize();
-
-  void _startFocusMaintenance() {
-    _focusMaintenanceTimer?.cancel();
-    _focusMaintenanceTimer = Timer.periodic(const Duration(seconds: 4), (_) {
-      unawaited(_restoreOptics());
-    });
-  }
 
   Future<void> _restoreOptics() async {
     final controller = _controller;
@@ -289,9 +330,7 @@ final class FlutterCameraAdapter
     }
     _restoringOptics = true;
     try {
-      final minimum = await controller.getMinZoomLevel();
-      final maximum = await controller.getMaxZoomLevel();
-      await controller.setZoomLevel(_desiredZoomLevel.clamp(minimum, maximum));
+      await setZoomLevel(_desiredZoomLevel);
       await controller.setFocusMode(FocusMode.auto);
       await controller.setExposureMode(ExposureMode.auto);
       await controller.setFocusPoint(_desiredFocusPoint);

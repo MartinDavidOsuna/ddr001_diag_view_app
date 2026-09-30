@@ -1,5 +1,20 @@
 # DATA_MODEL — Modelo canónico
 
+> **Actualización 1.8.0+26 (2026-09-30):** se permite corregir lecturas manuales
+> INICIO/FINAL, configuración de cálculo y cuenta/banco de verificaciones finalizadas mediante revisiones
+> locales auditadas. Esta excepción sustituye las prohibiciones generales de
+> edición de datos manuales cerrados que aparecen más abajo; adquisición,
+> pulsos y evidencias conservan su inmutabilidad. La configuración original queda en auditoría.
+> Ambas constantes K se configuran en Preparación, con 10 L/pulso iniciales
+> para pruebas nuevas; muestras previas conservan su K.
+> Historial incorpora sincronización de todas las verificaciones finalizadas
+> pendientes del usuario. Toda corrección queda **Pendiente (editada)** hasta que
+> la API anuncie soporte explícito de revisiones en `/me/access`. Sin soporte se
+> muestra el error de actualizar la API y continúan las demás verificaciones.
+> El cliente implementa el contrato opcional documentado; el servidor no se modificó.
+> Detalle normativo: [ADR-030](DECISIONS/ADR-030-local-manual-corrections.md).
+
+
 ## Jerarquía
 `User → Meter → VerificationCase → FlowPoint → Sample → Point / Evidence`
 
@@ -13,6 +28,17 @@ La demo Flutter Web no abre ni replica Drift. Conserva únicamente una lista
 JSON versionada de expedientes simulados completos en `localStorage` mediante
 SharedPreferences Web. Ese historial es aislado, no sincronizable y puede
 borrarse desde su propia UI; no modifica datos Android, API ni SQL.
+
+La versión Web 1.7 amplía de forma aditiva cada muestra con `settings` y
+`photos`: tipo, volumen, pulsos, caudal puntual, hora, asset empaquetado y
+SHA-256. Los campos anteriores permanecen legibles; fotografías ausentes en
+historial antiguo no se inventan. Configuración y fotografías de muestras
+cerradas son snapshots inmutables. Las claves separadas
+`ddr001_web_demo_draft_v1` y `ddr001_web_demo_settings_v1` conservan borrador y
+preferencias; el historial continúa en `ddr001_web_demo_cases_v1`. El borrador
+guarda fase, inicio/final, tiempo activo, remanente de pulsos y muestras previas.
+El cierre guarda primero el expediente y después elimina el borrador; una
+recuperación reconoce un expediente ya cerrado por su ID y no lo duplica.
 
 ## User
 - `user_id` UUID local. Puede diferir del `rv.users.user_id` remoto; se conserva
@@ -183,3 +209,12 @@ SQL Server guarda metadata/hash/storage key. Los originales se conservan fuera
 de SQL, byte a byte, bajo un namespace físico
 `STORAGE_ROOT/functional-diagnostics/`; thumbnails son derivados. El cliente no
 elige rutas ni storage keys.
+
+## Identidad remota de puntos (ADR-028)
+
+IDs de Point locales no UUID se adaptan a UUID v5 deterministas únicamente en
+transporte (sampleId + pointId, namespace/nombre definidos en ADR-028). Se
+conservan IDs locales y checksums de muestras/casos. Metadata y referencias de
+Evidence usan la misma identidad remota. Lotes failed por VALIDATION_FAILED,
+sin receipt y con IDs legados, reparan esos campos y hashes de transporte con
+el mismo batchId/itemId. No se cambian lotes ambiguos, confirmados o en conflicto.
